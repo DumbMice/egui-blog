@@ -19,7 +19,8 @@
 - [x] Add emphasis rendering (bold, italic)
 - [x] Implement code block support
 - [ ] Add syntax highlighting
-- [ ] Support links and images
+- [x] Support links and images (basic image placeholder)
+- [x] Add strikethrough support
 - [x] Add list rendering (ordered/unordered)
 - [x] Implement blockquotes and horizontal rules
 - [ ] Add table support (optional)

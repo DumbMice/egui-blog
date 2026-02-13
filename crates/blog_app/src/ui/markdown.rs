@@ -1,6 +1,6 @@
 //! Markdown rendering for blog posts.
 
-use egui::{RichText, Ui};
+use egui::{Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui, vec2};
 use pulldown_cmark::{Event, HeadingLevel, Parser, Tag};
 
 /// Render markdown content to an egui UI.
@@ -62,14 +62,24 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             }
                         }
 
+                        let row_height = ui.text_style_height(&TextStyle::Body);
+                        let one_indent = row_height / 2.0;
+
                         for (i, item) in list_items.iter().enumerate() {
-                            let prefix = match ordered {
-                                Some(start) => format!("{}. ", start + i as u64),
-                                None => "• ".to_string(),
-                            };
                             ui.horizontal(|ui| {
-                                ui.add_space(16.0);
-                                ui.label(prefix);
+                                match ordered {
+                                    Some(start) => {
+                                        let number = (start + i as u64).to_string();
+                                        let width = 3.0 * one_indent;
+                                        numbered_point(ui, width, &number);
+                                        ui.add_space(one_indent);
+                                    }
+                                    None => {
+                                        let width = one_indent;
+                                        bullet_point(ui, width);
+                                        ui.add_space(one_indent);
+                                    }
+                                }
                                 ui.label(item);
                             });
                         }
@@ -92,14 +102,16 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         }
 
                         ui.add_space(4.0);
-                        // Display code in monospace font with background
-                        let mut display_text = code_text.clone();
-                        ui.add(
-                            egui::TextEdit::multiline(&mut display_text)
-                                .font(egui::TextStyle::Monospace)
-                                .desired_width(f32::INFINITY)
-                                .frame(true)
-                                .interactive(false) // Make it read-only
+                        // Display code in monospace font with background (EasyMark style)
+                        let where_to_put_background = ui.painter().add(Shape::Noop);
+                        let response = ui.monospace(&code_text);
+                        let mut rect = response.rect;
+                        rect = rect.expand(1.0); // looks better
+                        rect.max.x = ui.max_rect().max.x;
+                        let code_bg_color = ui.visuals().code_bg_color;
+                        ui.painter().set(
+                            where_to_put_background,
+                            Shape::rect_filled(rect, 1.0, code_bg_color),
                         );
                         ui.add_space(4.0);
                     }
@@ -131,6 +143,7 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                     }
                     Tag::Link(_, url, _) => {
                         // Links
+                        let url = url.to_string();
                         let mut link_text = String::new();
                         while let Some(event) = events.next() {
                             match event {
@@ -141,10 +154,7 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             }
                         }
 
-                        if ui.link(&link_text).clicked() {
-                            // In a real app, you might want to open the URL
-                            // For now, just display as clickable text
-                        }
+                        ui.add(Hyperlink::from_label_and_url(&link_text, &url));
                     }
                     Tag::BlockQuote => {
                         // Block quotes
@@ -160,12 +170,21 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         }
 
                         ui.add_space(4.0);
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
-                            ui.add_space(8.0);
-                            ui.vertical(|ui| {
-                                ui.label(RichText::new(quote_text).color(ui.visuals().weak_text_color()));
-                            });
-                        });
+                        let row_height = ui.text_style_height(&TextStyle::Body);
+                        let one_indent = row_height / 2.0;
+
+                        // Draw vertical line for quote (EasyMark style)
+                        let rect = ui
+                            .allocate_exact_size(vec2(2.0 * one_indent, row_height), Sense::hover())
+                            .0;
+                        let rect = rect.expand2(ui.style().spacing.item_spacing * 0.5);
+                        ui.painter().line_segment(
+                            [rect.center_top(), rect.center_bottom()],
+                            (1.0, ui.visuals().weak_text_color()),
+                        );
+
+                        // Render quote text with weak color
+                        ui.label(RichText::new(quote_text).color(ui.visuals().weak_text_color()));
                         ui.add_space(4.0);
                     }
                     Tag::FootnoteDefinition(_) => {
@@ -193,15 +212,31 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         }
                     }
                     Tag::Strikethrough => {
-                        // Skip strikethrough for now
+                        // Strikethrough text
+                        let mut strike_text = String::new();
                         while let Some(event) = events.next() {
-                            if matches!(event, Event::End(Tag::Strikethrough)) {
-                                break;
+                            match event {
+                                Event::End(Tag::Strikethrough) => break,
+                                Event::Text(text) => strike_text.push_str(&*text),
+                                Event::SoftBreak => strike_text.push(' '),
+                                _ => {} // Skip other events
                             }
                         }
+                        ui.label(RichText::new(strike_text).strikethrough());
                     }
-                    _ => {
-                        // Skip any other tags we don't handle
+                    Tag::Image(_, url, _) => {
+                        // Images - display alt text as placeholder
+                        let _url = url.to_string();
+                        let mut alt_text = String::new();
+                        while let Some(event) = events.next() {
+                            match event {
+                                Event::End(Tag::Image(_, _, _)) => break,
+                                Event::Text(text) => alt_text.push_str(&*text),
+                                Event::SoftBreak => alt_text.push(' '),
+                                _ => {} // Skip other events
+                            }
+                        }
+                        ui.label(RichText::new(format!("[Image: {}]", alt_text)).italics().weak());
                     }
                 }
             }
@@ -242,6 +277,33 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
             }
         }
     }
+}
+
+fn bullet_point(ui: &mut Ui, width: f32) -> egui::Response {
+    let row_height = ui.text_style_height(&TextStyle::Body);
+    let (rect, response) = ui.allocate_exact_size(vec2(width, row_height), Sense::hover());
+    ui.painter().circle_filled(
+        rect.center(),
+        rect.height() / 8.0,
+        ui.visuals().strong_text_color(),
+    );
+    response
+}
+
+fn numbered_point(ui: &mut Ui, width: f32, number: &str) -> egui::Response {
+    let font_id = TextStyle::Body.resolve(ui.style());
+    let row_height = ui.fonts_mut(|f| f.row_height(&font_id));
+    let (rect, response) = ui.allocate_exact_size(vec2(width, row_height), Sense::hover());
+    let text = format!("{number}.");
+    let text_color = ui.visuals().strong_text_color();
+    ui.painter().text(
+        rect.right_center(),
+        Align2::RIGHT_CENTER,
+        text,
+        font_id,
+        text_color,
+    );
+    response
 }
 
 /// Simple markdown renderer for previews (first 200 chars)
