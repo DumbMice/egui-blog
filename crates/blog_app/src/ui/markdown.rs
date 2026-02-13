@@ -1,6 +1,8 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Align, Align2, Color32, Hyperlink, LayoutJob, RichText, Sense, Shape, TextFormat, TextStyle, Ui, vec2};
+use egui::{Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui, vec2};
+use egui::text::LayoutJob;
+use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 /// Render markdown content to an egui UI.
@@ -119,9 +121,14 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             });
                         }
 
-                        // Display code in monospace font with background (EasyMark style)
+                        // Syntax highlighting
+                        let theme = CodeTheme::from_memory(ui.ctx(), ui.style());
+                        let lang_str = language.as_deref().unwrap_or("");
+                        let layout_job = highlight(ui.ctx(), ui.style(), &theme, &code_text, lang_str);
+
+                        // Display with background (EasyMark style)
                         let where_to_put_background = ui.painter().add(Shape::Noop);
-                        let response = ui.monospace(&code_text);
+                        let response = ui.add(egui::Label::new(layout_job).selectable(true));
                         let mut rect = response.rect;
                         rect = rect.expand(1.0); // looks better
                         rect.max.x = ui.max_rect().max.x;

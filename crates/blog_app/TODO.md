@@ -19,7 +19,7 @@
 - [x] Add emphasis rendering (bold, italic)
 - [x] Implement code block support
 - [x] Add language labels to code blocks
-- [ ] Add syntax highlighting
+- [x] Add syntax highlighting
 - [x] Support links and images (basic image placeholder)
 - [x] Add strikethrough support
 - [x] Add list rendering (ordered/unordered)

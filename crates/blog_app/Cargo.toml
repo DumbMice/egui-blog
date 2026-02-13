@@ -40,6 +40,9 @@ serde_yaml = "0.9"
 pulldown-cmark = "0.9"
 thiserror = "1.0"
 
+# Syntax highlighting
+egui_extras = { workspace = true, default-features = false, features = ["syntect"] }
+
 # File watching (development only)
 notify = { version = "6.1", optional = true }
 
