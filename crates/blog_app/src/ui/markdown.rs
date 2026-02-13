@@ -58,11 +58,13 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         ui.add_space(4.0);
                     }
                     Tag::List(ordered) => {
+                        console_log!("[blog] Start List, ordered: {:?}", ordered);
                         // Lists
                         let mut list_items = Vec::new();
                         while let Some(event) = events.next() {
+                            console_log!("[blog] List processing event: {:?}", event);
                             match event {
-                                Event::End(Tag::Item) => break,
+                                Event::End(Tag::List(_)) => break,
                                 Event::Start(Tag::Item) => {
                                     let mut item_text = String::new();
                                     while let Some(event) = events.next() {
