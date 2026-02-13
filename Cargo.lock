@@ -604,6 +604,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "blog_app"
+version = "0.33.3"
+dependencies = [
+ "bytemuck",
+ "eframe",
+ "egui",
+ "egui_kittest",
+ "env_logger",
+ "log",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wgpu",
+]
+
+[[package]]
 name = "bstr"
 version = "1.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

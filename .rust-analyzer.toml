@@ -1,0 +1,27 @@
+# Rust-Analyzer Configuration for egui workspace
+# This enables analysis of all targets (including wasm32)
+
+[check]
+all_targets = true
+
+[cargo]
+# Analyze all targets including wasm32
+all_targets = true
+# Uncomment to specifically target wasm32 for this workspace:
+# target = "wasm32-unknown-unknown"
+
+# Load all features for better analysis
+features = "all"
+
+# Use separate target directory to avoid conflicts
+target_dir = "target_ra"
+
+[assist]
+import_merge_behavior = "full"
+
+[diagnostics]
+disabled = ["unresolved-import"]
+
+# Optional: Cache for faster analysis
+[cache]
+warmup = true

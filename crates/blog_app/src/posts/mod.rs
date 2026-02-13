@@ -1,0 +1,179 @@
+//! Blog post data structures and management.
+
+/// A blog post.
+#[derive(Clone, Debug)]
+pub struct BlogPost {
+    /// Unique identifier
+    pub id: usize,
+    /// Post title
+    pub title: String,
+    /// Post content (markdown format)
+    pub content: String,
+    /// Publication date
+    pub date: String,
+    /// Optional tags/categories
+    pub tags: Vec<String>,
+}
+
+impl BlogPost {
+    /// Create a new blog post.
+    pub fn new(id: usize, title: &str, content: &str, date: &str) -> Self {
+        Self {
+            id,
+            title: title.to_string(),
+            content: content.to_string(),
+            date: date.to_string(),
+            tags: Vec::new(),
+        }
+    }
+
+    /// Create a new blog post with tags.
+    pub fn with_tags(mut self, tags: &[&str]) -> Self {
+        self.tags = tags.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Get a preview of the content (first 100 chars).
+    pub fn preview(&self) -> String {
+        let preview = self.content.chars().take(100).collect::<String>();
+        if self.content.len() > 100 {
+            format!("{}...", preview)
+        } else {
+            preview
+        }
+    }
+}
+
+/// Manages a collection of blog posts.
+pub struct PostManager {
+    posts: Vec<BlogPost>,
+    next_id: usize,
+}
+
+impl Default for PostManager {
+    fn default() -> Self {
+        let mut manager = Self {
+            posts: Vec::new(),
+            next_id: 0,
+        };
+
+        // Add example posts for demonstration
+        manager.add_example_posts();
+        manager
+    }
+}
+
+impl PostManager {
+    /// Create an empty post manager.
+    pub fn new() -> Self {
+        Self {
+            posts: Vec::new(),
+            next_id: 0,
+        }
+    }
+
+    /// Add example posts for demonstration.
+    pub fn add_example_posts(&mut self) {
+        self.add_post(BlogPost::new(
+            self.next_id,
+            "Welcome to My Blog",
+            "This is my first blog post using egui! I'm excited to build a blog with Rust and WebAssembly.
+
+## Features
+
+- **Fast**: Compiled to WebAssembly
+- **Simple**: No JavaScript framework
+- **Rust**: Safety and performance
+
+Stay tuned for more updates!",
+            "2026-02-10",
+        ).with_tags(&["welcome", "introduction"]));
+
+        self.add_post(BlogPost::new(
+            self.next_id,
+            "Learning egui",
+            "Today I learned about egui's immediate mode GUI. It's quite different from retained mode frameworks but very intuitive.
+
+### What I like:
+- Easy to get started
+- Great documentation
+- Cross-platform (native and web)
+
+### Code snippet:
+```rust
+fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    egui::CentralPanel::default().show(ctx, |ui| {
+        ui.heading(\"My App\");
+        if ui.button(\"Click me\").clicked() {
+            // handle click
+        }
+    });
+}
+```",
+            "2026-02-11",
+        ).with_tags(&["tutorial", "egui", "learning"]));
+
+        self.add_post(BlogPost::new(
+            self.next_id,
+            "Future Plans",
+            "I plan to add more features to this blog:
+
+1. Markdown rendering
+2. Code syntax highlighting
+3. Dark/light theme toggle
+4. Search functionality
+5. Comments section
+
+Let me know what you think!",
+            "2026-02-12",
+        ).with_tags(&["planning", "features"]));
+    }
+
+    /// Add a new post to the collection.
+    pub fn add_post(&mut self, post: BlogPost) {
+        self.posts.push(post);
+        self.next_id += 1;
+    }
+
+    /// Get all posts.
+    pub fn posts(&self) -> &[BlogPost] {
+        &self.posts
+    }
+
+    /// Get a post by index.
+    pub fn get(&self, index: usize) -> Option<&BlogPost> {
+        self.posts.get(index)
+    }
+
+    /// Get the number of posts.
+    pub fn count(&self) -> usize {
+        self.posts.len()
+    }
+
+    /// Find posts containing text in title or content.
+    pub fn search(&self, query: &str) -> Vec<&BlogPost> {
+        if query.is_empty() {
+            return self.posts.iter().collect();
+        }
+
+        let query_lower = query.to_lowercase();
+        self.posts
+            .iter()
+            .filter(|post| {
+                post.title.to_lowercase().contains(&query_lower) ||
+                post.content.to_lowercase().contains(&query_lower)
+            })
+            .collect()
+    }
+
+    /// Get all unique tags across all posts.
+    pub fn all_tags(&self) -> Vec<String> {
+        let mut tags = std::collections::HashSet::new();
+        for post in &self.posts {
+            for tag in &post.tags {
+                tags.insert(tag.clone());
+            }
+        }
+        tags.into_iter().collect()
+    }
+}

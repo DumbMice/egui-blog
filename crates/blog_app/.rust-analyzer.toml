@@ -1,0 +1,16 @@
+# Rust-Analyzer Configuration for blog_app crate
+# Specifically enables wasm32 target analysis
+
+[check]
+all_targets = true
+
+[cargo]
+all_targets = true
+# You can also specifically target wasm32 for this crate:
+# target = "wasm32-unknown-unknown"
+
+# Enable web_app feature for proper analysis
+features = ["web_app", "wgpu"]
+
+[assist]
+import_merge_behavior = "full"
