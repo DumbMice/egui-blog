@@ -1,14 +1,12 @@
 //! Main UI layout components for the blog app.
 
-use egui::{Context, Ui};
+use egui::Ui;
 
-use crate::posts::{BlogPost, PostManager};
+use crate::posts::PostManager;
 use super::components::{self, Theme};
 
 /// Configuration for the blog layout.
 pub struct LayoutConfig {
-    /// Side panel width
-    pub side_panel_width: f32,
     /// Show tags in post list
     pub show_tags_in_list: bool,
     /// Show post preview in list
@@ -18,7 +16,6 @@ pub struct LayoutConfig {
 impl Default for LayoutConfig {
     fn default() -> Self {
         Self {
-            side_panel_width: 250.0,
             show_tags_in_list: true,
             show_preview_in_list: false,
         }

@@ -64,13 +64,6 @@ impl Default for PostManager {
 }
 
 impl PostManager {
-    /// Create an empty post manager.
-    pub fn new() -> Self {
-        Self {
-            posts: Vec::new(),
-            next_id: 0,
-        }
-    }
 
     /// Add example posts for demonstration.
     pub fn add_example_posts(&mut self) {
@@ -166,14 +159,4 @@ Let me know what you think!",
             .collect()
     }
 
-    /// Get all unique tags across all posts.
-    pub fn all_tags(&self) -> Vec<String> {
-        let mut tags = std::collections::HashSet::new();
-        for post in &self.posts {
-            for tag in &post.tags {
-                tags.insert(tag.clone());
-            }
-        }
-        tags.into_iter().collect()
-    }
 }

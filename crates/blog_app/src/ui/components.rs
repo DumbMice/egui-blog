@@ -24,14 +24,6 @@ impl Theme {
         }
     }
 
-    /// Cycle to the next theme.
-    pub fn next(&self) -> Self {
-        match self {
-            Self::Light => Self::Dark,
-            Self::Dark => Self::Auto,
-            Self::Auto => Self::Light,
-        }
-    }
 
     /// Get the name of the theme.
     pub fn name(&self) -> &'static str {
@@ -60,7 +52,7 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
         }
 
         if ui
-            .button("☀ ")
+            .button("☀")
             .on_hover_text("Switch to light theme")
             .clicked()
         {
@@ -68,7 +60,7 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
             changed = true;
         }
 
-        if ui.button("⚙ ").on_hover_text("Auto theme").clicked() {
+        if ui.button("⚙").on_hover_text("Auto theme").clicked() {
             *current_theme = Theme::Auto;
             changed = true;
         }

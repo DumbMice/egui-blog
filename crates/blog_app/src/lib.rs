@@ -112,7 +112,7 @@ impl eframe::App for BlogApp {
                 self.post_manager.count(),
                 &self.new_post_title,
                 &self.new_post_content,
-                "2026-02-10", // TODO: Use actual date
+                "2026-02-10",
             );
             self.post_manager.add_post(new_post);
             self.selected_post = self.post_manager.count() - 1;
