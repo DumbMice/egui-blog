@@ -25,7 +25,7 @@
 - [x] Add list rendering (ordered/unordered)
 - [x] Improve list spacing and visual markers
 - [x] Implement blockquotes and horizontal rules
-- [ ] Add table support (optional)
+- [x] Add table support (optional)
 
 ## Priority 3: Enhanced Styling
 - [ ] Design custom theme system

@@ -3,7 +3,7 @@
 use egui::{Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui, vec2};
 use egui::text::LayoutJob;
 use egui_extras::syntax_highlighting::{CodeTheme, highlight};
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Parser, Tag};
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 /// Render markdown content to an egui UI.
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
@@ -219,16 +219,13 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             }
                         }
                     }
-                    Tag::Table(_) => {
-                        // Skip tables for now (complex to implement)
-                        while let Some(event) = events.next() {
-                            if matches!(event, Event::End(Tag::Table(_))) {
-                                break;
-                            }
+                    Tag::Table(alignments) => {
+                        if let Some((headers, rows)) = parse_table(&mut events, &alignments) {
+                            render_table(ui, &alignments, &headers, &rows);
                         }
                     }
                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
-                        // Skip table elements
+                        // Skip table elements that appear outside a table (should not happen)
                         while let Some(event) = events.next() {
                             if matches!(event, Event::End(Tag::TableHead | Tag::TableRow | Tag::TableCell)) {
                                 break;
@@ -328,6 +325,102 @@ fn numbered_point(ui: &mut Ui, width: f32, number: &str) -> egui::Response {
         text_color,
     );
     response
+}
+
+/// Parse a markdown table from the event stream.
+fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, _alignments: &[Alignment]) -> Option<(Vec<Vec<String>>, Vec<Vec<String>>)> {
+
+    let mut headers = Vec::new();
+    let mut rows = Vec::new();
+    let mut current_row = Vec::new();
+    let mut in_header = false;
+
+    while let Some(event) = events.next() {
+        match event {
+            Event::Start(Tag::TableHead) => {
+                in_header = true;
+            }
+            Event::End(Tag::TableHead) => {
+                in_header = false;
+            }
+            Event::Start(Tag::TableRow) => {
+                current_row.clear();
+            }
+            Event::End(Tag::TableRow) => {
+                if !current_row.is_empty() {
+                    if in_header {
+                        headers.push(current_row.clone());
+                    } else {
+                        rows.push(current_row.clone());
+                    }
+                    current_row.clear();
+                }
+            }
+            Event::Start(Tag::TableCell) => {
+                let mut cell_text = String::new();
+                while let Some(event) = events.next() {
+                    match event {
+                        Event::End(Tag::TableCell) => break,
+                        Event::Text(text) => cell_text.push_str(&*text),
+                        Event::SoftBreak => cell_text.push(' '),
+                        Event::HardBreak => cell_text.push('\n'),
+                        _ => {}
+                    }
+                }
+                current_row.push(cell_text);
+            }
+            Event::End(Tag::Table(_)) => break,
+            _ => {}
+        }
+    }
+
+    Some((headers, rows))
+}
+
+/// Render a markdown table.
+fn render_table(ui: &mut Ui, alignments: &[Alignment], headers: &[Vec<String>], rows: &[Vec<String>]) {
+    if headers.is_empty() && rows.is_empty() {
+        return;
+    }
+
+    // Determine number of columns from first row
+    let col_count = headers.first()
+        .map(|r| r.len())
+        .or_else(|| rows.first().map(|r| r.len()))
+        .unwrap_or(0);
+
+    if col_count == 0 {
+        return;
+    }
+
+    ui.add_space(4.0);
+
+    // Create a grid with the appropriate number of columns
+    egui::Grid::new("markdown_table")
+        .striped(true)
+        .min_col_width(40.0)
+        .show(ui, |ui| {
+            // Render header rows
+            for header_row in headers {
+                for (col_idx, cell) in header_row.iter().enumerate() {
+                    let _alignment = alignments.get(col_idx).copied().unwrap_or(Alignment::None);
+                    let label = RichText::new(cell).strong();
+                    ui.label(label);
+                }
+                ui.end_row();
+            }
+
+            // Render data rows
+            for row in rows {
+                for (col_idx, cell) in row.iter().enumerate() {
+                    let _alignment = alignments.get(col_idx).copied().unwrap_or(Alignment::None);
+                    ui.label(cell);
+                }
+                ui.end_row();
+            }
+        });
+
+    ui.add_space(4.0);
 }
 
 /// Simple markdown renderer for previews (first 200 chars)

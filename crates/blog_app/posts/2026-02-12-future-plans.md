@@ -13,3 +13,14 @@ I plan to add more features to this blog:
 5. Comments section
 
 Let me know what you think!
+
+### Feature Priority Table
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Markdown rendering | High | ✅ Done |
+| Syntax highlighting | High | ✅ Done |
+| Dark/light theme | Medium | ✅ Done |
+| Search functionality | Medium | 🔄 In progress |
+| Comments section | Low | 📋 Planned |
+| Table support | Medium | ✅ Done |
