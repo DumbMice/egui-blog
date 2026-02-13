@@ -13,15 +13,15 @@
 - [ ] Update UI to handle missing posts gracefully
 
 ## Priority 2: Markdown Rendering
-- [ ] Evaluate markdown rendering options
-- [ ] Choose and integrate markdown parser
-- [ ] Implement basic text rendering (headings, paragraphs)
-- [ ] Add emphasis rendering (bold, italic)
-- [ ] Implement code block support
+- [x] Evaluate markdown rendering options
+- [x] Choose and integrate markdown parser
+- [x] Implement basic text rendering (headings, paragraphs)
+- [x] Add emphasis rendering (bold, italic)
+- [x] Implement code block support
 - [ ] Add syntax highlighting
 - [ ] Support links and images
-- [ ] Add list rendering (ordered/unordered)
-- [ ] Implement blockquotes and horizontal rules
+- [x] Add list rendering (ordered/unordered)
+- [x] Implement blockquotes and horizontal rules
 - [ ] Add table support (optional)
 
 ## Priority 3: Enhanced Styling

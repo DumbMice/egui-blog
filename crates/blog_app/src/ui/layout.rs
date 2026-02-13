@@ -184,8 +184,8 @@ pub fn main_content(
             components::post_metadata(ui, &post.date, &post.tags);
             ui.separator();
 
-            // TODO: Replace with markdown renderer
-            ui.add(egui::Label::new(&post.content).wrap());
+            // Render markdown content
+            super::render_markdown(ui, &post.content);
 
             ui.separator();
 
