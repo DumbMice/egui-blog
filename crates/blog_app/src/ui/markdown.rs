@@ -5,9 +5,22 @@ use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag};
 use log;
 
+#[cfg(target_arch = "wasm32")]
+use web_sys::console;
+
+macro_rules! console_log {
+    ($($t:tt)*) => {{
+        #[cfg(target_arch = "wasm32")]
+        console::log_1(&format!($($t)*).into());
+        #[cfg(not(target_arch = "wasm32"))]
+        println!($($t)*);
+    }}
+}
+
 /// Render markdown content to an egui UI.
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
     log::debug!("render_markdown called, length: {}", markdown.len());
+    console_log!("[blog] render_markdown called, length: {}", markdown.len());
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     let parser = Parser::new_ext(markdown, options);
@@ -17,6 +30,7 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
         match event {
             Event::Start(tag) => {
                 log::debug!("Start tag: {:?}", tag);
+                console_log!("[blog] Start tag: {:?}", tag);
                 match tag {
                     Tag::Paragraph => {
                         // Paragraphs are handled by accumulating text
@@ -225,6 +239,7 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                     }
                     Tag::Table(alignments) => {
                         log::debug!("Tag::Table detected");
+                        console_log!("[blog] Tag::Table detected");
                         if let Some((headers, rows)) = parse_table(&mut events, &alignments) {
                             render_table(ui, &alignments, &headers, &rows);
                         } else {
