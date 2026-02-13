@@ -18,10 +18,12 @@
 - [x] Implement basic text rendering (headings, paragraphs)
 - [x] Add emphasis rendering (bold, italic)
 - [x] Implement code block support
+- [x] Add language labels to code blocks
 - [ ] Add syntax highlighting
 - [x] Support links and images (basic image placeholder)
 - [x] Add strikethrough support
 - [x] Add list rendering (ordered/unordered)
+- [x] Improve list spacing and visual markers
 - [x] Implement blockquotes and horizontal rules
 - [ ] Add table support (optional)
 

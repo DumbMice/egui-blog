@@ -1,7 +1,7 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use pulldown_cmark::{Event, HeadingLevel, Parser, Tag};
+use egui::{Align, Align2, Color32, Hyperlink, LayoutJob, RichText, Sense, Shape, TextFormat, TextStyle, Ui, vec2};
+use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 /// Render markdown content to an egui UI.
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
@@ -67,17 +67,19 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
 
                         for (i, item) in list_items.iter().enumerate() {
                             ui.horizontal(|ui| {
+                                ui.spacing_mut().item_spacing.x = 0.0;
+                                ui.set_row_height(row_height);
                                 match ordered {
                                     Some(start) => {
                                         let number = (start + i as u64).to_string();
                                         let width = 3.0 * one_indent;
                                         numbered_point(ui, width, &number);
-                                        ui.add_space(one_indent);
+                                        ui.add_space(one_indent / 3.0);
                                     }
                                     None => {
                                         let width = one_indent;
                                         bullet_point(ui, width);
-                                        ui.add_space(one_indent);
+                                        ui.add_space(one_indent / 3.0);
                                     }
                                 }
                                 ui.label(item);
@@ -88,7 +90,7 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                     Tag::Item => {
                         // Already handled in List
                     }
-                    Tag::CodeBlock(_kind) => {
+                    Tag::CodeBlock(kind) => {
                         // Code blocks
                         let mut code_text = String::new();
                         while let Some(event) = events.next() {
@@ -102,6 +104,21 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         }
 
                         ui.add_space(4.0);
+
+                        // Display language label if present
+                        let language = match kind {
+                            CodeBlockKind::Fenced(lang) if !lang.is_empty() => Some(lang.to_string()),
+                            _ => None,
+                        };
+
+                        if let Some(lang) = &language {
+                            ui.horizontal(|ui| {
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                                    ui.label(RichText::new(lang).small().weak());
+                                });
+                            });
+                        }
+
                         // Display code in monospace font with background (EasyMark style)
                         let where_to_put_background = ui.painter().add(Shape::Noop);
                         let response = ui.monospace(&code_text);
