@@ -1,15 +1,15 @@
 # Blog App TODO List
 
 ## Priority 1: Content Separation
-- [ ] Define post file format (Markdown + YAML frontmatter)
-- [ ] Create posts directory structure
-- [ ] Implement markdown file loader
-- [ ] Add frontmatter parser (YAML)
-- [ ] Update PostManager to use file loading
+- [x] Define post file format (Markdown + YAML frontmatter)
+- [x] Create posts directory structure
+- [x] Implement markdown file loader
+- [x] Add frontmatter parser (YAML)
+- [x] Update PostManager to use file loading
 - [ ] Add file watcher for live reload (development)
-- [ ] Implement compile-time embedding (production)
-- [ ] Create example post files
-- [ ] Test loading and display
+- [x] Implement compile-time embedding (production)
+- [x] Create example post files
+- [x] Test loading and display
 - [ ] Update UI to handle missing posts gracefully
 
 ## Priority 2: Markdown Rendering

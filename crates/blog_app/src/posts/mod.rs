@@ -1,5 +1,10 @@
 //! Blog post data structures and management.
 
+mod loader;
+
+#[allow(unused_imports)]
+pub use loader::{Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content};
+
 /// A blog post.
 #[derive(Clone, Debug)]
 pub struct BlogPost {
@@ -57,8 +62,19 @@ impl Default for PostManager {
             next_id: 0,
         };
 
-        // Add example posts for demonstration
-        manager.add_example_posts();
+        // Load posts embedded at compile time
+        match load_embedded_posts() {
+            Ok(posts) => {
+                for post in posts {
+                    manager.add_post(post);
+                }
+            }
+            Err(err) => {
+                eprintln!("Failed to load embedded posts: {}", err);
+                // Fall back to example posts
+                manager.add_example_posts();
+            }
+        }
         manager
     }
 }

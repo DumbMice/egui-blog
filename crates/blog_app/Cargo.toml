@@ -26,10 +26,22 @@ web_app = []
 glow = ["eframe/glow"]
 wgpu = ["eframe/wgpu", "bytemuck", "dep:wgpu"]
 
+# Development feature for file watching
+dev = ["notify"]
+
 [dependencies]
 eframe = { workspace = true, default-features = false, features = ["web_screen_reader"] }
 egui = { workspace = true, features = ["default"] }
 log.workspace = true
+
+# Markdown and YAML parsing
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+pulldown-cmark = "0.9"
+thiserror = "1.0"
+
+# File watching (development only)
+notify = { version = "6.1", optional = true }
 
 # Optional dependencies:
 bytemuck = { workspace = true, optional = true }

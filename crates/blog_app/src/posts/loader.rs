@@ -1,0 +1,154 @@
+//! Markdown file loading and parsing for blog posts.
+
+use std::path::{Path, PathBuf};
+use std::fs;
+
+use serde::Deserialize;
+use thiserror::Error;
+
+use crate::posts::BlogPost;
+
+/// Frontmatter metadata for a blog post.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Frontmatter {
+    /// Post title
+    pub title: String,
+    /// Publication date (YYYY-MM-DD format)
+    pub date: String,
+    /// Optional tags/categories
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+/// Errors that can occur during post loading.
+#[derive(Debug, Error)]
+pub enum LoadError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("YAML parsing error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
+
+    #[error("Invalid file format: {0}")]
+    #[allow(dead_code)]
+    Format(String),
+
+    #[error("Missing frontmatter delimiter")]
+    MissingDelimiter,
+}
+
+/// Load a blog post from a markdown file.
+///
+/// File format:
+/// ```markdown
+/// ---
+/// title: "Post Title"
+/// date: "2026-02-10"
+/// tags: ["tag1", "tag2"]
+/// ---
+///
+/// Post content in markdown format...
+/// ```
+#[allow(unused)]
+pub fn load_post_from_file(path: &Path, id: usize) -> Result<BlogPost, LoadError> {
+    let content = fs::read_to_string(path)?;
+    parse_post_content(&content, id)
+}
+
+/// Parse post content from a string.
+pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadError> {
+    // Split frontmatter from content
+    let parts: Vec<&str> = content.splitn(3, "---").collect();
+
+    if parts.len() < 3 {
+        return Err(LoadError::MissingDelimiter);
+    }
+
+    // parts[0] should be empty or whitespace before first ---
+    // parts[1] is the YAML frontmatter
+    // parts[2] is the markdown content
+    let frontmatter_yaml = parts[1].trim();
+    let markdown_content = parts[2].trim();
+
+    // Parse frontmatter
+    let frontmatter: Frontmatter = serde_yaml::from_str(frontmatter_yaml)?;
+
+    // Create blog post
+    Ok(BlogPost {
+        id,
+        title: frontmatter.title,
+        content: markdown_content.to_string(),
+        date: frontmatter.date,
+        tags: frontmatter.tags,
+    })
+}
+
+/// Load all posts from a directory.
+#[allow(unused)]
+pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
+    let mut posts = Vec::new();
+
+    if !dir.exists() {
+        return Ok(posts); // Empty directory is ok
+    }
+
+    let mut entries: Vec<PathBuf> = fs::read_dir(dir)?
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .filter(|path| {
+            path.extension()
+                .map(|ext| ext == "md" || ext == "markdown")
+                .unwrap_or(false)
+        })
+        .collect();
+
+    // Sort by filename for consistent ordering
+    entries.sort();
+
+    for (idx, path) in entries.iter().enumerate() {
+        match load_post_from_file(path, idx) {
+            Ok(post) => posts.push(post),
+            Err(err) => eprintln!("Warning: Failed to load {}: {}", path.display(), err),
+        }
+    }
+
+    Ok(posts)
+}
+
+/// Watch a directory for changes (development only).
+#[cfg(feature = "dev")]
+pub fn watch_directory(dir: &Path) -> notify::Result<notify::RecommendedWatcher> {
+    use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+
+    let mut watcher = notify::recommended_watcher(|res| {
+        match res {
+            Ok(event) => {
+                println!("File changed: {:?}", event);
+                // In a real app, you would reload posts here
+            }
+            Err(e) => eprintln!("Watch error: {:?}", e),
+        }
+    })?;
+
+    watcher.watch(dir, RecursiveMode::NonRecursive)?;
+    Ok(watcher)
+}
+
+/// Load posts embedded at compile time.
+pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
+    // Embedded post files
+    let post_contents = [
+        include_str!("../../posts/2026-02-10-welcome.md"),
+        include_str!("../../posts/2026-02-11-learning-egui.md"),
+        include_str!("../../posts/2026-02-12-future-plans.md"),
+    ];
+
+    let mut posts = Vec::new();
+    for (id, content) in post_contents.iter().enumerate() {
+        match parse_post_content(content, id) {
+            Ok(post) => posts.push(post),
+            Err(err) => eprintln!("Warning: Failed to parse embedded post {}: {}", id, err),
+        }
+    }
+
+    Ok(posts)
+}
