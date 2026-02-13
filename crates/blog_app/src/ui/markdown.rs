@@ -1,18 +1,22 @@
 //! Markdown rendering for blog posts.
 
 use egui::{Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui::text::LayoutJob;
 use egui_extras::syntax_highlighting::{CodeTheme, highlight};
-use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag};
+use log;
 
 /// Render markdown content to an egui UI.
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
-    let parser = Parser::new(markdown);
+    log::debug!("render_markdown called, length: {}", markdown.len());
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    let parser = Parser::new_ext(markdown, options);
     let mut events = parser.peekable();
 
     while let Some(event) = events.next() {
         match event {
             Event::Start(tag) => {
+                log::debug!("Start tag: {:?}", tag);
                 match tag {
                     Tag::Paragraph => {
                         // Paragraphs are handled by accumulating text
@@ -220,8 +224,11 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         }
                     }
                     Tag::Table(alignments) => {
+                        log::debug!("Tag::Table detected");
                         if let Some((headers, rows)) = parse_table(&mut events, &alignments) {
                             render_table(ui, &alignments, &headers, &rows);
+                        } else {
+                            log::debug!("parse_table returned None");
                         }
                     }
                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
@@ -328,7 +335,8 @@ fn numbered_point(ui: &mut Ui, width: f32, number: &str) -> egui::Response {
 }
 
 /// Parse a markdown table from the event stream.
-fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, _alignments: &[Alignment]) -> Option<(Vec<Vec<String>>, Vec<Vec<String>>)> {
+pub(crate) fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, _alignments: &[Alignment]) -> Option<(Vec<Vec<String>>, Vec<Vec<String>>)> {
+    log::debug!("parse_table called");
 
     let mut headers = Vec::new();
     let mut rows = Vec::new();
@@ -336,11 +344,16 @@ fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, _alignments
     let mut in_header = false;
 
     while let Some(event) = events.next() {
+        log::debug!("parse_table event: {:?}", event);
         match event {
             Event::Start(Tag::TableHead) => {
                 in_header = true;
             }
             Event::End(Tag::TableHead) => {
+                if !current_row.is_empty() {
+                    headers.push(current_row.clone());
+                    current_row.clear();
+                }
                 in_header = false;
             }
             Event::Start(Tag::TableRow) => {
@@ -374,12 +387,15 @@ fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, _alignments
         }
     }
 
+    log::debug!("parse_table returning: headers={} rows={}", headers.len(), rows.len());
     Some((headers, rows))
 }
 
 /// Render a markdown table.
 fn render_table(ui: &mut Ui, alignments: &[Alignment], headers: &[Vec<String>], rows: &[Vec<String>]) {
+    log::debug!("render_table: headers={}, rows={}", headers.len(), rows.len());
     if headers.is_empty() && rows.is_empty() {
+        log::debug!("render_table: empty, returning");
         return;
     }
 
@@ -433,4 +449,46 @@ pub fn render_markdown_preview(ui: &mut Ui, markdown: &str, max_chars: usize) {
 
     // Simple rendering for preview - just show plain text
     ui.label(RichText::new(preview).small());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_table() {
+        let markdown = r#"| Technology | Language | Target | Performance |
+|------------|----------|--------|-------------|
+| egui | Rust | WebAssembly/Native | Excellent |
+| React | JavaScript | Web | Good |
+| Flutter | Dart | Mobile/Web | Very Good |
+| GTK | C | Desktop | Good |"#;
+
+        let mut options = Options::empty();
+        options.insert(Options::ENABLE_TABLES);
+        let parser = Parser::new_ext(markdown, options);
+        let mut events = parser.peekable();
+
+        // The parser yields events; we need to skip to the Table start
+        // For simplicity, we'll just test parse_table by feeding it events after Table start
+        // But we can also test the full rendering by calling render_markdown with a dummy UI?
+        // Let's manually iterate to find Table start
+        while let Some(event) = events.next() {
+            if let Event::Start(Tag::Table(alignments)) = event {
+                let result = parse_table(&mut events, &alignments);
+                assert!(result.is_some());
+                let (headers, rows) = result.unwrap();
+                assert_eq!(headers.len(), 1); // one header row
+                assert_eq!(headers[0].len(), 4); // four columns
+                assert_eq!(rows.len(), 4); // four data rows
+                assert_eq!(headers[0][0], "Technology");
+                assert_eq!(rows[0][0], "egui");
+                assert_eq!(rows[0][1], "Rust");
+                assert_eq!(rows[0][2], "WebAssembly/Native");
+                assert_eq!(rows[0][3], "Excellent");
+                return;
+            }
+        }
+        panic!("No table found in markdown");
+    }
 }
