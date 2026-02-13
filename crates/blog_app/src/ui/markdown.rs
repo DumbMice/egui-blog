@@ -20,7 +20,6 @@ macro_rules! console_log {
 /// Render markdown content to an egui UI.
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
     log::debug!("render_markdown called, length: {}", markdown.len());
-    console_log!("[blog] render_markdown called, length: {}", markdown.len());
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     let parser = Parser::new_ext(markdown, options);
@@ -28,11 +27,9 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
 
     while let Some(event) = events.next() {
         log::debug!("Main loop event: {:?}", event);
-        console_log!("[blog] Main loop event: {:?}", event);
         match event {
             Event::Start(tag) => {
                 log::debug!("Start tag: {:?}", tag);
-                console_log!("[blog] Start tag: {:?}", tag);
                 match tag {
                     Tag::Paragraph => {
                         // Paragraphs are handled by accumulating text
@@ -60,11 +57,10 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         ui.add_space(4.0);
                     }
                     Tag::List(ordered) => {
-                        console_log!("[blog] Start List, ordered: {:?}", ordered);
+                        log::debug!("Start List, ordered: {:?}", ordered);
                         // Lists
                         let mut list_items = Vec::new();
                         while let Some(event) = events.next() {
-                            console_log!("[blog] List processing event: {:?}", event);
                             match event {
                                 Event::End(Tag::List(_)) => break,
                                 Event::Start(Tag::Item) => {
