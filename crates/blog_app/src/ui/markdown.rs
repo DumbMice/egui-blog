@@ -27,6 +27,8 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
     let mut events = parser.peekable();
 
     while let Some(event) = events.next() {
+        log::debug!("Main loop event: {:?}", event);
+        console_log!("[blog] Main loop event: {:?}", event);
         match event {
             Event::Start(tag) => {
                 log::debug!("Start tag: {:?}", tag);
