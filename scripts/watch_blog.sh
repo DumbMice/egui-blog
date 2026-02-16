@@ -6,6 +6,8 @@ cd "$script_path/.."
 # Watch & serve script for blog app development
 # Automatically rebuilds WASM and serves on http://localhost:8766
 
+PORT=8766
+
 # Check if cargo-watch is installed, install it if not
 check_cargo_watch() {
     if ! command -v cargo-watch &> /dev/null; then
@@ -22,29 +24,36 @@ check_cargo_watch
 
 # Start HTTP server in background
 start_server() {
-    echo "Starting HTTP server on port 8766..."
+    echo "Starting HTTP server on port $PORT..."
 
     # Check if port is already in use
-    if lsof -Pi :8766 -sTCP:LISTEN -t >/dev/null ; then
-        echo "Port 8766 already in use. Is another server running?"
+    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
+        echo "Port $PORT already in use. Is another server running?"
         echo "Please stop the other server or use a different port."
         exit 1
     fi
 
+    # Small sleep to reduce race condition window
+    sleep 0.1
+
     # Install basic-http-server if needed
     if ! command -v basic-http-server &> /dev/null; then
         echo "Installing basic-http-server..."
-        cargo install basic-http-server
+        if ! cargo install basic-http-server; then
+            echo "Failed to install basic-http-server. Please install manually: cargo install basic-http-server"
+            exit 1
+        fi
+        echo "basic-http-server installed successfully."
     fi
 
     # Start server in background, capture PID
     cd web_blog
-    basic-http-server --addr 0.0.0.0:8766 . &
+    basic-http-server --addr 0.0.0.0:$PORT . &
     SERVER_PID=$!
     cd ..
 
     echo "Server started with PID: $SERVER_PID"
-    echo "Serving at: http://localhost:8766"
+    echo "Serving at: http://localhost:$PORT"
 }
 
 # Cleanup function
@@ -56,15 +65,15 @@ cleanup() {
     CLEANUP_DONE=true
 
     echo "Cleaning up..."
-    if [ ! -z "${SERVER_PID:-}" ] && kill -0 $SERVER_PID 2>/dev/null; then
+    if [ ! -z "${SERVER_PID:-}" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
         echo "Stopping server (PID: $SERVER_PID)..."
-        kill $SERVER_PID 2>/dev/null || true
+        kill "$SERVER_PID" 2>/dev/null || true
         sleep 1
-        if kill -0 $SERVER_PID 2>/dev/null; then
+        if kill -0 "$SERVER_PID" 2>/dev/null; then
             echo "Server not responding to SIGTERM, forcing shutdown..."
-            kill -9 $SERVER_PID 2>/dev/null || true
+            kill -9 "$SERVER_PID" 2>/dev/null || true
         fi
-        wait $SERVER_PID 2>/dev/null || true
+        wait "$SERVER_PID" 2>/dev/null || true
     fi
     echo "Goodbye!"
     exit 0
@@ -77,11 +86,11 @@ start_server
 
 echo ""
 echo "Blog development watcher is running..."
-echo "Server is serving at: http://localhost:8766"
+echo "Server is serving at: http://localhost:$PORT"
 echo "Press Ctrl+C to stop"
 echo ""
 
 # Keep script running until interrupted
 # (In Task 4, this will be replaced with start_watching)
 # Wait for server process to exit
-wait $SERVER_PID 2>/dev/null || true
+wait "$SERVER_PID" 2>/dev/null || true
