@@ -87,6 +87,7 @@ start_server
 start_watching() {
     echo "Watching for file changes in crates/blog_app..."
     echo "Files will be automatically rebuilt on changes."
+    echo "Manual browser refresh required after rebuild."
     echo ""
 
     # Validate build script exists and is executable
@@ -113,7 +114,9 @@ start_watching() {
         -w crates/blog_app \
         -x "./scripts/build_blog_web.sh" \
         --postpone \
-        --debounce 1000; then
+        --debounce 1000 \
+        --shell "echo '===[ $(date +%H:%M:%S) ] Building... ===' && {command}" \
+        --no-title; then
         echo "ERROR: cargo watch failed to start or crashed."
         echo "Please check if cargo-watch is properly installed."
         echo "You can install it with: cargo install cargo-watch"
