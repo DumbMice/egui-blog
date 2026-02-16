@@ -89,13 +89,40 @@ start_watching() {
     echo "Files will be automatically rebuilt on changes."
     echo ""
 
-    cargo watch \
+    # Validate build script exists and is executable
+    if [ ! -f "./scripts/build_blog_web.sh" ]; then
+        echo "ERROR: Build script not found: ./scripts/build_blog_web.sh"
+        echo "Please ensure the build script exists in the scripts directory."
+        cleanup
+        exit 1
+    fi
+
+    if [ ! -x "./scripts/build_blog_web.sh" ]; then
+        echo "ERROR: Build script is not executable: ./scripts/build_blog_web.sh"
+        echo "Please run: chmod +x ./scripts/build_blog_web.sh"
+        cleanup
+        exit 1
+    fi
+
+    echo "Build script validated successfully."
+    echo "Starting file watcher..."
+    echo ""
+
+    # Start cargo watch with error handling
+    if ! cargo watch \
         -w crates/blog_app \
         -x "./scripts/build_blog_web.sh" \
         --postpone \
-        --debounce 1000
+        --debounce 1000; then
+        echo "ERROR: cargo watch failed to start or crashed."
+        echo "Please check if cargo-watch is properly installed."
+        echo "You can install it with: cargo install cargo-watch"
+        cleanup
+        exit 1
+    fi
 
-    # If cargo watch exits, clean up
+    # If cargo watch exits normally, clean up
+    echo "File watcher stopped."
     cleanup
 }
 
