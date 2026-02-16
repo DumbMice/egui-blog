@@ -6,7 +6,7 @@
 - [x] Implement markdown file loader
 - [x] Add frontmatter parser (YAML)
 - [x] Update PostManager to use file loading
-- [ ] Add file watcher for live reload (development)
+- [ ] Add file watcher for live reload (development) (IN PROGRESS)
 - [x] Implement compile-time embedding (production)
 - [x] Create example post files
 - [x] Test loading and display
