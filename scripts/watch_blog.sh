@@ -117,7 +117,7 @@ start_watching() {
         -x "./scripts/build_blog_web.sh" \
         --postpone \
         --debounce 1000 \
-        --shell "echo '===[ $(date +%H:%M:%S) ] Building... ===' && {command}" \
+        --shell 'echo "===[ $(date +%H:%M:%S) ] Building... ===" && {command}' \
         --no-title; then
         echo "ERROR: cargo watch failed to start or crashed."
         echo "Please check if cargo-watch is properly installed."
