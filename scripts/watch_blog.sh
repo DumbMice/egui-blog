@@ -84,13 +84,19 @@ trap cleanup INT TERM EXIT
 
 start_server
 
-echo ""
-echo "Blog development watcher is running..."
-echo "Server is serving at: http://localhost:$PORT"
-echo "Press Ctrl+C to stop"
-echo ""
+start_watching() {
+    echo "Watching for file changes in crates/blog_app..."
+    echo "Files will be automatically rebuilt on changes."
+    echo ""
 
-# Keep script running until interrupted
-# (In Task 4, this will be replaced with start_watching)
-# Wait for server process to exit
-wait "$SERVER_PID" 2>/dev/null || true
+    cargo watch \
+        -w crates/blog_app \
+        -x "./scripts/build_blog_web.sh" \
+        --postpone \
+        --debounce 1000
+
+    # If cargo watch exits, clean up
+    cleanup
+}
+
+start_watching
