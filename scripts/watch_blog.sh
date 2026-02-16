@@ -6,11 +6,11 @@ cd "$script_path/.."
 # Watch & serve script for blog app development
 # Automatically rebuilds WASM and serves on http://localhost:8766
 
+# Check if cargo-watch is installed, install it if not
 check_cargo_watch() {
     if ! command -v cargo-watch &> /dev/null; then
         echo "cargo-watch not found. Installing..."
-        cargo install cargo-watch
-        if [ $? -ne 0 ]; then
+        if ! cargo install cargo-watch --locked; then
             echo "Failed to install cargo-watch. Please install manually: cargo install cargo-watch"
             exit 1
         fi
