@@ -85,6 +85,8 @@ trap cleanup INT TERM EXIT
 start_server
 
 start_watching() {
+    # Note: Includes validation and error handling from Task 4
+    # Task 5 adds: manual refresh message, --shell flag with timestamps, --no-title flag
     echo "Watching for file changes in crates/blog_app..."
     echo "Files will be automatically rebuilt on changes."
     echo "Manual browser refresh required after rebuild."
