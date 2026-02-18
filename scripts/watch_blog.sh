@@ -86,7 +86,7 @@ start_server
 
 start_watching() {
     # Note: Includes validation and error handling from Task 4
-    # Task 5 adds: manual refresh message, --shell flag with timestamps, --no-title flag
+    # Task 5 adds: manual refresh message, --shell flag with timestamps
     echo "Watching for file changes in crates/blog_app..."
     echo "Files will be automatically rebuilt on changes."
     echo "Manual browser refresh required after rebuild."
@@ -114,11 +114,9 @@ start_watching() {
     # Start cargo watch with error handling
     if ! cargo watch \
         -w crates/blog_app \
-        -x "./scripts/build_blog_web.sh" \
         --postpone \
-        --debounce 1000 \
-        --shell 'echo "===[ $(date +%H:%M:%S) ] Building... ===" && {command}' \
-        --no-title; then
+        --delay 1 \
+        --shell 'echo "===[ $(date +%H:%M:%S) ] Building... ===" && ./scripts/build_blog_web.sh'; then
         echo "ERROR: cargo watch failed to start or crashed."
         echo "Please check if cargo-watch is properly installed."
         echo "You can install it with: cargo install cargo-watch"
