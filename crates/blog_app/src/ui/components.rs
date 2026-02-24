@@ -221,10 +221,35 @@ pub fn error_message(
     retry_clicked
 }
 
+/// Display empty state message with create post button.
+pub fn empty_state(ui: &mut Ui, is_error: bool) -> bool {
+    let mut create_clicked = false;
+
+    ui.vertical_centered(|ui| {
+        if is_error {
+            ui.colored_label(ui.visuals().error_fg_color, "⚠ Failed to load posts");
+            ui.label("Could not load any blog posts.");
+        } else {
+            ui.heading("📝 No blog posts yet");
+            ui.label("Create your first post to get started!");
+        }
+
+        ui.add_space(16.0);
+
+        if ui.button("📝 Create your first post").clicked() {
+            create_clicked = true;
+        }
+
+        ui.add_space(8.0);
+        ui.small("Posts directory: crates/blog_app/posts/");
+    });
+
+    create_clicked
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use egui::Context;
 
     #[test]
     fn test_loading_spinner_function() {
@@ -246,14 +271,26 @@ mod tests {
     #[test]
     fn test_error_message_function() {
         // Test that error_message function exists
-        // We'll implement in next step
-        // For now just verify file compiles
         use egui::Ui;
 
         // Create a closure that would use the function
         let _closure = |ui: &mut Ui| {
-            // This will fail to compile until we implement the function
             error_message(ui, "Error", "Something went wrong", None, true);
+        };
+
+        // If we get here without compilation errors, the test passes
+        assert!(true);
+    }
+
+    #[test]
+    fn test_empty_state_function() {
+        // Test that empty_state function exists
+        use egui::Ui;
+
+        // Create a closure that would use the function
+        let _closure = |ui: &mut Ui| {
+            // This should fail to compile until we implement the function
+            empty_state(ui, false);
         };
 
         // If we get here without compilation errors, the test passes
