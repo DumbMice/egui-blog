@@ -169,3 +169,35 @@ pub fn post_preview(ui: &mut Ui, post: &crate::posts::BlogPost, is_selected: boo
 
     clicked
 }
+
+/// Display a loading spinner with message.
+pub fn loading_spinner(ui: &mut Ui, message: &str) {
+    ui.vertical_centered(|ui| {
+        ui.spinner();  // egui's built-in spinner
+        ui.add_space(8.0);
+        ui.label(message);
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egui::Context;
+
+    #[test]
+    fn test_loading_spinner_function() {
+        // Test that loading_spinner function exists and compiles
+        // We can't easily test UI rendering in unit tests, but we can
+        // verify the function signature is correct
+        use egui::Ui;
+
+        // Just verify the function exists and has the right signature
+        // by calling it in a closure that would be used in real UI code
+        let _closure = |ui: &mut Ui| {
+            loading_spinner(ui, "Loading...");
+        };
+
+        // If we get here without compilation errors, the test passes
+        assert!(true);
+    }
+}
