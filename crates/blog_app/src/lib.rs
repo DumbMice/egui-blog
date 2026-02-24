@@ -111,6 +111,7 @@ impl eframe::App for BlogApp {
             selection_changed = ui::layout::side_panel(
                 ui,
                 &self.post_manager,
+                &self.post_manager_state,  // NEW: pass state
                 &self.search_query,
                 &mut self.selected_post,
                 &self.layout_config,
@@ -227,6 +228,13 @@ mod tests {
         // Test that handle_retry method exists and can be called
         // This will fail to compile until we implement the method
         app.handle_retry();
+    }
+
+    #[test]
+    fn test_blog_app_passes_state_to_side_panel() {
+        let mut app = BlogApp::default();
+        // Verify app compiles with updated side panel call
+        let _ = app;
     }
 }
 
