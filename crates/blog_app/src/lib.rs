@@ -7,13 +7,15 @@ mod posts;
 mod ui;
 
 use egui::{CentralPanel, Panel, ScrollArea};
-use posts::PostManager;
+use posts::{PostManager, PostManagerState};
 use ui::{LayoutConfig, Theme};
 
 /// The main app state.
 pub struct BlogApp {
     /// Manages blog posts
     post_manager: PostManager,
+    /// Current post manager state
+    post_manager_state: PostManagerState,  // NEW
     /// Currently selected post index
     selected_post: usize,
     /// Are we editing a new post?
@@ -32,8 +34,12 @@ pub struct BlogApp {
 
 impl Default for BlogApp {
     fn default() -> Self {
+        let post_manager = PostManager::default();
+        let post_manager_state = post_manager.state().clone();  // NEW
+
         Self {
-            post_manager: PostManager::default(),
+            post_manager,
+            post_manager_state,  // NEW
             selected_post: 0,
             editing_new_post: false,
             new_post_title: String::new(),
@@ -41,6 +47,18 @@ impl Default for BlogApp {
             theme: Theme::Light,
             search_query: String::new(),
             layout_config: LayoutConfig::default(),
+        }
+    }
+}
+
+impl BlogApp {
+    /// Ensure selected_post is within valid bounds
+    fn ensure_valid_selection(&mut self) {
+        if self.post_manager.count() == 0 {
+            self.selected_post = 0;
+            self.editing_new_post = false;
+        } else if self.selected_post >= self.post_manager.count() {
+            self.selected_post = self.post_manager.count() - 1;
         }
     }
 }
@@ -131,6 +149,23 @@ impl eframe::App for BlogApp {
         Panel::bottom("bottom_panel").show_inside(ui, |ui| {
             ui::layout::bottom_panel(ui);
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ensure_valid_selection() {
+        let mut app = BlogApp::default();
+
+        // Test that ensure_valid_selection method exists and works
+        app.ensure_valid_selection();
+
+        // Verify selection is valid (0 when no posts)
+        assert_eq!(app.selected_post, 0);
+        assert!(!app.editing_new_post);
     }
 }
 
