@@ -192,8 +192,8 @@ pub fn main_content(
             retry_requested = super::components::error_message(
                 ui,
                 "Failed to load posts",
-                "Could not load blog posts from storage.",
-                Some(err_msg),
+                err_msg,
+                None,  // No additional technical details
                 true,
             );
         }

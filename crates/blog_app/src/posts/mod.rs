@@ -81,9 +81,8 @@ impl Default for PostManager {
             Err(err) => {
                 eprintln!("Failed to load embedded posts: {}", err);
                 manager.state = PostManagerState::Error(err.to_string());
-                // Fall back to example posts
-                manager.add_example_posts();
-                manager.state = PostManagerState::Loaded;
+                // Don't add example posts in error state - user can retry
+                // Error state will be shown in UI with retry option
             }
         }
         manager
