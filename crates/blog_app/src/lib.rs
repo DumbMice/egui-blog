@@ -7,7 +7,7 @@ mod posts;
 mod ui;
 
 use egui::{CentralPanel, Panel, ScrollArea};
-use posts::{PostManager, PostManagerState};
+pub use posts::{PostManager, PostManagerState};
 use ui::{LayoutConfig, Theme};
 
 /// The main app state.
