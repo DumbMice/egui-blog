@@ -55,6 +55,7 @@ impl BlogPost {
 pub struct PostManager {
     posts: Vec<BlogPost>,
     next_id: usize,
+    state: PostManagerState,  // NEW
 }
 
 impl Default for PostManager {
@@ -62,6 +63,7 @@ impl Default for PostManager {
         let mut manager = Self {
             posts: Vec::new(),
             next_id: 0,
+            state: PostManagerState::Loading,  // NEW
         };
 
         // Load posts embedded at compile time
@@ -70,11 +72,18 @@ impl Default for PostManager {
                 for post in posts {
                     manager.add_post(post);
                 }
+                manager.state = if manager.posts.is_empty() {
+                    PostManagerState::Empty
+                } else {
+                    PostManagerState::Loaded
+                };
             }
             Err(err) => {
                 eprintln!("Failed to load embedded posts: {}", err);
+                manager.state = PostManagerState::Error(err.to_string());
                 // Fall back to example posts
                 manager.add_example_posts();
+                manager.state = PostManagerState::Loaded;
             }
         }
         manager
@@ -177,4 +186,26 @@ Let me know what you think!",
             .collect()
     }
 
+    /// Get current loading state
+    pub fn state(&self) -> &PostManagerState {
+        &self.state
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_post_manager_has_state() {
+        let manager = PostManager::default();
+
+        // Test that state() method exists and returns a PostManagerState
+        let state = manager.state();
+
+        // Should start in Loading state (after we implement it)
+        // For now just verify we can call it
+        let _ = state;
+    }
 }
