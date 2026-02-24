@@ -61,6 +61,25 @@ impl BlogApp {
             self.selected_post = self.post_manager.count() - 1;
         }
     }
+
+    /// Handle retry button click from error state.
+    fn handle_retry(&mut self) {
+        // Trigger reload
+        match self.post_manager.reload() {
+            Ok(()) => {
+                // Update our state tracking
+                self.post_manager_state = self.post_manager.state().clone();
+            }
+            Err(err) => {
+                // Error already captured in PostManager state
+                eprintln!("Retry failed: {}", err);
+                self.post_manager_state = self.post_manager.state().clone();
+            }
+        }
+
+        // Ensure valid selection
+        self.ensure_valid_selection();
+    }
 }
 
 impl eframe::App for BlogApp {
@@ -149,8 +168,7 @@ impl eframe::App for BlogApp {
 
         // Handle retry request (to be implemented in Task 11)
         if retry_requested {
-            // TODO: Implement handle_retry method in Task 11
-            // self.handle_retry();
+            self.handle_retry();
         }
 
         // Bottom panel
@@ -200,6 +218,15 @@ mod tests {
         // The real test is that the code compiles with the updated call
         // to main_content with 7 arguments and 4 return values
         assert!(true, "Test structure for UI method passing state");
+    }
+
+    #[test]
+    fn test_blog_app_handle_retry() {
+        let mut app = BlogApp::default();
+
+        // Test that handle_retry method exists and can be called
+        // This will fail to compile until we implement the method
+        app.handle_retry();
     }
 }
 
