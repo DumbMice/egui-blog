@@ -1,9 +1,11 @@
 //! Blog post data structures and management.
 
 mod loader;
+mod state;  // NEW
 
 #[allow(unused_imports)]
 pub use loader::{Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content};
+pub use state::PostManagerState;  // NEW
 
 /// A blog post.
 #[derive(Clone, Debug)]
