@@ -35,6 +35,12 @@ pub enum LoadError {
 
     #[error("Missing frontmatter delimiter")]
     MissingDelimiter,
+
+    #[error("File not found: {0:?}")]
+    FileNotFound(PathBuf),
+
+    #[error("Directory not found: {0:?}")]
+    DirectoryNotFound(PathBuf),
 }
 
 /// Load a blog post from a markdown file.
@@ -151,4 +157,29 @@ pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
     }
 
     Ok(posts)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_load_error_variants() {
+        // Test new error variants
+        let io_error = LoadError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "test"));
+        let yaml_error = LoadError::Yaml(serde_yaml::from_str::<Frontmatter>("invalid: yaml: [").unwrap_err());
+        let format_error = LoadError::Format("test".to_string());
+        let missing_delimiter = LoadError::MissingDelimiter;
+        let file_not_found = LoadError::FileNotFound(PathBuf::from("test.md"));
+        let dir_not_found = LoadError::DirectoryNotFound(PathBuf::from("posts"));
+
+        // Test Display impl works
+        assert!(io_error.to_string().contains("IO error"));
+        assert!(yaml_error.to_string().contains("YAML parsing error"));
+        assert!(format_error.to_string().contains("Invalid file format"));
+        assert!(missing_delimiter.to_string().contains("Missing frontmatter delimiter"));
+        assert!(file_not_found.to_string().contains("File not found"));
+        assert!(dir_not_found.to_string().contains("Directory not found"));
+    }
 }
