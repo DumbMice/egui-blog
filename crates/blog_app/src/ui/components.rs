@@ -179,6 +179,48 @@ pub fn loading_spinner(ui: &mut Ui, message: &str) {
     });
 }
 
+/// Display an error message with optional retry button.
+pub fn error_message(
+    ui: &mut Ui,
+    title: &str,
+    description: &str,
+    details: Option<&str>,
+    show_retry: bool,
+) -> bool {
+    let mut retry_clicked = false;
+
+    ui.vertical(|ui| {
+        // Error header with icon
+        ui.horizontal(|ui| {
+            ui.colored_label(ui.visuals().error_fg_color, "⚠");
+            ui.heading(title);
+        });
+
+        // Error description
+        ui.label(description);
+
+        // Optional technical details (collapsible)
+        if let Some(details) = details {
+            ui.collapsing("Technical details", |ui| {
+                ui.monospace(details);
+            });
+        }
+
+        // Action buttons
+        ui.horizontal(|ui| {
+            if show_retry && ui.button("🔄 Retry").clicked() {
+                retry_clicked = true;
+            }
+
+            if ui.button("📝 Create example post").clicked() {
+                // Will be implemented later
+            }
+        });
+    });
+
+    retry_clicked
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -195,6 +237,23 @@ mod tests {
         // by calling it in a closure that would be used in real UI code
         let _closure = |ui: &mut Ui| {
             loading_spinner(ui, "Loading...");
+        };
+
+        // If we get here without compilation errors, the test passes
+        assert!(true);
+    }
+
+    #[test]
+    fn test_error_message_function() {
+        // Test that error_message function exists
+        // We'll implement in next step
+        // For now just verify file compiles
+        use egui::Ui;
+
+        // Create a closure that would use the function
+        let _closure = |ui: &mut Ui| {
+            // This will fail to compile until we implement the function
+            error_message(ui, "Error", "Something went wrong", None, true);
         };
 
         // If we get here without compilation errors, the test passes
