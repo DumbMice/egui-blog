@@ -10,7 +10,7 @@
 - [x] Implement compile-time embedding (production)
 - [x] Create example post files
 - [x] Test loading and display
-- [ ] Update UI to handle missing posts gracefully
+- [x] Update UI to handle missing posts gracefully
 
 ## Priority 2: Markdown Rendering
 - [x] Evaluate markdown rendering options
