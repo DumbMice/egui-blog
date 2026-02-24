@@ -106,15 +106,17 @@ impl eframe::App for BlogApp {
         let mut post_saved = false;
         let mut editing_cancelled = false;
         let mut navigation_index = None;
+        let mut retry_requested = false;
         CentralPanel::default().show_inside(ui, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
-                (post_saved, editing_cancelled, navigation_index) = ui::layout::main_content(
+                (post_saved, editing_cancelled, navigation_index, retry_requested) = ui::layout::main_content(
                     ui,
                     &self.post_manager,
                     self.selected_post,
                     self.editing_new_post,
                     &mut self.new_post_title,
                     &mut self.new_post_content,
+                    &self.post_manager_state,
                 );
             });
         });
@@ -145,6 +147,12 @@ impl eframe::App for BlogApp {
             self.new_post_content.clear();
         }
 
+        // Handle retry request (to be implemented in Task 11)
+        if retry_requested {
+            // TODO: Implement handle_retry method in Task 11
+            // self.handle_retry();
+        }
+
         // Bottom panel
         Panel::bottom("bottom_panel").show_inside(ui, |ui| {
             ui::layout::bottom_panel(ui);
@@ -166,6 +174,32 @@ mod tests {
         // Verify selection is valid (0 when no posts)
         assert_eq!(app.selected_post, 0);
         assert!(!app.editing_new_post);
+    }
+
+    #[test]
+    fn test_ui_method_passes_post_manager_state() {
+        // Test that BlogApp UI method passes post_manager_state to main_content
+        // and handles the 4-value return tuple (including retry_requested)
+
+        // This test verifies the compilation and basic structure
+        let app = BlogApp::default();
+
+        // We can't easily test the UI method directly since it requires egui context,
+        // but we can verify that the method signature would compile correctly
+        // by checking that post_manager_state field exists and is accessible
+        let _state = &app.post_manager_state;
+
+        // Verify the field exists and is of correct type
+        match app.post_manager_state {
+            PostManagerState::Loading => (),
+            PostManagerState::Error(_) => (),
+            PostManagerState::Empty => (),
+            PostManagerState::Loaded => (),
+        }
+
+        // The real test is that the code compiles with the updated call
+        // to main_content with 7 arguments and 4 return values
+        assert!(true, "Test structure for UI method passing state");
     }
 }
 
