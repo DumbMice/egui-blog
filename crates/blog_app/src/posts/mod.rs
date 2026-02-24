@@ -191,6 +191,34 @@ Let me know what you think!",
         &self.state
     }
 
+    /// Reload posts from disk/embedded sources.
+    pub fn reload(&mut self) -> Result<(), LoadError> {
+        self.state = PostManagerState::Loading;
+
+        // Clear existing posts
+        self.posts.clear();
+        self.next_id = 0;
+
+        // Attempt to load embedded posts first
+        match load_embedded_posts() {
+            Ok(posts) => {
+                for post in posts {
+                    self.add_post(post);
+                }
+                self.state = if self.posts.is_empty() {
+                    PostManagerState::Empty
+                } else {
+                    PostManagerState::Loaded
+                };
+                Ok(())
+            }
+            Err(err) => {
+                self.state = PostManagerState::Error(err.to_string());
+                Err(err)
+            }
+        }
+    }
+
 }
 
 #[cfg(test)]
@@ -207,5 +235,30 @@ mod tests {
         // Should start in Loading state (after we implement it)
         // For now just verify we can call it
         let _ = state;
+    }
+
+    #[test]
+    fn test_post_manager_reload_method() {
+        let mut manager = PostManager::default();
+
+        // Test that reload method exists and can be called
+        let result = manager.reload();
+
+        // Should return Ok(()) since load_embedded_posts should succeed
+        assert!(result.is_ok());
+
+        // After reload, state should be Loaded (if posts exist) or Empty
+        let state = manager.state();
+        match state {
+            PostManagerState::Loaded => {
+                // Should have some posts
+                assert!(manager.count() > 0);
+            }
+            PostManagerState::Empty => {
+                // No posts loaded
+                assert_eq!(manager.count(), 0);
+            }
+            _ => panic!("Unexpected state after reload: {:?}", state),
+        }
     }
 }
