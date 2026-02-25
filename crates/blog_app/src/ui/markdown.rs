@@ -3,7 +3,7 @@
 use egui::{vec2, Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use log;
-use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag};
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer;
 
@@ -328,8 +328,8 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                 // End tags are handled within Start match
             }
             Event::Text(text) => {
-                // Plain text
-                ui.label(&*text);
+                // Plain text - check for LaTeX math
+                render_text_with_latex(ui, &text);
             }
             Event::Code(code) => {
                 // Inline code
@@ -454,6 +454,52 @@ pub(crate) fn parse_table<'a>(
     Some((headers, rows))
 }
 
+/// Render text that may contain LaTeX math expressions.
+fn render_text_with_latex(ui: &mut Ui, text: &str) {
+    // Simple LaTeX detection
+    let mut remaining = text;
+
+    while let Some(start) = remaining.find('$') {
+        // Render text before the $
+        if start > 0 {
+            ui.label(&remaining[..start]);
+        }
+
+        // Check if it's $$ (display math) or $ (inline math)
+        let is_display_math = remaining[start..].starts_with("$$");
+        let end_marker = if is_display_math { "$$" } else { "$" };
+
+        // Find the closing $
+        if let Some(end) = remaining[start + end_marker.len()..].find(end_marker) {
+            let math_start = start + end_marker.len();
+            let math_end = math_start + end;
+            let math_content = &remaining[math_start..math_end];
+
+            // Render LaTeX as code for now
+            let style = if is_display_math {
+                RichText::new(math_content)
+                    .code()
+                    .background_color(ui.visuals().code_bg_color)
+            } else {
+                RichText::new(math_content).code()
+            };
+            ui.label(style);
+
+            // Skip past the math
+            remaining = &remaining[math_end + end_marker.len()..];
+        } else {
+            // No closing $, render the rest as text
+            ui.label(remaining);
+            return;
+        }
+    }
+
+    // Render any remaining text
+    if !remaining.is_empty() {
+        ui.label(remaining);
+    }
+}
+
 /// Render a markdown table.
 fn render_table(
     ui: &mut Ui,
@@ -484,8 +530,8 @@ mod tests {
 | Flutter | Dart | Mobile/Web | Very Good |
 | GTK | C | Desktop | Good |"#;
 
-        let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES);
+        let mut options = pulldown_cmark::Options::empty();
+        options.insert(pulldown_cmark::Options::ENABLE_TABLES);
         let parser = Parser::new_ext(markdown, options);
         let mut events = parser.peekable();
 
