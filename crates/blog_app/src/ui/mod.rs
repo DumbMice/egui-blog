@@ -3,6 +3,7 @@
 pub mod components;
 pub mod layout;
 pub mod markdown;
+pub mod table_renderer;
 
 // Re-exports for convenient access
 pub use components::Theme;

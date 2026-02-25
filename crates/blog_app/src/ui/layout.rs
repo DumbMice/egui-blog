@@ -2,8 +2,8 @@
 
 use egui::Ui;
 
-use crate::posts::{PostManager, PostManagerState};
 use super::components::{self, Theme};
+use crate::posts::{PostManager, PostManagerState};
 
 /// Configuration for the blog layout.
 pub struct LayoutConfig {
@@ -73,7 +73,7 @@ pub fn top_panel(
 pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
-    post_manager_state: &PostManagerState,  // NEW
+    post_manager_state: &PostManagerState, // NEW
     search_query: &str,
     selected_post_index: &mut usize,
     config: &LayoutConfig,
@@ -193,7 +193,7 @@ pub fn main_content(
                 ui,
                 "Failed to load posts",
                 err_msg,
-                None,  // No additional technical details
+                None, // No additional technical details
                 true,
             );
         }
@@ -244,11 +244,9 @@ pub fn main_content(
                     ui.separator();
 
                     // Navigation buttons
-                    if let Some(new_index) = components::post_navigation(
-                        ui,
-                        selected_post_index,
-                        post_manager.count(),
-                    ) {
+                    if let Some(new_index) =
+                        components::post_navigation(ui, selected_post_index, post_manager.count())
+                    {
                         navigation_index = Some(new_index);
                     }
                 });
@@ -262,7 +260,12 @@ pub fn main_content(
         }
     }
 
-    (post_saved, editing_cancelled, navigation_index, retry_requested)
+    (
+        post_saved,
+        editing_cancelled,
+        navigation_index,
+        retry_requested,
+    )
 }
 
 /// Bottom panel with status information.
@@ -288,7 +291,8 @@ mod tests {
         let expected_return: (bool, bool, Option<usize>, bool) = (false, false, None, false);
 
         // Destructure to verify we can handle 4 values
-        let (_post_saved, _editing_cancelled, _navigation_index, _retry_requested) = expected_return;
+        let (_post_saved, _editing_cancelled, _navigation_index, _retry_requested) =
+            expected_return;
 
         // The function now returns 4 values, so this test should pass
         assert!(true, "main_content should return 4 values");
@@ -316,7 +320,10 @@ mod tests {
             }
         }
 
-        assert!(true, "main_content should handle all PostManagerState variants");
+        assert!(
+            true,
+            "main_content should handle all PostManagerState variants"
+        );
     }
 
     #[test]

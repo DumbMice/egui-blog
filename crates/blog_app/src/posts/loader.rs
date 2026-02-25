@@ -1,7 +1,7 @@
 //! Markdown file loading and parsing for blog posts.
 
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use thiserror::Error;
@@ -146,6 +146,8 @@ pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
         include_str!("../../posts/2026-02-10-welcome.md"),
         include_str!("../../posts/2026-02-11-learning-egui.md"),
         include_str!("../../posts/2026-02-12-future-plans.md"),
+        include_str!("../../posts/2026-02-25-test-table-no-headers.md"),
+        include_str!("../../posts/2026-02-25-test-valid-table.md"),
     ];
 
     let mut posts = Vec::new();
@@ -168,7 +170,8 @@ mod tests {
     fn test_load_error_variants() {
         // Test new error variants
         let io_error = LoadError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "test"));
-        let yaml_error = LoadError::Yaml(serde_yaml::from_str::<Frontmatter>("invalid: yaml: [").unwrap_err());
+        let yaml_error =
+            LoadError::Yaml(serde_yaml::from_str::<Frontmatter>("invalid: yaml: [").unwrap_err());
         let format_error = LoadError::Format("test".to_string());
         let missing_delimiter = LoadError::MissingDelimiter;
         let file_not_found = LoadError::FileNotFound(PathBuf::from("test.md"));
@@ -178,7 +181,9 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(missing_delimiter.to_string().contains("Missing frontmatter delimiter"));
+        assert!(missing_delimiter
+            .to_string()
+            .contains("Missing frontmatter delimiter"));
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

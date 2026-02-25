@@ -1,21 +1,20 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
-use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag};
+use egui::{vec2, Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use log;
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag};
 
+use crate::ui::table_renderer;
 
 /// Render markdown content to an egui UI.
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
-    log::debug!("render_markdown called, length: {}", markdown.len());
-    let mut options = Options::empty();
-    options.insert(Options::ENABLE_TABLES);
-    let parser = Parser::new_ext(markdown, options);
-    let mut events = parser.peekable();
+    let mut events =
+        pulldown_cmark::Parser::new_ext(markdown, pulldown_cmark::Options::ENABLE_TABLES)
+            .peekable();
 
     while let Some(event) = events.next() {
-        log::debug!("Main loop event: {:?}", event);
+        log::debug!("Markdown event: {:?}", event);
         match event {
             Event::Start(tag) => {
                 log::debug!("Start tag: {:?}", tag);
@@ -33,17 +32,31 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             }
                         }
 
+                        // Add spacing before heading (proportional to heading level)
+                        let spacing_before = match level {
+                            HeadingLevel::H1 => 24.0,
+                            HeadingLevel::H2 => 20.0,
+                            HeadingLevel::H3 => 16.0,
+                            HeadingLevel::H4 => 12.0,
+                            HeadingLevel::H5 => 8.0,
+                            HeadingLevel::H6 => 4.0,
+                        };
+                        ui.add_space(spacing_before);
+
                         let rich_text = match level {
-                            HeadingLevel::H1 => RichText::new(heading_text).heading().strong(),
-                            HeadingLevel::H2 => RichText::new(heading_text).heading(),
-                            HeadingLevel::H3 => RichText::new(heading_text).strong(),
-                            HeadingLevel::H4 => RichText::new(heading_text).strong(),
-                            HeadingLevel::H5 => RichText::new(heading_text),
-                            HeadingLevel::H6 => RichText::new(heading_text),
+                            HeadingLevel::H1 => RichText::new(heading_text).heading().size(28.0),
+                            HeadingLevel::H2 => RichText::new(heading_text).heading().size(24.0),
+                            HeadingLevel::H3 => RichText::new(heading_text).heading().size(20.0),
+                            HeadingLevel::H4 => RichText::new(heading_text).size(18.0),
+                            HeadingLevel::H5 => RichText::new(heading_text).size(16.0),
+                            HeadingLevel::H6 => RichText::new(heading_text).size(14.0),
                         };
 
                         ui.label(rich_text);
-                        ui.add_space(4.0);
+
+                        // Add spacing after heading (slightly less than before)
+                        let spacing_after = spacing_before * 0.75;
+                        ui.add_space(spacing_after);
                     }
                     Tag::List(ordered) => {
                         log::debug!("Start List, ordered: {:?}", ordered);
@@ -116,22 +129,49 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
 
                         // Display language label if present
                         let language = match kind {
-                            CodeBlockKind::Fenced(lang) if !lang.is_empty() => Some(lang.to_string()),
+                            CodeBlockKind::Fenced(lang) if !lang.is_empty() => {
+                                Some(lang.to_string())
+                            }
                             _ => None,
                         };
 
                         if let Some(lang) = &language {
                             ui.horizontal(|ui| {
-                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                                    ui.label(RichText::new(lang).small().weak());
-                                });
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Min),
+                                    |ui| {
+                                        ui.label(RichText::new(lang).small().weak());
+                                    },
+                                );
                             });
                         }
 
                         // Syntax highlighting
-                        let theme = CodeTheme::from_memory(ui.ctx(), ui.style());
+                        let theme = CodeTheme::from_style(ui.style());
+
+                        // Map common language names to syntect recognized names
                         let lang_str = language.as_deref().unwrap_or("");
-                        let layout_job = highlight(ui.ctx(), ui.style(), &theme, &code_text, lang_str);
+                        let mapped_lang = match lang_str.to_lowercase().as_str() {
+                            "rust" | "rs" => "rs",
+                            "javascript" | "js" => "js",
+                            "python" | "py" => "py",
+                            "typescript" | "ts" => "ts",
+                            "cpp" | "c++" => "cpp",
+                            "c" => "c",
+                            "java" => "java",
+                            "go" => "go",
+                            "html" => "html",
+                            "css" => "css",
+                            "bash" | "sh" | "shell" => "bash",
+                            "json" => "json",
+                            "toml" => "toml",
+                            "yaml" | "yml" => "yaml",
+                            "markdown" | "md" => "markdown",
+                            _ => lang_str,
+                        };
+
+                        let layout_job =
+                            highlight(ui.ctx(), ui.style(), &theme, &code_text, mapped_lang);
 
                         // Display with background (EasyMark style)
                         let where_to_put_background = ui.painter().add(Shape::Noop);
@@ -227,17 +267,26 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                         }
                     }
                     Tag::Table(alignments) => {
-                        log::debug!("Tag::Table detected");
+                        log::info!("Found table with {} alignments", alignments.len());
                         if let Some((headers, rows)) = parse_table(&mut events, &alignments) {
+                            log::info!(
+                                "Parsed table: {} headers (first: {:?}), {} rows",
+                                headers.len(),
+                                headers.first(),
+                                rows.len()
+                            );
                             render_table(ui, &alignments, &headers, &rows);
                         } else {
-                            log::debug!("parse_table returned None");
+                            log::warn!("Failed to parse table");
                         }
                     }
                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
                         // Skip table elements that appear outside a table (should not happen)
                         while let Some(event) = events.next() {
-                            if matches!(event, Event::End(Tag::TableHead | Tag::TableRow | Tag::TableCell)) {
+                            if matches!(
+                                event,
+                                Event::End(Tag::TableHead | Tag::TableRow | Tag::TableCell)
+                            ) {
                                 break;
                             }
                         }
@@ -267,7 +316,11 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                                 _ => {} // Skip other events
                             }
                         }
-                        ui.label(RichText::new(format!("[Image: {}]", alt_text)).italics().weak());
+                        ui.label(
+                            RichText::new(format!("[Image: {}]", alt_text))
+                                .italics()
+                                .weak(),
+                        );
                     }
                 }
             }
@@ -338,7 +391,10 @@ fn numbered_point(ui: &mut Ui, width: f32, number: &str) -> egui::Response {
 }
 
 /// Parse a markdown table from the event stream.
-pub(crate) fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, _alignments: &[Alignment]) -> Option<(Vec<Vec<String>>, Vec<Vec<String>>)> {
+pub(crate) fn parse_table<'a>(
+    events: &mut std::iter::Peekable<Parser<'a, 'a>>,
+    _alignments: &[Alignment],
+) -> Option<(Vec<Vec<String>>, Vec<Vec<String>>)> {
     log::debug!("parse_table called");
 
     let mut headers = Vec::new();
@@ -390,68 +446,29 @@ pub(crate) fn parse_table<'a>(events: &mut std::iter::Peekable<Parser<'a, 'a>>, 
         }
     }
 
-    log::debug!("parse_table returning: headers={} rows={}", headers.len(), rows.len());
+    log::debug!(
+        "parse_table returning: headers={} rows={}",
+        headers.len(),
+        rows.len()
+    );
     Some((headers, rows))
 }
 
 /// Render a markdown table.
-fn render_table(ui: &mut Ui, alignments: &[Alignment], headers: &[Vec<String>], rows: &[Vec<String>]) {
-    log::debug!("render_table: headers={}, rows={}", headers.len(), rows.len());
-    if headers.is_empty() && rows.is_empty() {
-        log::debug!("render_table: empty, returning");
-        return;
-    }
+fn render_table(
+    ui: &mut Ui,
+    alignments: &[Alignment],
+    headers: &[Vec<String>],
+    rows: &[Vec<String>],
+) {
+    log::debug!(
+        "render_table: headers={}, rows={}",
+        headers.len(),
+        rows.len()
+    );
 
-    // Determine number of columns from first row
-    let col_count = headers.first()
-        .map(|r| r.len())
-        .or_else(|| rows.first().map(|r| r.len()))
-        .unwrap_or(0);
-
-    if col_count == 0 {
-        return;
-    }
-
-    ui.add_space(4.0);
-
-    // Create a grid with the appropriate number of columns
-    egui::Grid::new("markdown_table")
-        .striped(true)
-        .min_col_width(40.0)
-        .show(ui, |ui| {
-            // Render header rows
-            for header_row in headers {
-                for (col_idx, cell) in header_row.iter().enumerate() {
-                    let _alignment = alignments.get(col_idx).copied().unwrap_or(Alignment::None);
-                    let label = RichText::new(cell).strong();
-                    ui.label(label);
-                }
-                ui.end_row();
-            }
-
-            // Render data rows
-            for row in rows {
-                for (col_idx, cell) in row.iter().enumerate() {
-                    let _alignment = alignments.get(col_idx).copied().unwrap_or(Alignment::None);
-                    ui.label(cell);
-                }
-                ui.end_row();
-            }
-        });
-
-    ui.add_space(4.0);
-}
-
-/// Simple markdown renderer for previews (first 200 chars)
-pub fn render_markdown_preview(ui: &mut Ui, markdown: &str, max_chars: usize) {
-    let preview = if markdown.len() > max_chars {
-        format!("{}...", &markdown[..max_chars])
-    } else {
-        markdown.to_string()
-    };
-
-    // Simple rendering for preview - just show plain text
-    ui.label(RichText::new(preview).small());
+    // Use the enhanced table renderer with default configuration
+    table_renderer::render_table_simple(ui, alignments, headers, rows);
 }
 
 #[cfg(test)]
