@@ -148,6 +148,7 @@ pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
         include_str!("../../posts/2026-02-12-future-plans.md"),
         include_str!("../../posts/2026-02-25-test-table-no-headers.md"),
         include_str!("../../posts/2026-02-25-test-valid-table.md"),
+        include_str!("../../posts/2026-02-25-test-latex.md"),
     ];
 
     let mut posts = Vec::new();
