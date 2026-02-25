@@ -2,9 +2,19 @@
 
 This file provides guidance for agentic coding agents (like Claude Code) working in this egui blog application repository.
 
+## Repository Context
+
+This is an **egui workspace repository** containing multiple crates. The `blog_app` crate is a blog application built on the egui framework. The workspace has dual remotes:
+- **origin**: Upstream egui framework (emilk/egui) - for syncing original code
+- **blog**: Your blog repository (DumbMice/egui-blog) - for developing your blog application
+
+Branch strategy:
+- **main branch**: Clean upstream egui framework (identical to origin/main)
+- **blog branch**: Blog application implementation (target: `blog/blog`)
+
 ## Project Overview
 
-This repository contains a blog application built with the egui immediate-mode GUI framework. The app compiles to both WebAssembly (for web deployment) and native targets. The primary development focus is the `blog_app` crate located at `crates/blog_app/`.
+The blog application is built with the egui immediate-mode GUI framework. The app compiles to both WebAssembly (for web deployment) and native targets. The primary development focus is the `blog_app` crate located at `crates/blog_app/`.
 
 Key characteristics:
 - **Dual-target**: Uses `eframe` for both web (`wasm32-unknown-unknown`) and native compilation
@@ -75,6 +85,11 @@ cargo clippy -p blog_app
 ### WASM-Specific Linting
 ```bash
 ./scripts/clippy_wasm.sh
+```
+
+### Run All Workspace Tests
+```bash
+cargo test --workspace
 ```
 
 ### Format Code
@@ -194,6 +209,31 @@ use wasm_bindgen::prelude::*;
 4. **Verify**: Run `cargo test` after significant changes
 5. **Lint**: Run `cargo clippy -p blog_app` before committing
 
+## Git Workflow
+
+### Sync upstream egui (origin):
+```bash
+git checkout main
+git pull origin main
+```
+
+### Develop blog application (blog):
+```bash
+git checkout blog
+# Make changes to blog_app crate
+git add .
+git commit -m "Your commit message"
+git push blog blog
+```
+
+### Keep blog branch updated with main:
+```bash
+git checkout blog
+git rebase main
+# Resolve any conflicts
+git push blog blog --force-with-lease
+```
+
 ## Important Notes for Agents
 
 ### Before Making Changes
@@ -219,6 +259,14 @@ use wasm_bindgen::prelude::*;
 - Use `--release` flag with `wasm-opt` for production builds
 - Consider using `glow` backend for smaller WASM size if `wgpu` is too large
 - Profile with `cargo build --release` and check `web_blog/blog_app_bg.wasm` size
+
+## Tools
+
+You have access to a set of tools you can use to answer the user's question.
+You can invoke functions by writing a "<｜DSML｜function_calls>" block like the following as part of your reply to the user:
+<｜DSML｜function_calls>
+<｜DSML｜invoke name="$FUNCTION_NAME">
+<｜DSML｜parameter name="$PARAMETER_NAME" string="true|false">$PARAMETER_VALUE
 
 ## File Locations Reference
 
