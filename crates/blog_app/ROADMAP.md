@@ -1,12 +1,31 @@
 # Blog App Development Roadmap
 
-## Current Status (2026-02-13)
+## Current Status (2026-02-27)
 ✅ **Foundation Complete**
 - Basic blog UI with post listing, viewing, and creation
 - Modular architecture (posts/ + ui/ modules)
 - Dual-target support (native + wasm32)
 - All reported layout and rendering issues fixed
 - Code cleanup completed (no unused code/warnings)
+
+✅ **Content Separation Complete**
+- Posts loaded from external Markdown files with YAML frontmatter
+- File watcher for live reload during development
+- Compile-time embedding for production builds
+- Graceful handling of missing posts
+
+✅ **Markdown Rendering Complete**
+- Full markdown support with pulldown-cmark
+- Syntax highlighting for code blocks
+- Tables, lists, blockquotes, horizontal rules
+- Links, images, emphasis, strikethrough
+
+✅ **Math Formula Rendering Complete**
+- Typst math formula rendering to SVG
+- Theme-aware colors (white in dark mode, black in light mode)
+- Inline and display math support
+- Proper paragraph accumulation and spacing
+- All tests passing, production-ready
 
 ## Priority 1: Content Separation
 **Problem:** Blog posts are hardcoded in Rust source code (`posts/mod.rs:add_example_posts()`)
@@ -48,7 +67,28 @@ This is my first blog post using egui!
 5. **Support links and images** - With proper egui widgets
 6. **Advanced elements** - Lists, blockquotes, tables
 
-## Priority 3: Enhanced Styling
+## Priority 3: Math Formula Rendering (COMPLETED 2026-02-27)
+**Problem:** Need to render mathematical formulas in blog posts
+**Goal:** Support Typst math syntax with theme-aware rendering
+
+### Implementation Steps (Completed):
+1. **Typst integration** - Use Typst CLI to render formulas to SVG
+2. **Build script** - Process math formulas during cargo build
+3. **SVG processing** - Make backgrounds transparent, theme-aware colors
+4. **Inline vs display math** - Support `$formula$` (inline) and `$$ formula $$` (display)
+5. **Paragraph accumulation** - Proper inline rendering without line breaks
+6. **Horizontal spacing fix** - Set `item_spacing.x = 0.0` for seamless text flow
+7. **Theme adaptation** - Formulas use `text_color()` to match body text
+8. **Caching system** - Manifest tracks rendered formulas for performance
+
+### Key Features:
+- ✅ Formulas appear white in dark mode, black in light mode
+- ✅ Inline formulas flow seamlessly with text (no extra spacing)
+- ✅ Display formulas are centered with proper vertical spacing
+- ✅ Automatic rebuild when formulas change
+- ✅ All tests passing, web build successful
+
+## Priority 4: Enhanced Styling
 **Opportunities:** Custom themes, typography, responsive layouts
 
 ### Implementation Steps:
@@ -58,7 +98,7 @@ This is my first blog post using egui!
 4. **Animation support** - Smooth theme transitions
 5. **UI polish** - Better spacing, borders, shadows
 
-## Priority 4: Advanced Features (Long-term)
+## Priority 5: Advanced Features (Long-term)
 
 ### 4.1 Comments System
 - Persistent storage (localStorage for web, files for native)
