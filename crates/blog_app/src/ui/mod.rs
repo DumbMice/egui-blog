@@ -8,4 +8,3 @@ pub mod table_renderer;
 // Re-exports for convenient access
 pub use components::Theme;
 pub use layout::LayoutConfig;
-pub use markdown::render_markdown;
