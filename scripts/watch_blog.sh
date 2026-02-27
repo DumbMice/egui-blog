@@ -108,6 +108,17 @@ start_watching() {
     fi
 
     echo "Build script validated successfully."
+    
+    # Run initial build before starting watcher
+    echo "Running initial build..."
+    echo "===[ $(date +%H:%M:%S) ] Building... ==="
+    if ! ./scripts/build_blog_web.sh; then
+        echo "ERROR: Initial build failed."
+        cleanup
+        exit 1
+    fi
+    echo "Initial build completed successfully."
+    
     echo "Starting file watcher..."
     echo ""
 

@@ -41,7 +41,11 @@ impl WebHandle {
             .start(
                 canvas,
                 eframe::WebOptions::default(),
-                Box::new(|_cc| Ok(Box::new(BlogApp::default()))),
+                Box::new(|cc| {
+                    // Install image loaders for SVG support
+                    egui_extras::install_image_loaders(&cc.egui_ctx);
+                    Ok(Box::new(BlogApp::default()))
+                }),
             )
             .await
     }

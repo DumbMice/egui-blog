@@ -7,7 +7,7 @@ cd "$script_path/.."
 
 CRATE_NAME="blog_app"
 
-FEATURES="web_app"
+FEATURES="web_app,math"
 
 OPEN=false
 OPTIMIZE=false
@@ -74,6 +74,10 @@ FINAL_WASM_PATH=web_blog/${OUT_FILE_NAME}_bg.wasm
 
 # Clear output from old stuff:
 rm -f "${FINAL_WASM_PATH}"
+
+echo "Processing math formulas…"
+echo "Note: Math formulas are now processed automatically by the Rust build script (build.rs)"
+echo "      during cargo build. No separate processing step is needed."
 
 echo "Building rust…"
 
