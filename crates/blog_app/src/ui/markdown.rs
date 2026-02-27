@@ -1,26 +1,169 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Align2, Hyperlink, RichText, Sense, Shape, TextStyle, Ui};
+use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use log;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer;
 
+/// Content that can appear within a paragraph
+#[derive(Clone)]
+enum ParagraphContent {
+    Text(String),
+    MathImage {
+        image_source: ImageSource<'static>,
+        size: egui::Vec2,
+        is_display: bool,
+    },
+    MathCode {
+        content: String,
+        is_display: bool,
+    },
+    InlineCode(String),
+    Strong(String),
+    Emphasis(String),
+    Link {
+        text: String,
+        url: String,
+    },
+    Strikethrough(String),
+}
+
+/// Extract math formulas from text and replace with (hash.typ) placeholders
+/// Returns text with placeholders
+fn extract_and_replace_math_formulas(text: &str, manifest: &crate::math::MathManifest) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut i = 0;
+    let chars: Vec<char> = text.chars().collect();
+
+    while i < chars.len() {
+        if chars[i] == '$' {
+            // Save the original formula text for fallback
+            let formula_start = i;
+
+            // Check if this is Typst math
+            let mut j = i + 1;
+            let mut is_display = false;
+
+            // Check if there's a space after the opening $ (Typst display math)
+            if j < chars.len() && chars[j] == ' ' {
+                is_display = true;
+                j += 1; // Skip the space
+            }
+
+            // Find closing $
+            while j < chars.len() && chars[j] != '$' {
+                j += 1;
+            }
+
+            if j < chars.len() && chars[j] == '$' {
+                let formula_start_idx = if is_display { i + 2 } else { i + 1 };
+                let mut formula_end_idx = j;
+
+                // For Typst display math, check if there's a space before closing $
+                if is_display && j > 0 && chars[j - 1] == ' ' {
+                    formula_end_idx = j - 1; // Exclude the space before closing $
+                }
+
+                let formula: String = chars[formula_start_idx..formula_end_idx].iter().collect();
+                let formula = formula.trim();
+
+                if !formula.is_empty() {
+                    // Look up hash in manifest
+                    if let Some(hash) = manifest.find_hash(&formula, is_display) {
+                        let placeholder = format!("({}.typ)", hash);
+                        result.push_str(&placeholder);
+                        i = j + 1;
+                        continue;
+                    }
+                }
+            }
+
+            // If we get here, formula extraction failed or hash not found
+            // Copy the original formula text as fallback
+            for k in formula_start..=i {
+                result.push(chars[k]);
+            }
+        }
+
+        // Not a formula (or failed formula), copy the character
+        result.push(chars[i]);
+        i += 1;
+    }
+
+    result
+}
+
 /// Render markdown content to an egui UI.
+#[cfg(not(feature = "math"))]
 pub fn render_markdown(ui: &mut Ui, markdown: &str) {
+    render_markdown_internal(ui, markdown)
+}
+
+/// Render markdown content to an egui UI with math support.
+#[cfg(feature = "math")]
+pub fn render_markdown(
+    ui: &mut Ui,
+    markdown: &str,
+    math_asset_manager: Option<&mut crate::math::MathAssetManager>,
+) {
+    render_markdown_internal(ui, markdown, math_asset_manager)
+}
+
+#[cfg(not(feature = "math"))]
+fn render_markdown_internal(ui: &mut Ui, markdown: &str) {
+    render_markdown_impl(ui, markdown, None)
+}
+
+#[cfg(feature = "math")]
+fn render_markdown_internal(
+    ui: &mut Ui,
+    markdown: &str,
+    math_asset_manager: Option<&mut crate::math::MathAssetManager>,
+) {
+    render_markdown_impl(ui, markdown, math_asset_manager)
+}
+
+#[cfg(not(feature = "math"))]
+fn render_markdown_impl(ui: &mut Ui, markdown: &str, _math_asset_manager: Option<()>) {
+    render_markdown_with_math(ui, markdown, None)
+}
+
+#[cfg(feature = "math")]
+fn render_markdown_impl(
+    ui: &mut Ui,
+    markdown: &str,
+    math_asset_manager: Option<&mut crate::math::MathAssetManager>,
+) {
+    render_markdown_with_math(ui, markdown, math_asset_manager)
+}
+
+fn render_markdown_with_math(
+    ui: &mut Ui,
+    markdown: &str,
+    mut math_asset_manager: Option<&mut crate::math::MathAssetManager>,
+) {
+    // Extract math formulas and replace with (hash.typ) placeholders
+    let manifest = crate::math::load_manifest();
+
+    let protected_text = extract_and_replace_math_formulas(markdown, &manifest);
+
     let mut events =
-        pulldown_cmark::Parser::new_ext(markdown, pulldown_cmark::Options::ENABLE_TABLES)
+        pulldown_cmark::Parser::new_ext(&protected_text, pulldown_cmark::Options::ENABLE_TABLES)
             .peekable();
 
+    // State for accumulating paragraph content
+    let mut in_paragraph = false;
+    let mut paragraph_content = Vec::new();
+
     while let Some(event) = events.next() {
-        log::debug!("Markdown event: {:?}", event);
         match event {
             Event::Start(tag) => {
-                log::debug!("Start tag: {:?}", tag);
                 match tag {
                     Tag::Paragraph => {
-                        // Paragraphs are handled by accumulating text
+                        in_paragraph = true;
+                        paragraph_content.clear();
                     }
                     Tag::Heading(level, _, _) => {
                         // Headings
@@ -91,16 +234,19 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing.x = 0.0;
                                 ui.set_row_height(row_height);
+                                // Add indentation for the list
+                                ui.add_space(one_indent);
+
                                 match ordered {
                                     Some(start) => {
                                         let number = (start + i as u64).to_string();
-                                        let width = 3.0 * one_indent;
-                                        numbered_point(ui, width, &number);
+                                        // Render number as text label (part of the text flow)
+                                        ui.label(RichText::new(format!("{}.", number)));
                                         ui.add_space(one_indent / 3.0);
                                     }
                                     None => {
-                                        let width = one_indent;
-                                        bullet_point(ui, width);
+                                        // Render bullet as text character (•) instead of drawn circle
+                                        ui.label(RichText::new("•"));
                                         ui.add_space(one_indent / 3.0);
                                     }
                                 }
@@ -197,7 +343,11 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                                 _ => {} // Skip other events
                             }
                         }
-                        ui.label(RichText::new(bold_text).strong());
+                        if in_paragraph {
+                            paragraph_content.push(ParagraphContent::Strong(bold_text));
+                        } else {
+                            ui.label(RichText::new(bold_text).strong());
+                        }
                     }
                     Tag::Emphasis => {
                         // Italic text
@@ -210,7 +360,11 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                                 _ => {} // Skip other events
                             }
                         }
-                        ui.label(RichText::new(italic_text).italics());
+                        if in_paragraph {
+                            paragraph_content.push(ParagraphContent::Emphasis(italic_text));
+                        } else {
+                            ui.label(RichText::new(italic_text).italics());
+                        }
                     }
                     Tag::Link(_, url, _) => {
                         // Links
@@ -225,7 +379,31 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             }
                         }
 
-                        ui.add(Hyperlink::from_label_and_url(&link_text, &url));
+                        if in_paragraph {
+                            paragraph_content.push(ParagraphContent::Link {
+                                text: link_text,
+                                url,
+                            });
+                        } else {
+                            ui.add(Hyperlink::from_label_and_url(&link_text, &url));
+                        }
+                    }
+                    Tag::Strikethrough => {
+                        // Strikethrough text
+                        let mut strike_text = String::new();
+                        while let Some(event) = events.next() {
+                            match event {
+                                Event::End(Tag::Strikethrough) => break,
+                                Event::Text(text) => strike_text.push_str(&*text),
+                                Event::SoftBreak => strike_text.push(' '),
+                                _ => {} // Skip other events
+                            }
+                        }
+                        if in_paragraph {
+                            paragraph_content.push(ParagraphContent::Strikethrough(strike_text));
+                        } else {
+                            ui.label(RichText::new(strike_text).strikethrough());
+                        }
                     }
                     Tag::BlockQuote => {
                         // Block quotes
@@ -291,19 +469,6 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                             }
                         }
                     }
-                    Tag::Strikethrough => {
-                        // Strikethrough text
-                        let mut strike_text = String::new();
-                        while let Some(event) = events.next() {
-                            match event {
-                                Event::End(Tag::Strikethrough) => break,
-                                Event::Text(text) => strike_text.push_str(&*text),
-                                Event::SoftBreak => strike_text.push(' '),
-                                _ => {} // Skip other events
-                            }
-                        }
-                        ui.label(RichText::new(strike_text).strikethrough());
-                    }
                     Tag::Image(_, url, _) => {
                         // Images - display alt text as placeholder
                         let _url = url.to_string();
@@ -324,16 +489,184 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
                     }
                 }
             }
-            Event::End(_) => {
-                // End tags are handled within Start match
+            Event::End(tag) => {
+                match tag {
+                    Tag::Paragraph => {
+                        if in_paragraph && !paragraph_content.is_empty() {
+                            // Render the accumulated paragraph content in a horizontal layout
+                            ui.horizontal_wrapped(|ui| {
+                                // Remove horizontal spacing between inline elements
+                                // This eliminates excessive spacing between text and math images
+                                ui.spacing_mut().item_spacing.x = 0.0;
+
+                                for content in &paragraph_content {
+                                    render_paragraph_content(ui, content);
+                                }
+                            });
+                            ui.add_space(4.0); // Add spacing after paragraph
+                            paragraph_content.clear();
+                        }
+                        in_paragraph = false;
+                    }
+                    _ => {
+                        // Other end tags are handled within Start match
+                    }
+                }
             }
             Event::Text(text) => {
-                // Plain text - check for LaTeX math
-                render_text_with_latex(ui, &text);
+                if in_paragraph {
+                    // Accumulate text content for paragraph rendering
+                    accumulate_text_content(
+                        &text,
+                        &manifest,
+                        &mut math_asset_manager,
+                        &mut paragraph_content,
+                    );
+                } else {
+                    // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
+                    // Check for math placeholders in the text (format: (hash.typ))
+                    let mut remaining = &text[..];
+                    let _last_pos = 0;
+
+                    while let Some(start) = remaining.find('(') {
+                        // Render text before the placeholder
+                        if start > 0 {
+                            let before_text = &remaining[..start];
+                            #[cfg(not(feature = "math"))]
+                            render_text_with_latex(ui, before_text);
+                            #[cfg(feature = "math")]
+                            render_text_with_latex(ui, before_text, &mut math_asset_manager);
+                        }
+
+                        // Find the end of the placeholder - look for closing ')'
+                        if let Some(end) = remaining[start..].find(')') {
+                            let placeholder = &remaining[start..start + end + 1];
+
+                            // Check if this is a math placeholder: (hash.typ)
+                            if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
+                                // Extract hash: remove '(' and '.typ)'
+                                let hash = &placeholder[1..placeholder.len() - 5];
+
+                                // Look up metadata in manifest
+                                if let Some(metadata) = manifest.get_metadata(hash) {
+                                    if let Some(asset_manager) = &mut math_asset_manager {
+                                        // Try to render as SVG using hash
+                                        if let Some(image_source) =
+                                            asset_manager.get_image_source_for_hash(hash)
+                                        {
+                                            // Get the SVG's intrinsic size
+                                            let svg_size = asset_manager.get_svg_size(hash);
+
+                                            if let Some(size) = svg_size {
+                                                // Use SVG's intrinsic size directly (both in points)
+                                                // No scaling needed - SVG size is already in points
+
+                                                if metadata.is_display {
+                                                    // Display math: center with spacing
+                                                    ui.add_space(8.0);
+                                                    ui.horizontal(|ui| {
+                                                        ui.add_space(
+                                                            (ui.available_width() - size.x) / 2.0,
+                                                        );
+
+                                                        // Create image with crisp rendering using SVG's intrinsic size
+                                                        let image = egui::Image::new(image_source)
+                                                            .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                                            .fit_to_exact_size(size)
+                                                            .corner_radius(0.0); // No rounding for crisp edges
+
+                                                        ui.add(image);
+                                                    });
+                                                    ui.add_space(8.0);
+                                                } else {
+                                                    // Inline math: render at SVG's intrinsic size
+                                                    // Create image with crisp rendering using SVG's intrinsic size
+                                                    let image = egui::Image::new(image_source)
+                                                        .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                                        .fit_to_exact_size(size)
+                                                        .corner_radius(0.0); // No rounding for crisp edges
+
+                                                    ui.add(image);
+                                                }
+                                            } else {
+                                                // Fallback: use reasonable default size if SVG size not available
+
+                                                if metadata.is_display {
+                                                    // Display math: reasonable default
+                                                    let display_size = egui::vec2(200.0, 50.0);
+                                                    ui.add_space(8.0);
+                                                    ui.horizontal(|ui| {
+                                                        ui.add_space(
+                                                            (ui.available_width() - display_size.x)
+                                                                / 2.0,
+                                                        );
+                                                        let image = egui::Image::new(image_source)
+                                                            .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                                            .fit_to_exact_size(display_size)
+                                                            .corner_radius(0.0);
+                                                        ui.add(image);
+                                                    });
+                                                    ui.add_space(8.0);
+                                                } else {
+                                                    // Inline math: reasonable default
+                                                    let inline_size = egui::vec2(100.0, 20.0);
+                                                    let image = egui::Image::new(image_source)
+                                                        .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                                        .fit_to_exact_size(inline_size)
+                                                        .corner_radius(0.0);
+                                                    ui.add(image);
+                                                }
+                                            }
+                                        } else {
+                                            // Fallback: render as code block
+                                            render_math_as_code(
+                                                ui,
+                                                &format!("Math formula: {}", hash),
+                                                metadata.is_display,
+                                            );
+                                        }
+                                    } else {
+                                        // No asset manager, render as code block
+                                        render_math_as_code(
+                                            ui,
+                                            &format!("Math formula: {}", hash),
+                                            metadata.is_display,
+                                        );
+                                    }
+                                } else {
+                                    // Hash not found in manifest, render placeholder as text
+                                    ui.label(placeholder);
+                                }
+                            } else {
+                                // Not a math placeholder, render as normal text
+                                ui.label(placeholder);
+                            }
+
+                            // Skip past the placeholder
+                            remaining = &remaining[start + end + 1..];
+                        } else {
+                            // No closing ')', render the '(' and continue
+                            ui.label("(");
+                            remaining = &remaining[start + 1..];
+                        }
+                    }
+
+                    // Render any remaining text after the last placeholder
+                    if !remaining.is_empty() {
+                        #[cfg(not(feature = "math"))]
+                        render_text_with_latex(ui, remaining);
+                        #[cfg(feature = "math")]
+                        render_text_with_latex(ui, remaining, &mut math_asset_manager);
+                    }
+                }
             }
             Event::Code(code) => {
                 // Inline code
-                ui.label(RichText::new(&*code).code());
+                if in_paragraph {
+                    paragraph_content.push(ParagraphContent::InlineCode(code.to_string()));
+                } else {
+                    ui.label(RichText::new(&*code).code());
+                }
             }
             Event::Html(_) => {
                 // Skip HTML
@@ -343,51 +676,52 @@ pub fn render_markdown(ui: &mut Ui, markdown: &str) {
             }
             Event::SoftBreak => {
                 // Soft line break (treated as space)
-                ui.label(" ");
+                if in_paragraph {
+                    paragraph_content.push(ParagraphContent::Text(" ".to_string()));
+                } else {
+                    ui.label(" ");
+                }
             }
             Event::HardBreak => {
                 // Hard line break
-                ui.add_space(4.0);
+                if in_paragraph {
+                    // For hard breaks within paragraphs, we need to handle them specially
+                    // Since we're using horizontal_wrapped, we can't easily add vertical space
+                    // We'll add a special marker that we can handle during rendering
+                    paragraph_content.push(ParagraphContent::Text("\n".to_string()));
+                } else {
+                    ui.add_space(4.0);
+                }
             }
             Event::Rule => {
-                // Horizontal rule
+                // Horizontal rule - always breaks paragraph context
+                if in_paragraph {
+                    // Render accumulated paragraph content first
+                    if !paragraph_content.is_empty() {
+                        ui.horizontal_wrapped(|ui| {
+                            for content in &paragraph_content {
+                                render_paragraph_content(ui, content);
+                            }
+                        });
+                        ui.add_space(4.0);
+                        paragraph_content.clear();
+                    }
+                    in_paragraph = false;
+                }
                 ui.separator();
                 ui.add_space(8.0);
             }
             Event::TaskListMarker(checked) => {
                 // Task list marker
                 let marker = if checked { "[x]" } else { "[ ]" };
-                ui.label(marker);
+                if in_paragraph {
+                    paragraph_content.push(ParagraphContent::Text(marker.to_string()));
+                } else {
+                    ui.label(marker);
+                }
             }
         }
     }
-}
-
-fn bullet_point(ui: &mut Ui, width: f32) -> egui::Response {
-    let row_height = ui.text_style_height(&TextStyle::Body);
-    let (rect, response) = ui.allocate_exact_size(vec2(width, row_height), Sense::hover());
-    ui.painter().circle_filled(
-        rect.center(),
-        rect.height() / 8.0,
-        ui.visuals().strong_text_color(),
-    );
-    response
-}
-
-fn numbered_point(ui: &mut Ui, width: f32, number: &str) -> egui::Response {
-    let font_id = TextStyle::Body.resolve(ui.style());
-    let row_height = ui.fonts_mut(|f| f.row_height(&font_id));
-    let (rect, response) = ui.allocate_exact_size(vec2(width, row_height), Sense::hover());
-    let text = format!("{number}.");
-    let text_color = ui.visuals().strong_text_color();
-    ui.painter().text(
-        rect.right_center(),
-        Align2::RIGHT_CENTER,
-        text,
-        font_id,
-        text_color,
-    );
-    response
 }
 
 /// Parse a markdown table from the event stream.
@@ -454,20 +788,59 @@ pub(crate) fn parse_table<'a>(
     Some((headers, rows))
 }
 
-/// Render text that may contain LaTeX math expressions.
+/// Render text that may contain Typst math expressions.
+#[cfg(not(feature = "math"))]
 fn render_text_with_latex(ui: &mut Ui, text: &str) {
-    // Simple LaTeX detection
+    render_text_with_math_impl(ui, text, None)
+}
+
+/// Render text that may contain Typst math expressions.
+#[cfg(feature = "math")]
+fn render_text_with_latex(
+    ui: &mut Ui,
+    text: &str,
+    math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+) {
+    render_text_with_math_impl(ui, text, math_asset_manager)
+}
+
+/// Internal implementation for rendering text with math formulas.
+#[cfg(not(feature = "math"))]
+fn render_text_with_math_impl(ui: &mut Ui, text: &str, _math_asset_manager: Option<()>) {
+    render_text_with_math(ui, text)
+}
+
+/// Internal implementation for rendering text with math formulas.
+#[cfg(feature = "math")]
+fn render_text_with_math_impl(
+    ui: &mut Ui,
+    text: &str,
+    math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+) {
+    // If we have an asset manager, try to render actual SVG textures
+    if let Some(asset_manager) = math_asset_manager {
+        render_text_with_math_and_assets(ui, text, asset_manager)
+    } else {
+        // Fall back to code rendering
+        render_text_with_math(ui, text)
+    }
+}
+
+/// Render text with math formulas using SVG assets
+#[cfg(feature = "math")]
+fn render_text_with_math_and_assets(
+    ui: &mut Ui,
+    text: &str,
+    asset_manager: &mut crate::math::MathAssetManager,
+) {
     let mut remaining = text;
 
     while let Some(start) = remaining.find('$') {
-        // Render text before the $
-        if start > 0 {
-            ui.label(&remaining[..start]);
-        }
-
-        // Check if it's $$ (display math) or $ (inline math)
-        let is_display_math = remaining[start..].starts_with("$$");
-        let end_marker = if is_display_math { "$$" } else { "$" };
+        // Check if it's Typst display math ($ formula $) or inline math ($formula$)
+        // Look ahead to see if there's a space after the opening $
+        let next_char = remaining.get(start + 1..start + 2);
+        let is_display_math = next_char == Some(" ");
+        let end_marker = "$";
 
         // Find the closing $
         if let Some(end) = remaining[start + end_marker.len()..].find(end_marker) {
@@ -475,28 +848,320 @@ fn render_text_with_latex(ui: &mut Ui, text: &str) {
             let math_end = math_start + end;
             let math_content = &remaining[math_start..math_end];
 
-            // Render LaTeX as code for now
-            let style = if is_display_math {
-                RichText::new(math_content)
-                    .code()
-                    .background_color(ui.visuals().code_bg_color)
+            // Render text before the $
+            if start > 0 {
+                ui.label(&remaining[..start]);
+            }
+
+            // Try to render as SVG
+            if let Some(image_source) = asset_manager.get_image_source_for_formula(
+                math_content.trim(), // Trim whitespace
+                is_display_math,
+            ) {
+                // Get the SVG's intrinsic size
+                let svg_size =
+                    asset_manager.get_svg_size_for_formula(math_content.trim(), is_display_math);
+
+                if let Some(size) = svg_size {
+                    if is_display_math {
+                        // Display math: center with spacing
+                        ui.add_space(8.0);
+                        ui.horizontal(|ui| {
+                            ui.add_space((ui.available_width() - size.x) / 2.0);
+
+                            // Create image with crisp rendering using SVG's intrinsic size
+                            let image = egui::Image::new(image_source)
+                                .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                .fit_to_exact_size(size)
+                                .corner_radius(0.0); // No rounding for crisp edges
+
+                            ui.add(image);
+                        });
+                        ui.add_space(8.0);
+                    } else {
+                        // Inline math: render at SVG's intrinsic size
+                        // Create image with crisp rendering using SVG's intrinsic size
+                        let image = egui::Image::new(image_source)
+                            .tint(ui.visuals().text_color()) // Theme-aware tinting
+                            .fit_to_exact_size(size)
+                            .corner_radius(0.0); // No rounding for crisp edges
+
+                        ui.add(image);
+                    }
+                } else {
+                    // Fallback: use reasonable default size if SVG size not available
+                    if is_display_math {
+                        // Display math: reasonable default
+                        let display_size = egui::vec2(200.0, 50.0);
+                        ui.add_space(8.0);
+                        ui.horizontal(|ui| {
+                            ui.add_space((ui.available_width() - display_size.x) / 2.0);
+                            let image = egui::Image::new(image_source)
+                                .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                .fit_to_exact_size(display_size)
+                                .corner_radius(0.0);
+                            ui.add(image);
+                        });
+                        ui.add_space(8.0);
+                    } else {
+                        // Inline math: reasonable default
+                        let inline_size = egui::vec2(100.0, 20.0);
+                        let image = egui::Image::new(image_source)
+                            .tint(ui.visuals().text_color()) // Theme-aware tinting
+                            .fit_to_exact_size(inline_size)
+                            .corner_radius(0.0);
+                        ui.add(image);
+                    }
+                }
             } else {
-                RichText::new(math_content).code()
-            };
-            ui.label(style);
+                // Fall back to code rendering if image source not available
+                render_math_as_code(ui, math_content, is_display_math);
+            }
 
             // Skip past the math
             remaining = &remaining[math_end + end_marker.len()..];
         } else {
             // No closing $, render the rest as text
-            ui.label(remaining);
-            return;
+            ui.label(&remaining[start..]);
+            remaining = "";
         }
     }
 
     // Render any remaining text
     if !remaining.is_empty() {
         ui.label(remaining);
+    }
+}
+
+/// Render math formula as code (fallback)
+fn render_math_as_code(ui: &mut Ui, math_content: &str, is_display_math: bool) {
+    let style = if is_display_math {
+        RichText::new(math_content)
+            .code()
+            .background_color(ui.visuals().code_bg_color)
+    } else {
+        RichText::new(math_content).code()
+    };
+    ui.label(style);
+}
+
+/// Common implementation for rendering text with math formulas.
+fn render_text_with_math(ui: &mut Ui, text: &str) {
+    // Simple Typst math detection
+    let mut remaining = text;
+
+    while let Some(start) = remaining.find('$') {
+        // Check if it's Typst display math ($ formula $) or inline math ($formula$)
+        // Look ahead to see if there's a space after the opening $
+        let next_char = remaining.get(start + 1..start + 2);
+        let is_display_math = next_char == Some(" ");
+        let end_marker = "$";
+
+        // Find the closing $
+        if let Some(end) = remaining[start + end_marker.len()..].find(end_marker) {
+            let math_start = start + end_marker.len();
+            let math_end = math_start + end;
+            let math_content = &remaining[math_start..math_end];
+
+            // Render text before the $
+            if start > 0 {
+                ui.label(&remaining[..start]);
+            }
+
+            // Render as code (fallback when no asset manager)
+            render_math_as_code(ui, math_content, is_display_math);
+
+            // Skip past the math
+            remaining = &remaining[math_end + end_marker.len()..];
+        } else {
+            // No closing $, render the rest as text
+            ui.label(&remaining[start..]);
+            remaining = "";
+        }
+    }
+
+    // Render any remaining text
+    if !remaining.is_empty() {
+        ui.label(remaining);
+    }
+}
+
+/// Render a single paragraph content item
+fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
+    match content {
+        ParagraphContent::Text(text) => {
+            // Handle hard breaks within text
+            if text.contains('\n') {
+                let parts: Vec<&str> = text.split('\n').collect();
+                for (i, part) in parts.iter().enumerate() {
+                    if !part.is_empty() {
+                        ui.label(*part);
+                    }
+                    if i < parts.len() - 1 {
+                        ui.add_space(4.0); // Add vertical space for hard break
+                    }
+                }
+            } else {
+                ui.label(text);
+            }
+        }
+        ParagraphContent::MathImage {
+            image_source,
+            size,
+            is_display,
+        } => {
+            if *is_display {
+                // Display math: center with spacing
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    ui.add_space((ui.available_width() - size.x) / 2.0);
+                    let image = egui::Image::new(image_source.clone())
+                        .tint(ui.visuals().text_color())
+                        .fit_to_exact_size(*size)
+                        .corner_radius(0.0);
+                    ui.add(image);
+                });
+                ui.add_space(8.0);
+            } else {
+                // Inline math: render inline with adjusted spacing
+                // Reduce the image size slightly to account for SVG padding
+                let adjusted_size = *size * 0.9; // Reduce by 10% to account for padding
+                let image = egui::Image::new(image_source.clone())
+                    .tint(ui.visuals().text_color())
+                    .fit_to_exact_size(adjusted_size)
+                    .corner_radius(0.0);
+                ui.add(image);
+            }
+        }
+        ParagraphContent::MathCode {
+            content,
+            is_display,
+        } => {
+            if *is_display {
+                // Display math code: center with background
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    // For text centering, we can use available space calculation
+                    // We'll render the label and it will take up space, then we can center it
+                    ui.with_layout(
+                        egui::Layout::top_down_justified(egui::Align::Center),
+                        |ui| {
+                            ui.label(
+                                RichText::new(content)
+                                    .code()
+                                    .background_color(ui.visuals().code_bg_color),
+                            );
+                        },
+                    );
+                });
+                ui.add_space(8.0);
+            } else {
+                // Inline math code
+                ui.label(RichText::new(content).code());
+            }
+        }
+        ParagraphContent::InlineCode(code) => {
+            ui.label(RichText::new(code).code());
+        }
+        ParagraphContent::Strong(text) => {
+            ui.label(RichText::new(text).strong());
+        }
+        ParagraphContent::Emphasis(text) => {
+            ui.label(RichText::new(text).italics());
+        }
+        ParagraphContent::Link { text, url } => {
+            ui.add(Hyperlink::from_label_and_url(text, url));
+        }
+        ParagraphContent::Strikethrough(text) => {
+            ui.label(RichText::new(text).strikethrough());
+        }
+    }
+}
+
+/// Accumulate text content for paragraph rendering
+fn accumulate_text_content(
+    text: &str,
+    manifest: &crate::math::MathManifest,
+    math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    paragraph_content: &mut Vec<ParagraphContent>,
+) {
+    let mut remaining = text;
+
+    while let Some(start) = remaining.find('(') {
+        // Add text before the placeholder
+        if start > 0 {
+            let before_text = &remaining[..start];
+            if !before_text.is_empty() {
+                paragraph_content.push(ParagraphContent::Text(before_text.to_string()));
+            }
+        }
+
+        // Find the end of the placeholder - look for closing ')'
+        if let Some(end) = remaining[start..].find(')') {
+            let placeholder = &remaining[start..start + end + 1];
+
+            // Check if this is a math placeholder: (hash.typ)
+            if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
+                // Extract hash: remove '(' and '.typ)'
+                let hash = &placeholder[1..placeholder.len() - 5];
+
+                // Look up metadata in manifest
+                if let Some(metadata) = manifest.get_metadata(hash) {
+                    // Inline math - accumulate in paragraph content
+                    if let Some(asset_manager) = math_asset_manager {
+                        // Try to get SVG using hash
+                        if let Some(image_source) = asset_manager.get_image_source_for_hash(hash) {
+                            // Get the SVG's intrinsic size
+                            let svg_size = asset_manager.get_svg_size(hash);
+
+                            if let Some(size) = svg_size {
+                                paragraph_content.push(ParagraphContent::MathImage {
+                                    image_source,
+                                    size,
+                                    is_display: metadata.is_display,
+                                });
+                            } else {
+                                // Fallback: use code rendering
+                                paragraph_content.push(ParagraphContent::MathCode {
+                                    content: format!("Math formula: {}", hash),
+                                    is_display: metadata.is_display,
+                                });
+                            }
+                        } else {
+                            // Fallback: render as code
+                            paragraph_content.push(ParagraphContent::MathCode {
+                                content: format!("Math formula: {}", hash),
+                                is_display: metadata.is_display,
+                            });
+                        }
+                    } else {
+                        // No asset manager, render as code
+                        paragraph_content.push(ParagraphContent::MathCode {
+                            content: format!("Math formula: {}", hash),
+                            is_display: metadata.is_display,
+                        });
+                    }
+                } else {
+                    // Hash not found in manifest, add placeholder as text
+                    paragraph_content.push(ParagraphContent::Text(placeholder.to_string()));
+                }
+            } else {
+                // Not a math placeholder, add as normal text
+                paragraph_content.push(ParagraphContent::Text(placeholder.to_string()));
+            }
+
+            // Skip past the placeholder
+            remaining = &remaining[start + end + 1..];
+        } else {
+            // No closing ')', add the '(' and continue
+            paragraph_content.push(ParagraphContent::Text("(".to_string()));
+            remaining = &remaining[start + 1..];
+        }
+    }
+
+    // Add any remaining text
+    if !remaining.is_empty() {
+        paragraph_content.push(ParagraphContent::Text(remaining.to_string()));
     }
 }
 
@@ -556,5 +1221,57 @@ mod tests {
             }
         }
         panic!("No table found in markdown");
+    }
+
+    #[test]
+    fn test_list_parsing() {
+        // Test unordered list
+        let unordered_markdown = r#"### Features
+
+- **Fast**: Compiled to WebAssembly
+- **Simple**: No JavaScript framework
+- **Rust**: Safety and performance"#;
+
+        let mut options = pulldown_cmark::Options::empty();
+        options.insert(pulldown_cmark::Options::ENABLE_TABLES);
+        let parser = Parser::new_ext(unordered_markdown, options);
+        let mut events = parser.peekable();
+
+        let mut found_list = false;
+        while let Some(event) = events.next() {
+            if let Event::Start(Tag::List(ordered)) = event {
+                found_list = true;
+                assert_eq!(ordered, None); // Unordered list
+                                           // Skip through the list events
+                while let Some(event) = events.next() {
+                    if let Event::End(Tag::List(_)) = event {
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        assert!(found_list, "Should find unordered list in markdown");
+
+        // Test ordered list
+        let ordered_markdown = r#"I plan to add more features to this blog:
+
+1. Markdown rendering
+2. Code syntax highlighting
+3. Dark/light theme toggle"#;
+
+        let parser = Parser::new_ext(ordered_markdown, options);
+        let mut events = parser.peekable();
+
+        let mut found_ordered_list = false;
+        while let Some(event) = events.next() {
+            if let Event::Start(Tag::List(ordered)) = event {
+                found_ordered_list = true;
+                assert!(ordered.is_some()); // Ordered list
+                assert_eq!(ordered.unwrap(), 1); // Starting at 1
+                break;
+            }
+        }
+        assert!(found_ordered_list, "Should find ordered list in markdown");
     }
 }

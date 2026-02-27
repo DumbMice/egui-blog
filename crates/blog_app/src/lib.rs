@@ -3,6 +3,7 @@
 #[cfg(target_arch = "wasm32")]
 mod web;
 
+pub mod math;
 mod posts;
 mod ui;
 
@@ -10,12 +11,14 @@ use egui::{CentralPanel, Panel, ScrollArea};
 pub use posts::{PostManager, PostManagerState};
 use ui::{LayoutConfig, Theme};
 
+use crate::math::MathAssetManager;
+
 /// The main app state.
 pub struct BlogApp {
     /// Manages blog posts
     post_manager: PostManager,
     /// Current post manager state
-    post_manager_state: PostManagerState,  // NEW
+    post_manager_state: PostManagerState, // NEW
     /// Currently selected post index
     selected_post: usize,
     /// Are we editing a new post?
@@ -26,27 +29,33 @@ pub struct BlogApp {
     new_post_content: String,
     /// Current theme
     theme: Theme,
+    /// Previous theme (to detect changes)
+    previous_theme: Theme,
     /// Search query
     search_query: String,
     /// Layout configuration
     layout_config: LayoutConfig,
+    /// Math asset manager for rendering formula SVGs
+    math_asset_manager: MathAssetManager,
 }
 
 impl Default for BlogApp {
     fn default() -> Self {
         let post_manager = PostManager::default();
-        let post_manager_state = post_manager.state().clone();  // NEW
+        let post_manager_state = post_manager.state().clone(); // NEW
 
         Self {
             post_manager,
-            post_manager_state,  // NEW
+            post_manager_state, // NEW
             selected_post: 0,
             editing_new_post: false,
             new_post_title: String::new(),
             new_post_content: String::new(),
             theme: Theme::Light,
+            previous_theme: Theme::Light,
             search_query: String::new(),
             layout_config: LayoutConfig::default(),
+            math_asset_manager: MathAssetManager::default(),
         }
     }
 }
@@ -84,6 +93,13 @@ impl BlogApp {
 
 impl eframe::App for BlogApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // Check if theme changed
+        if self.theme != self.previous_theme {
+            // Clear image cache to force SVGs to reload with new theme colors
+            ui.ctx().forget_all_images();
+            self.previous_theme = self.theme;
+        }
+
         // Apply current theme
         self.theme.apply(ui.ctx());
 
@@ -111,7 +127,7 @@ impl eframe::App for BlogApp {
             selection_changed = ui::layout::side_panel(
                 ui,
                 &self.post_manager,
-                &self.post_manager_state,  // NEW: pass state
+                &self.post_manager_state, // NEW: pass state
                 &self.search_query,
                 &mut self.selected_post,
                 &self.layout_config,
@@ -129,7 +145,7 @@ impl eframe::App for BlogApp {
         let mut retry_requested = false;
         CentralPanel::default().show_inside(ui, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
-                (post_saved, editing_cancelled, navigation_index, retry_requested) = ui::layout::main_content(
+                let result = ui::layout::main_content(
                     ui,
                     &self.post_manager,
                     self.selected_post,
@@ -137,7 +153,14 @@ impl eframe::App for BlogApp {
                     &mut self.new_post_title,
                     &mut self.new_post_content,
                     &self.post_manager_state,
+                    Some(&mut self.math_asset_manager),
                 );
+                (
+                    post_saved,
+                    editing_cancelled,
+                    navigation_index,
+                    retry_requested,
+                ) = result;
             });
         });
 
@@ -237,4 +260,3 @@ mod tests {
         let _ = app;
     }
 }
-

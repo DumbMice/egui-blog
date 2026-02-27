@@ -26,6 +26,9 @@ web_app = []
 glow = ["eframe/glow"]
 wgpu = ["eframe/wgpu", "bytemuck", "dep:wgpu"]
 
+# Math rendering feature
+math = []
+
 # Development feature for file watching
 dev = ["notify"]
 
@@ -40,8 +43,12 @@ serde_yaml = "0.9"
 pulldown-cmark = "0.9"
 thiserror = "1.0"
 
-# Syntax highlighting
-egui_extras = { workspace = true, default-features = false, features = ["syntect"] }
+# Math rendering
+serde_json = { version = "1.0", features = ["preserve_order"] }
+regex = "1.10"
+
+# Syntax highlighting and image loading
+egui_extras = { workspace = true, default-features = false, features = ["syntect", "svg"] }
 
 # File watching (development only)
 notify = { version = "6.1", optional = true }
@@ -62,3 +69,15 @@ web-sys.workspace = true
 
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["eframe", "snapshot", "wgpu"] }
+tempfile = "3.10"
+
+# Build dependencies for math processing
+[build-dependencies]
+sha2 = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+walkdir = "2.5"
+regex = "1.10"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+roxmltree = "0.19"
