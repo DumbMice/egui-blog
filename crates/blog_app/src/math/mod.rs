@@ -9,7 +9,7 @@ mod assets;
 mod embedded;
 
 pub use assets::MathAssetManager;
-pub use embedded::{FormulaMetadata, MathManifest, get_svg_bytes, load_manifest};
+pub use embedded::{get_svg_bytes, load_manifest, FormulaMetadata, MathManifest};
 
 /// Simple formula detection without regex
 /// Returns vector of (start_index, end_index, formula_text, is_display_math)
@@ -165,6 +165,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires build-generated embedded.rs with formulas"]
     fn test_embedded_module_integration() {
         // Test that the embedded module is properly integrated
         use crate::math::embedded;
