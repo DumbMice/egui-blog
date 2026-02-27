@@ -19,7 +19,7 @@ rustdoc-args = ["--generate-link-to-definition"]
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["wgpu"]
+default = ["wgpu", "persistence"]
 
 web_app = []
 
@@ -29,14 +29,17 @@ wgpu = ["eframe/wgpu", "bytemuck", "dep:wgpu"]
 # Development feature for file watching
 dev = ["notify"]
 
+# Persistence for saving app state across sessions
+persistence = ["eframe/persistence", "serde"]
+
 [dependencies]
 eframe = { workspace = true, default-features = false, features = ["web_screen_reader", "wayland", "x11"] }
 egui = { workspace = true, features = ["default"] }
 log.workspace = true
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 
 # Markdown and YAML parsing
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
 serde_yaml = "0.9"
 pulldown-cmark = "0.9"
 thiserror = "1.0"

@@ -4,6 +4,7 @@ use egui::{Context, Ui};
 
 /// Theme configuration for the blog.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Theme {
     Light,
     Dark,

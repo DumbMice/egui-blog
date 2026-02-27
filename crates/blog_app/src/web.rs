@@ -44,7 +44,7 @@ impl WebHandle {
                 Box::new(|cc| {
                     // Install image loaders for SVG support
                     egui_extras::install_image_loaders(&cc.egui_ctx);
-                    Ok(Box::new(BlogApp::default()))
+                    Ok(Box::new(BlogApp::new(cc)))
                 }),
             )
             .await

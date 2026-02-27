@@ -2,6 +2,7 @@
 
 /// State of post loading operations.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum PostManagerState {
     /// Posts are being loaded
     Loading,

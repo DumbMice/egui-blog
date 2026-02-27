@@ -20,7 +20,7 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| {
             // Install image loaders for SVG support
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            Ok(Box::new(blog_app::BlogApp::default()))
+            Ok(Box::new(blog_app::BlogApp::new(cc)))
         }),
     )
 }

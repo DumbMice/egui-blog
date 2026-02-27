@@ -7,6 +7,8 @@ use crate::math::MathAssetManager;
 use crate::posts::{PostManager, PostManagerState};
 
 /// Configuration for the blog layout.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct LayoutConfig {
     /// Show tags in post list
     pub show_tags_in_list: bool,

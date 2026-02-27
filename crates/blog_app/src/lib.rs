@@ -15,8 +15,11 @@ use ui::{LayoutConfig, Theme};
 use crate::math::MathAssetManager;
 
 /// The main app state.
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct BlogApp {
     /// Manages blog posts
+    #[cfg_attr(feature = "serde", serde(skip))]
     post_manager: PostManager,
     /// Current post manager state
     post_manager_state: PostManagerState, // NEW
@@ -37,6 +40,7 @@ pub struct BlogApp {
     /// Layout configuration
     layout_config: LayoutConfig,
     /// Math asset manager for rendering formula SVGs
+    #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
 }
 
@@ -62,6 +66,28 @@ impl Default for BlogApp {
 }
 
 impl BlogApp {
+    /// Create a new BlogApp, optionally loading from storage.
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        #[cfg(feature = "persistence")]
+        let mut app = if let Some(storage) = cc.storage {
+            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+        } else {
+            Self::default()
+        };
+
+        #[cfg(not(feature = "persistence"))]
+        let mut app = Self::default();
+
+        // Apply theme to context
+        app.theme.apply(&cc.egui_ctx);
+        app.previous_theme = app.theme;
+
+        // Ensure valid selection
+        app.ensure_valid_selection();
+
+        app
+    }
+
     /// Ensure selected_post is within valid bounds
     fn ensure_valid_selection(&mut self) {
         if self.post_manager.count() == 0 {
@@ -93,6 +119,19 @@ impl BlogApp {
 }
 
 impl eframe::App for BlogApp {
+    #[cfg(feature = "persistence")]
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, self);
+    }
+
+    fn persist_egui_memory(&self) -> bool {
+        true
+    }
+
+    fn auto_save_interval(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(30)
+    }
+
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // Check if theme changed
         if self.theme != self.previous_theme {
