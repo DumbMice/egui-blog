@@ -1,7 +1,6 @@
 //! Test image source creation and rendering
 
 use blog_app::math::{self, MathAssetManager};
-use egui::ImageSource;
 
 #[test]
 fn test_image_source_creation() {

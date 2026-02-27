@@ -120,25 +120,6 @@ pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
     Ok(posts)
 }
 
-/// Watch a directory for changes (development only).
-#[cfg(feature = "dev")]
-pub fn watch_directory(dir: &Path) -> notify::Result<notify::RecommendedWatcher> {
-    use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-
-    let mut watcher = notify::recommended_watcher(|res| {
-        match res {
-            Ok(event) => {
-                println!("File changed: {:?}", event);
-                // In a real app, you would reload posts here
-            }
-            Err(e) => eprintln!("Watch error: {:?}", e),
-        }
-    })?;
-
-    watcher.watch(dir, RecursiveMode::NonRecursive)?;
-    Ok(watcher)
-}
-
 /// Load posts embedded at compile time.
 pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
     // Embedded post files

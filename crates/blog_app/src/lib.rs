@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_blog_app_passes_state_to_side_panel() {
-        let mut app = BlogApp::default();
+        let app = BlogApp::default();
         // Verify app compiles with updated side panel call
         let _ = app;
     }
