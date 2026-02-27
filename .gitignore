@@ -9,3 +9,37 @@
 /.vscode
 /media/*
 .idea/
+
+# Build artifacts
+web_blog/blog_app.js
+web_blog/blog_app_bg.wasm
+web_demo/egui_demo_app.js
+web_demo/egui_demo_app_bg.wasm
+
+# Typst binary and test files
+/typst
+/typst*.tar.gz
+/typst*.zip
+test.svg
+test.typ
+test_typst.pdf
+test_typst.svg
+
+# Backup files
+*.backup
+*.backup2
+*.bak
+*.original
+
+# Generated math assets (should be built, not committed)
+crates/blog_app/assets/math/*.svg
+crates/blog_app/assets/math/manifest.json
+crates/blog_app/src/math/embedded.rs
+
+# Session files
+session-*.json
+session-*.md
+
+# Test build files
+crates/blog_app/test_build*
+crates/blog_app/test.rs
