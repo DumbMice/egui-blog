@@ -48,6 +48,16 @@
 - [x] Add proper error handling for build failures
 - [x] See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for implementation details
 
+## Priority 5: State Persistence ✅ COMPLETED 2026-02-27
+- [x] Add persistence feature to Cargo.toml (enabled by default)
+- [x] Make BlogApp and dependent types serializable with serde
+- [x] Implement save() method for app state serialization
+- [x] Implement BlogApp::new() constructor with storage loading
+- [x] Add persist_egui_memory() and auto_save_interval() methods
+- [x] Update entry points to use new constructor
+- [x] Test persistence across browser refreshes
+- [x] Document persistence implementation in AGENTS.md
+
 ### New Development Workflow
 ```bash
 # Development server with hot reload (default)
@@ -78,7 +88,7 @@ cargo blog-wasm     # Build WASM library only
 - **Browser auto-open**: `--open` flag opens browser automatically
 - **Logging control**: `--log-level` option for verbosity control
 
-## Priority 5: Enhanced Styling
+## Priority 6: Enhanced Styling
 - [ ] Design custom theme system
 - [ ] Implement color customization
 - [ ] Improve typography (fonts, spacing)
@@ -103,6 +113,13 @@ cargo blog-wasm     # Build WASM library only
 - Fixed horizontal spacing between text and math images
 - Display math formulas centered with proper spacing
 - All tests passing, web build successful
+
+✅ **State Persistence (2026-02-27)**
+- App state saved across browser refreshes using LocalStorage
+- Selected post, theme, search, layout preserved
+- Auto-save every 30 seconds
+- Post content and math SVGs reloaded from source (not serialized)
+- Follows egui demo app persistence pattern
 
 ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support

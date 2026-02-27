@@ -202,6 +202,7 @@ The blog app uses a specific state management pattern:
 1. `PostManager` maintains both post collection (`Vec<BlogPost>`) and loading state (`PostManagerState`)
 2. `BlogApp` holds a `PostManager` instance and a separate `post_manager_state` clone for UI access
 3. Error states include retry functionality via `handle_retry()` method
+4. **Persistence**: App state is saved across browser refreshes using browser LocalStorage
 
 Example state enum from `crates/blog_app/src/posts/state.rs`:
 ```rust
@@ -210,6 +211,29 @@ pub enum PostManagerState {
     Loaded,
     Error(String),
     Empty,
+}
+```
+
+### Persistence Implementation
+The blog app includes state persistence across browser refreshes:
+- **Enabled by default**: `persistence` feature in Cargo.toml
+- **What gets saved**: Selected post index, theme preference, search query, layout config, editor state
+- **What doesn't get saved**: Post content (loaded from files), math SVGs (embedded resources)
+- **Serialization**: Uses `serde` with `#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]`
+- **Storage**: Browser LocalStorage (web) or file storage (native)
+- **Auto-save**: Every 30 seconds via `auto_save_interval()` method
+
+Example BlogApp struct with persistence:
+```rust
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
+pub struct BlogApp {
+    #[cfg_attr(feature = "serde", serde(skip))]
+    post_manager: PostManager,  // Not serialized - reloaded from source
+    post_manager_state: PostManagerState,  // Serialized
+    selected_post: usize,  // Serialized
+    theme: Theme,  // Serialized
+    // ...
 }
 ```
 
