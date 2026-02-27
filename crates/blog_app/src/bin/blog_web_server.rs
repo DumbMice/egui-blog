@@ -40,10 +40,6 @@ struct Args {
     /// Log level: debug, info, warn, error
     #[arg(long, default_value = "debug")]
     log_level: String,
-
-    /// Log file path (optional)
-    #[arg(long)]
-    log_file: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -274,16 +270,20 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
 #[cfg(feature = "notify")]
 fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
     use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+    use std::collections::HashSet;
     use std::sync::mpsc;
+    use std::time::{Duration, Instant};
 
     println!("📁 Setting up file watcher...");
 
-    let (tx, rx) = mpsc::channel();
+    // Channel from file watcher callback to file watcher thread
+    let (event_tx, event_rx) = mpsc::channel();
+    let event_tx_clone = event_tx.clone();
 
     let mut watcher: RecommendedWatcher = Watcher::new(
         move |res| match res {
             Ok(event) => {
-                let _ = tx.send(event);
+                let _ = event_tx_clone.send(event);
             }
             Err(e) => eprintln!("📁 File watcher error: {}", e),
         },
@@ -292,14 +292,27 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
 
     watcher.watch(Path::new("crates/blog_app"), RecursiveMode::Recursive)?;
 
-    // Spawn a thread to handle file changes and trigger rebuilds
+    // Channel from file watcher thread to rebuild worker
+    let (path_tx, path_rx) = mpsc::channel();
+
+    // Spawn file watcher thread
     thread::spawn(move || {
         println!("📁 File watcher thread started");
+        std::mem::forget(watcher); // Keep watcher alive
 
-        // Keep the watcher alive by not dropping it
-        std::mem::forget(watcher);
+        for event in event_rx {
+            // Filter by event kind - only care about modify/create/remove events
+            let is_relevant_event = matches!(
+                event.kind,
+                notify::EventKind::Create(_)
+                    | notify::EventKind::Modify(_)
+                    | notify::EventKind::Remove(_)
+            );
 
-        for event in rx {
+            if !is_relevant_event {
+                continue;
+            }
+
             // Check if it's a relevant file change
             if let Some(path) = event.paths.first() {
                 let path_str = path.to_string_lossy();
@@ -335,38 +348,115 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
                     };
 
                     if should_rebuild {
-                        println!("📁 File changed: {}", path_str);
-                        println!("🔨 Starting rebuild...");
-
-                        // Trigger rebuild
-                        match rebuild_wasm(false) {
-                            Ok(_) => {
-                                println!("✅ Rebuild successful!");
-                                println!("   Server is now serving updated files");
-                                println!("   Refresh browser to see changes");
-                            }
-                            Err(e) => {
-                                // Print to stderr so user sees errors even when output is redirected
-                                eprintln!("═══════════════════════════════════════════════════");
-                                eprintln!("❌ REBUILD FAILED!");
-                                eprintln!("═══════════════════════════════════════════════════");
-                                eprintln!("{}", e);
-                                eprintln!("═══════════════════════════════════════════════════");
-                                eprintln!("💡 Fix the error and save again to retry");
-                                eprintln!("🌐 Server continues serving previous working version");
-                                eprintln!("═══════════════════════════════════════════════════");
-                            }
-                        }
+                        // Send file path to rebuild worker
+                        let _ = path_tx.send(path_str.to_string());
                     }
-                    // Silently ignore other files - no logging for non-relevant files
                 }
-                // Silently ignore generated files - no logging
             }
         }
         println!("📁 File watcher thread exiting");
     });
 
+    // Spawn rebuild worker thread
+    thread::spawn(move || {
+        println!("🔨 Rebuild worker thread started");
+
+        let mut pending_files = HashSet::new();
+        let mut last_rebuild_time = Instant::now();
+        let debounce_delay = Duration::from_millis(800);
+        let min_rebuild_interval = Duration::from_millis(2000);
+
+        let mut debounce_timer: Option<Instant> = None;
+
+        loop {
+            // Calculate timeout for recv
+            let timeout = if let Some(timer_deadline) = debounce_timer {
+                let now = Instant::now();
+                if timer_deadline > now {
+                    timer_deadline - now
+                } else {
+                    Duration::from_millis(0) // Timer expired
+                }
+            } else {
+                Duration::from_millis(100) // Default timeout
+            };
+
+            // Check for file change events with calculated timeout
+            match path_rx.recv_timeout(timeout) {
+                Ok(file_path) => {
+                    // Only log if this is a new file in the set
+                    if pending_files.insert(file_path.clone()) {
+                        println!("📁 Detected change: {}", file_path);
+                    }
+
+                    // Reset debounce timer
+                    debounce_timer = Some(Instant::now() + debounce_delay);
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    // Check if debounce timer has expired
+                    if let Some(timer_deadline) = debounce_timer {
+                        let now = Instant::now();
+                        if now >= timer_deadline {
+                            // Timer expired, check if we should rebuild
+                            let time_since_last_rebuild = now.duration_since(last_rebuild_time);
+
+                            if !pending_files.is_empty()
+                                && time_since_last_rebuild >= min_rebuild_interval
+                            {
+                                trigger_rebuild(&pending_files);
+                                pending_files.clear();
+                                last_rebuild_time = now;
+                            } else if !pending_files.is_empty() {
+                                pending_files.clear();
+                            }
+
+                            debounce_timer = None;
+                        }
+                    }
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    println!("🔨 Rebuild worker thread exiting");
+                    break;
+                }
+            }
+        }
+    });
+
     Ok(())
+}
+
+#[cfg(feature = "notify")]
+fn trigger_rebuild(pending_files: &std::collections::HashSet<String>) {
+    if pending_files.is_empty() {
+        return;
+    }
+
+    // Log all changed files
+    println!("📁 Files changed:");
+    for file in pending_files {
+        println!("   - {}", file);
+    }
+    println!("🔨 Starting rebuild...");
+
+    // Trigger rebuild
+    match rebuild_wasm(false) {
+        Ok(_) => {
+            println!("✅ Rebuild successful!");
+            println!("   Server is now serving updated files");
+            println!("   Refresh browser to see changes");
+        }
+        Err(e) => {
+            // Print to stderr so user sees errors even when output is redirected
+            eprintln!("═══════════════════════════════════════════════════");
+            eprintln!("❌ REBUILD FAILED!");
+            eprintln!("═══════════════════════════════════════════════════");
+            eprintln!("{}", e);
+            eprintln!("═══════════════════════════════════════════════════");
+            eprintln!("💡 Fix the error and save again to retry");
+            eprintln!("🌐 Server continues serving previous working version");
+            eprintln!("═══════════════════════════════════════════════════");
+        }
+    }
 }
 
 #[cfg(feature = "notify")]
