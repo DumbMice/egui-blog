@@ -283,7 +283,6 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
     let mut watcher: RecommendedWatcher = Watcher::new(
         move |res| match res {
             Ok(event) => {
-                println!("📁 File watcher event: {:?}", event);
                 let _ = tx.send(event);
             }
             Err(e) => eprintln!("📁 File watcher error: {}", e),
@@ -301,12 +300,9 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
         std::mem::forget(watcher);
 
         for event in rx {
-            println!("📁 File watcher received event: {:?}", event);
-
             // Check if it's a relevant file change
             if let Some(path) = event.paths.first() {
                 let path_str = path.to_string_lossy();
-                println!("📁 Processing file change: {}", path_str);
 
                 // Check if it's a generated file we should ignore
                 let is_generated_file = path_str.contains("assets/math/")
@@ -314,16 +310,35 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
                     || path_str.contains("target/");
 
                 if !is_generated_file {
-                    // Only rebuild for Rust, Markdown, or asset files
-                    if path_str.ends_with(".rs")
-                        || path_str.ends_with(".md")
-                        || path_str.contains("posts/")
-                    {
-                        println!("📁 Relevant file changed: {}", path_str);
-                        println!("🔨 Triggering rebuild...");
+                    // Check if it's a file we should rebuild for
+                    let should_rebuild = {
+                        // Only rebuild for Rust or Markdown files
+                        if path_str.ends_with(".rs") || path_str.ends_with(".md") {
+                            // Check for backup files and hidden files to ignore
+                            let is_backup_file = path_str.ends_with("~")
+                                || path_str.ends_with(".bak")
+                                || path_str.ends_with(".tmp")
+                                || path_str.ends_with(".swp")
+                                || path_str.ends_with(".swx");
+
+                            let is_hidden_file =
+                                path_str.contains("/.") || path_str.contains("\\."); // Windows paths
+
+                            // Also ignore files in .git directory
+                            let is_git_file =
+                                path_str.contains("/.git/") || path_str.contains("\\.git\\");
+
+                            !is_backup_file && !is_hidden_file && !is_git_file
+                        } else {
+                            false
+                        }
+                    };
+
+                    if should_rebuild {
+                        println!("📁 File changed: {}", path_str);
+                        println!("🔨 Starting rebuild...");
 
                         // Trigger rebuild
-                        println!("🔨 Starting rebuild...");
                         match rebuild_wasm(false) {
                             Ok(_) => {
                                 println!("✅ Rebuild successful!");
@@ -342,12 +357,10 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
                                 eprintln!("═══════════════════════════════════════════════════");
                             }
                         }
-                    } else {
-                        println!("📁 Ignoring non-relevant file: {}", path_str);
                     }
-                } else {
-                    println!("📁 Ignoring generated file: {}", path_str);
+                    // Silently ignore other files - no logging for non-relevant files
                 }
+                // Silently ignore generated files - no logging
             }
         }
         println!("📁 File watcher thread exiting");

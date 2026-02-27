@@ -1,4 +1,5 @@
 //! A blog application built with egui.
+//! Testing file watcher improvements.
 
 #[cfg(target_arch = "wasm32")]
 mod web;

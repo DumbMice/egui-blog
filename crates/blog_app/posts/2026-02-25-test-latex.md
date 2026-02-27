@@ -9,7 +9,7 @@ tags: ["test", "typst", "math"]
 ### Inline Math
 
 Hi.
-Here's some inline math: $E = m c^2$ and $3/2 + 5/4 = 11/4$ (testing successful rebuild after failure).
+Here's some inline math: $E = m c^2$ and $3/2 + 5/4 = 11/4$ (testing improved file watcher).
 
 ### Display Math
 
