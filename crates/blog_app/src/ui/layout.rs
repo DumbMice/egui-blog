@@ -170,32 +170,7 @@ pub fn side_panel(
     selection_changed
 }
 
-/// Main content area showing a post or editor.
-#[cfg(not(feature = "math"))]
-pub fn main_content(
-    ui: &mut Ui,
-    post_manager: &PostManager,
-    selected_post_index: usize,
-    is_editing_new_post: bool,
-    new_post_title: &mut String,
-    new_post_content: &mut String,
-    post_manager_state: &PostManagerState,
-    math_asset_manager: Option<&mut MathAssetManager>,
-) -> (bool, bool, Option<usize>, bool) {
-    main_content_internal(
-        ui,
-        post_manager,
-        selected_post_index,
-        is_editing_new_post,
-        new_post_title,
-        new_post_content,
-        post_manager_state,
-        math_asset_manager,
-    )
-}
-
 /// Main content area showing a post or editor with math support.
-#[cfg(feature = "math")]
 pub fn main_content(
     ui: &mut Ui,
     post_manager: &PostManager,
@@ -310,10 +285,7 @@ fn main_content_internal_impl(
                     ui.separator();
 
                     // Render markdown content with math support
-                    #[cfg(feature = "math")]
                     super::markdown::render_markdown(ui, &post.content, math_asset_manager);
-                    #[cfg(not(feature = "math"))]
-                    super::markdown::render_markdown(ui, &post.content);
 
                     ui.separator();
 

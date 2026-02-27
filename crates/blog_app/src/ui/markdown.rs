@@ -95,14 +95,7 @@ fn extract_and_replace_math_formulas(text: &str, manifest: &crate::math::MathMan
     result
 }
 
-/// Render markdown content to an egui UI.
-#[cfg(not(feature = "math"))]
-pub fn render_markdown(ui: &mut Ui, markdown: &str) {
-    render_markdown_internal(ui, markdown)
-}
-
 /// Render markdown content to an egui UI with math support.
-#[cfg(feature = "math")]
 pub fn render_markdown(
     ui: &mut Ui,
     markdown: &str,
@@ -111,12 +104,6 @@ pub fn render_markdown(
     render_markdown_internal(ui, markdown, math_asset_manager)
 }
 
-#[cfg(not(feature = "math"))]
-fn render_markdown_internal(ui: &mut Ui, markdown: &str) {
-    render_markdown_impl(ui, markdown, None)
-}
-
-#[cfg(feature = "math")]
 fn render_markdown_internal(
     ui: &mut Ui,
     markdown: &str,
@@ -125,12 +112,6 @@ fn render_markdown_internal(
     render_markdown_impl(ui, markdown, math_asset_manager)
 }
 
-#[cfg(not(feature = "math"))]
-fn render_markdown_impl(ui: &mut Ui, markdown: &str, _math_asset_manager: Option<()>) {
-    render_markdown_with_math(ui, markdown, None)
-}
-
-#[cfg(feature = "math")]
 fn render_markdown_impl(
     ui: &mut Ui,
     markdown: &str,
@@ -532,9 +513,6 @@ fn render_markdown_with_math(
                         // Render text before the placeholder
                         if start > 0 {
                             let before_text = &remaining[..start];
-                            #[cfg(not(feature = "math"))]
-                            render_text_with_latex(ui, before_text);
-                            #[cfg(feature = "math")]
                             render_text_with_latex(ui, before_text, &mut math_asset_manager);
                         }
 
@@ -653,9 +631,6 @@ fn render_markdown_with_math(
 
                     // Render any remaining text after the last placeholder
                     if !remaining.is_empty() {
-                        #[cfg(not(feature = "math"))]
-                        render_text_with_latex(ui, remaining);
-                        #[cfg(feature = "math")]
                         render_text_with_latex(ui, remaining, &mut math_asset_manager);
                     }
                 }
@@ -789,13 +764,6 @@ pub(crate) fn parse_table<'a>(
 }
 
 /// Render text that may contain Typst math expressions.
-#[cfg(not(feature = "math"))]
-fn render_text_with_latex(ui: &mut Ui, text: &str) {
-    render_text_with_math_impl(ui, text, None)
-}
-
-/// Render text that may contain Typst math expressions.
-#[cfg(feature = "math")]
 fn render_text_with_latex(
     ui: &mut Ui,
     text: &str,
@@ -805,13 +773,6 @@ fn render_text_with_latex(
 }
 
 /// Internal implementation for rendering text with math formulas.
-#[cfg(not(feature = "math"))]
-fn render_text_with_math_impl(ui: &mut Ui, text: &str, _math_asset_manager: Option<()>) {
-    render_text_with_math(ui, text)
-}
-
-/// Internal implementation for rendering text with math formulas.
-#[cfg(feature = "math")]
 fn render_text_with_math_impl(
     ui: &mut Ui,
     text: &str,
@@ -827,7 +788,6 @@ fn render_text_with_math_impl(
 }
 
 /// Render text with math formulas using SVG assets
-#[cfg(feature = "math")]
 fn render_text_with_math_and_assets(
     ui: &mut Ui,
     text: &str,

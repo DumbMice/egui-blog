@@ -24,38 +24,76 @@ Key characteristics:
 
 ## Build Commands
 
-### Development (Auto-rebuild)
-```bash
-./scripts/watch_blog.sh
-```
-Starts a file watcher that rebuilds WASM on changes and serves the app at http://localhost:8766. Requires `cargo-watch` and `basic-http-server`.
+### New Unified Development Workflow (2026-02-27)
+The blog app now uses a unified Rust-based workflow with three clear targets:
 
-### Manual Build and Serve
+#### Development Server (Hot Reload)
 ```bash
-./scripts/build_blog_web.sh          # Build WASM only
-./scripts/start_server_blog.sh       # Start HTTP server on port 8766
+cargo run --bin blog_web_server --features dev
+```
+Starts a development server with file watching on http://localhost:8766. 
+- **Auto-rebuild**: Detects changes to `.rs`, `.md`, and files in `posts/` directory
+- **Error handling**: Shows compiler errors in terminal, continues running after failures
+- **Generated file filtering**: Ignores `assets/math/`, `src/math/embedded.rs`, `target/`
+- **User feedback**: Clear messages for rebuild start, success, and failure
+
+#### Production Server (Optimized)
+```bash
+cargo run --bin blog_web_server --features dev -- --serve-release
+```
+Builds optimized WASM with `wasm-opt` and serves from `web_blog/release/`.
+- **Optimized builds**: Uses `wasm-opt -O2 --fast-math` for smaller WASM
+- **No file watching**: Static serving only
+- **Info log level**: Default log level for production
+
+#### Native Desktop Application
+```bash
+cargo run --bin blog_native
+```
+Runs the native desktop version of the blog app.
+
+#### Build Only (No Server)
+```bash
+cargo run --bin blog_web_server --features dev -- --build-only --serve-release
+```
+Builds only, doesn't start server.
+
+### Cargo Aliases (Simplified Commands)
+```bash
+cargo blog          # Development server (hot reload)
+cargo blog-release  # Production server (optimized)
+cargo blog-native   # Native desktop app
+cargo blog-wasm     # Build WASM library only
 ```
 
-### Build Options
+### Command Options
 ```bash
-./scripts/build_blog_web.sh --release  # Optimized build with wasm-opt
-./scripts/build_blog_web.sh --glow     # Use glow backend instead of wgpu
-./scripts/build_blog_web.sh --open     # Build and open browser
+# Custom port (default: 8766)
+cargo run --bin blog_web_server --features dev -- --port 9999
+
+# Open browser automatically
+cargo run --bin blog_web_server --features dev -- --open
+
+# Build only, don't start server
+cargo run --bin blog_web_server --features dev -- --build-only --serve-release
+
+# Control log verbosity (debug, info, warn, error)
+cargo run --bin blog_web_server --features dev -- --log-level info
 ```
 
-### Native Run
-```bash
-cd crates/blog_app
-cargo run --release
-```
+### Legacy Scripts (Deprecated)
+The following shell scripts are deprecated in favor of the unified Rust binary:
+- `./scripts/watch_blog.sh` → Use `blog_web_server` (dev mode)
+- `./scripts/build_blog_web.sh` → Use `blog_web_server --build-only --serve-release`
+- `./scripts/start_server_blog.sh` → Use `blog_web_server --serve-release`
+- `./scripts/setup_web.sh` → Tools are auto-installed by `blog_web_server`
 
 ### Math Formula Rendering Requirements
-The blog supports Typst math formulas in markdown. To enable math rendering:
+The blog supports Typst math formulas in markdown. Math rendering is always enabled:
 1. Install Typst CLI: `cargo install typst` (or download from https://github.com/typst/typst)
-2. Build with math feature: `cargo build --features math` or use the provided scripts
-3. Formulas are processed at build time and embedded in the binary
-4. Math formulas use Typst syntax: `$formula$` (inline) or `$ formula $` (display)
-5. Generated math assets (SVGs, manifest) are not committed to git - they are rebuilt on each build
+2. Formulas are processed at build time and embedded in the binary
+3. Math formulas use Typst syntax: `$formula$` (inline) or `$ formula $` (display)
+4. Generated math assets (SVGs, manifest) are not committed to git - they are rebuilt on each build
 
 ## Testing Commands
 

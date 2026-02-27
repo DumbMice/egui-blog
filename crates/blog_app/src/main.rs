@@ -1,25 +1,31 @@
 //! Blog app built with egui.
+//!
+//! This crate provides multiple binaries:
+//! - `blog_native`: Native desktop application
+//! - `blog_web_server`: Development/production web server with hot reload
+//!
+//! The default binary (`blog_app`) shows this help message.
+//! Use `cargo run --bin <binary_name>` to run a specific binary.
 
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+fn main() {
+    eprintln!("Blog App - Available binaries:");
+    eprintln!();
+    eprintln!("  cargo run --bin blog_native");
+    eprintln!("    ↳ Native desktop application");
+    eprintln!();
+    eprintln!("  cargo run --bin blog_web_server");
+    eprintln!("    ↳ Web server with hot reload (development mode)");
+    eprintln!("    ↳ Use --serve-release for production builds");
+    eprintln!();
+    eprintln!("  cargo run");
+    eprintln!("    ↳ Defaults to blog_web_server (development mode)");
+    eprintln!();
+    eprintln!("Examples:");
+    eprintln!("  cargo run --bin blog_web_server -- --serve-release");
+    eprintln!("  cargo run --bin blog_web_server -- --port 9999");
+    eprintln!("  cargo run --bin blog_web_server -- --open");
+    eprintln!();
+    eprintln!("For more information, see IMPLEMENTATION_PLAN.md");
 
-// When compiling natively:
-fn main() -> eframe::Result<()> {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([800.0, 600.0])
-            .with_title("My Blog"),
-        ..Default::default()
-    };
-
-    eframe::run_native(
-        "My Blog",
-        options,
-        Box::new(|cc| {
-            // Install image loaders for SVG support
-            egui_extras::install_image_loaders(&cc.egui_ctx);
-            Ok(Box::new(blog_app::BlogApp::default()))
-        }),
-    )
+    std::process::exit(1);
 }

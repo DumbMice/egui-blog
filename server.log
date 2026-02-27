@@ -1,0 +1,741 @@
+   Compiling blog_app v0.33.3 (/home/ybc/Work/egui/crates/blog_app)
+warning: blog_app@0.33.3: Found 9 unique math formulas
+warning: blog_app@0.33.3: Formula already rendered: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: E = m c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: E = m c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: invalid { syntax }
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: invalid { syntax }
+warning: blog_app@0.33.3: Formula already rendered: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Manifest saved to: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+warning: blog_app@0.33.3: Generated embedded.rs at: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+warning: blog_app@0.33.3: Math processing completed successfully
+warning: unused import: `RecommendedWatcher`
+   --> crates/blog_app/src/posts/loader.rs:126:18
+    |
+126 |     use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+    |                  ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `watch_directory` is never used
+   --> crates/blog_app/src/posts/loader.rs:125:8
+    |
+125 | pub fn watch_directory(dir: &Path) -> notify::Result<notify::RecommendedWatcher> {
+    |        ^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `blog_app` (lib) generated 2 warnings (run `cargo fix --lib -p blog_app` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.81s
+     Running `target/debug/blog_web_server --port 8776`
+🚀 Blog Web Server
+   Mode: development
+   Port: 8776
+   Log level: debug
+🔧 Starting development server...
+🔧 Checking for required tools...
+✅ All tools installed
+🔨 Building WASM (debug)...
+🔗 Generating JS bindings...
+✅ Build complete: web_blog/dev
+👀 Watching for file changes in crates/blog_app/
+📁 Setting up file watcher...
+✅ File watcher started successfully
+📁 File watcher thread started
+🌐 Starting HTTP server...
+   Serving from: web_blog/dev
+   URL: http://localhost:8776
+🌐 HTTP server thread started, serving from: web_blog/dev
+🌐 Starting HTTP server command: cd "web_blog/dev" && "basic-http-server" "--addr" "0.0.0.0:8776" "."
+🌐 HTTP server started with PID: 1136028
+[INFO ] basic-http-server 0.8.1
+[INFO ] addr: http://0.0.0.0:8776
+[INFO ] root dir: .
+[INFO ] extensions: false
+
+Press Ctrl+C to stop the server
+
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/lib.rs
+📁 Relevant file changed: /home/ybc/Work/egui/crates/blog_app/src/lib.rs
+🔨 Triggering rebuild...
+🔨 Starting rebuild...
+🔨 Building WASM (debug)...
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+❌ WASM build failed with errors:
+   Compiling blog_app v0.33.3 (/home/ybc/Work/egui/crates/blog_app)
+warning: use of deprecated method `js_sys::Object::<T>::has_own_property`: Use `Object::hasOwn` instead.
+   --> crates/eframe/src/web/mod.rs:373:51
+    |
+373 |     web_sys::window().is_some_and(|window| window.has_own_property(&JsValue::from("safari")))
+    |                                                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: `eframe` (lib) generated 1 warning
+warning: blog_app@0.33.3: Found 9 unique math formulas
+warning: blog_app@0.33.3: Formula already rendered: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: E = m c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: E = m c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: invalid { syntax }
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: invalid { syntax }
+warning: blog_app@0.33.3: Formula already rendered: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Manifest saved to: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+warning: blog_app@0.33.3: Generated embedded.rs at: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+warning: blog_app@0.33.3: Math processing completed successfully
+error: expected expression, found `;`
+   --> crates/blog_app/src/lib.rs:263:23
+    |
+263 | fn broken() { let x = ; }
+    |                       ^ expected expression
+
+warning: blog_app@0.33.3: Found 9 unique math formulas
+warning: blog_app@0.33.3: Formula already rendered: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: E = m c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: E = m c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: invalid { syntax }
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: invalid { syntax }
+warning: blog_app@0.33.3: Formula already rendered: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Manifest saved to: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+warning: blog_app@0.33.3: Generated embedded.rs at: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+warning: blog_app@0.33.3: Math processing completed successfully
+error: could not compile `blog_app` (lib) due to 1 previous error
+
+❌ Rebuild failed!
+   Error: WASM build failed
+   Fix the error and save again to retry
+   Server continues serving previous working version
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/lib.rs
+📁 Relevant file changed: /home/ybc/Work/egui/crates/blog_app/src/lib.rs
+🔨 Triggering rebuild...
+🔨 Starting rebuild...
+🔨 Building WASM (debug)...
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+❌ WASM build failed with errors:
+   Compiling blog_app v0.33.3 (/home/ybc/Work/egui/crates/blog_app)
+warning: use of deprecated method `js_sys::Object::<T>::has_own_property`: Use `Object::hasOwn` instead.
+   --> crates/eframe/src/web/mod.rs:373:51
+    |
+373 |     web_sys::window().is_some_and(|window| window.has_own_property(&JsValue::from("safari")))
+    |                                                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: `eframe` (lib) generated 1 warning
+warning: blog_app@0.33.3: Found 9 unique math formulas
+warning: blog_app@0.33.3: Formula already rendered: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: E = m c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: E = m c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: invalid { syntax }
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: invalid { syntax }
+warning: blog_app@0.33.3: Formula already rendered: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Manifest saved to: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+warning: blog_app@0.33.3: Generated embedded.rs at: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+warning: blog_app@0.33.3: Math processing completed successfully
+error: expected expression, found `;`
+   --> crates/blog_app/src/lib.rs:263:23
+    |
+263 | fn broken() { let x = ; }
+    |                       ^ expected expression
+
+warning: blog_app@0.33.3: Found 9 unique math formulas
+warning: blog_app@0.33.3: Formula already rendered: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum_(i=1)^n i = n(n+1)/2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: x = (-b +- sqrt(b^2 - 4 a c)) / (2a)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: a^2 + b^2 = c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: 3/2 + 5/4 = 11/4
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: mat(1, 2; 3, 4)
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: E = m c^2
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: E = m c^2
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Formula already rendered: invalid { syntax }
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: invalid { syntax }
+warning: blog_app@0.33.3: Formula already rendered: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Processing existing SVG for theme adaptation: sum\_(n=1)^infinity 1/n^2 = pi^2/6
+warning: blog_app@0.33.3: Successfully processed SVG for theme adaptation
+warning: blog_app@0.33.3: Manifest saved to: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+warning: blog_app@0.33.3: Generated embedded.rs at: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+warning: blog_app@0.33.3: Math processing completed successfully
+error: could not compile `blog_app` (lib) due to 1 previous error
+
+❌ Rebuild failed!
+   Error: WASM build failed
+   Fix the error and save again to retry
+   Server continues serving previous working version
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher event: Event { kind: Create(File), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher received event: Event { kind: Create(File), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher event: Event { kind: Modify(Metadata(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher received event: Event { kind: Modify(Metadata(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Name(From)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: Some(49424), attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher event: Event { kind: Modify(Name(To)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: Some(49424), attr:flag: None, attr:info: None, attr:source: None }
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher event: Event { kind: Modify(Name(Both)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv", "/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: Some(49424), attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher received event: Event { kind: Modify(Name(From)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv"], attr:tracker: Some(49424), attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher received event: Event { kind: Modify(Name(To)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: Some(49424), attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/lib.rs
+📁 Relevant file changed: /home/ybc/Work/egui/crates/blog_app/src/lib.rs
+🔨 Triggering rebuild...
+🔨 Starting rebuild...
+🔨 Building WASM (debug)...
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+🔗 Generating JS bindings...
+✅ Build complete: web_blog/dev
+✅ Rebuild successful!
+   Server is now serving updated files
+   Refresh browser to see changes
+📁 File watcher received event: Event { kind: Modify(Name(Both)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv", "/home/ybc/Work/egui/crates/blog_app/src/lib.rs"], attr:tracker: Some(49424), attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 Ignoring non-relevant file: /home/ybc/Work/egui/crates/blog_app/src/sedkKzaxv
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md
+📁 Relevant file changed: /home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md
+🔨 Triggering rebuild...
+🔨 Starting rebuild...
+🔨 Building WASM (debug)...
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+🔗 Generating JS bindings...
+✅ Build complete: web_blog/dev
+✅ Rebuild successful!
+   Server is now serving updated files
+   Refresh browser to see changes
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md
+📁 Relevant file changed: /home/ybc/Work/egui/crates/blog_app/posts/2026-02-25-test-latex.md
+🔨 Triggering rebuild...
+🔨 Starting rebuild...
+🔨 Building WASM (debug)...
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 File watcher event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+🔗 Generating JS bindings...
+✅ Build complete: web_blog/dev
+✅ Rebuild successful!
+   Server is now serving updated files
+   Refresh browser to see changes
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/77bd63b67cd401ce9dcefbd3e62d03d3a57b80e18628f6ef44a52ba72196825e.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/7987058ed06989ac44e9c23c2f54d123a8c559b688153f4f5e2ff70805f5f8b8.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/042b60cf65c62eb27764e13208dae8cd597ab70252cbcab117531f8cb2576b8b.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/464688dda1eaccf727340697f9ef8c4496cc21fddb7d7e0a486d806ed1039a09.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/693aae48ad06dbed9dd1754a6d9ccefa124a35d62e332a04d34fcee9bc5aec76.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f8efa3fdf9a2f0ff6299797474a9e864c416647f12af98441fd288914fa44005.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/f5d81207c791c1bc72c239e201b5386234e73caf153ea3fa3093cf94f07f72b1.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/c389495db69488c6851a4073dd8b925d949b7274b561c302c68248975c49c797.svg
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/assets/math/manifest.json
+📁 File watcher received event: Event { kind: Modify(Data(Any)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 File watcher received event: Event { kind: Access(Close(Write)), paths: ["/home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }
+📁 Processing file change: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs
+📁 Ignoring generated file: /home/ybc/Work/egui/crates/blog_app/src/math/embedded.rs

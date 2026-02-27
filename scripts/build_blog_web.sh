@@ -7,7 +7,7 @@ cd "$script_path/.."
 
 CRATE_NAME="blog_app"
 
-FEATURES="web_app,math"
+FEATURES="web_app"
 
 OPEN=false
 OPTIMIZE=false

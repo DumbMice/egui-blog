@@ -6,7 +6,7 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish = false
-default-run = "blog_app"
+default-run = "blog_web_server"
 
 [lints]
 workspace = true
@@ -26,16 +26,14 @@ web_app = []
 glow = ["eframe/glow"]
 wgpu = ["eframe/wgpu", "bytemuck", "dep:wgpu"]
 
-# Math rendering feature
-math = []
-
 # Development feature for file watching
 dev = ["notify"]
 
 [dependencies]
-eframe = { workspace = true, default-features = false, features = ["web_screen_reader"] }
+eframe = { workspace = true, default-features = false, features = ["web_screen_reader", "wayland", "x11"] }
 egui = { workspace = true, features = ["default"] }
 log.workspace = true
+clap = { version = "4.0", features = ["derive"] }
 
 # Markdown and YAML parsing
 serde = { version = "1.0", features = ["derive"] }
@@ -70,6 +68,17 @@ web-sys.workspace = true
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["eframe", "snapshot", "wgpu"] }
 tempfile = "3.10"
+
+# Native desktop application
+[[bin]]
+name = "blog_native"
+path = "src/bin/blog_native.rs"
+
+# Development and production web server
+[[bin]]
+name = "blog_web_server"
+path = "src/bin/blog_web_server.rs"
+required-features = ["dev"]
 
 # Build dependencies for math processing
 [build-dependencies]

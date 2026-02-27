@@ -1,2 +1,9 @@
 [alias]
 xtask = "run --quiet --package xtask --"
+
+# Blog app aliases
+blog = "run --package blog_app --bin blog_web_server --features dev"
+blog-native = "run --package blog_app --bin blog_native"
+blog-wasm = "build --package blog_app --lib --target wasm32-unknown-unknown"
+blog-dev = "run --package blog_app --bin blog_web_server --features dev"
+blog-release = "run --package blog_app --bin blog_web_server --features dev -- --serve-release"

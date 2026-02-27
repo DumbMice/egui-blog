@@ -1,17 +1,87 @@
 # Blog App Development Workflow
 
 ## Quick Start
-1. `./scripts/watch_blog.sh` - Starts watcher and server
-2. Open http://localhost:8766 in browser
-3. Edit `.rs` or `.md` files → automatic rebuild
-4. Refresh browser (F5) to see changes
 
-## Manual Workflow (alternative)
-- `./scripts/build_blog_web.sh` - Build WASM
-- `./scripts/start_server_blog.sh` - Start server
+### Development Server (Hot Reload)
+```bash
+cargo blog
+# or
+cargo run --bin blog_web_server --features dev
+```
+- Starts server on http://localhost:8766
+- Watches for file changes (`.rs`, `.md`, `posts/`)
+- Auto-rebuilds WASM on changes
+- Shows compiler errors in terminal
+- Server continues running after rebuild failures
 
-## Features
-- Automatic rebuild on file changes
-- HTTP server on port 8766
-- Clean process cleanup (Ctrl+C)
-- Requires: cargo-watch, basic-http-server
+### Production Server (Optimized)
+```bash
+cargo blog-release
+# or
+cargo run --bin blog_web_server --features dev -- --serve-release
+```
+- Optimized builds with `wasm-opt`
+- Serves from `web_blog/release/`
+- No file watching
+
+### Native Desktop App
+```bash
+cargo blog-native
+# or
+cargo run --bin blog_native
+```
+
+## Command Options
+```bash
+--port 9999           # Custom port (default: 8766)
+--open                # Open browser automatically
+--build-only          # Build only, don't start server
+--log-level info      # Control verbosity (debug, info, warn, error)
+```
+
+## Development Workflow
+1. **Start server**: `cargo blog`
+2. **Open browser**: http://localhost:8766 (or use `--open`)
+3. **Edit files**: Modify `.rs`, `.md`, or files in `posts/`
+4. **Auto-rebuild**: Server detects changes and rebuilds WASM
+5. **Refresh browser**: F5 to see changes
+6. **Fix errors**: Compiler errors shown in terminal, server continues running
+
+## Key Features
+- **Hot reload**: File changes → auto-rebuild → refresh browser
+- **Error resilience**: Build failures don't crash server
+- **Compiler errors**: Full Rust error output in terminal
+- **Auto tool installation**: `wasm-bindgen`, `basic-http-server` installed if missing
+- **Port management**: Checks for conflicts, supports custom ports
+- **Math always enabled**: Typst math formulas processed at build time
+
+## Build Outputs
+- **Development**: `web_blog/dev/` (debug builds, file watching)
+- **Production**: `web_blog/release/` (optimized with wasm-opt, no watching)
+
+## Legacy Scripts (Deprecated)
+- `./scripts/watch_blog.sh` → Use `cargo blog`
+- `./scripts/build_blog_web.sh` → Use `cargo blog-release --build-only`
+- `./scripts/start_server_blog.sh` → Use `cargo blog-release`
+- `./scripts/setup_web.sh` → Tools auto-installed by server
+
+## Testing
+```bash
+# Run all tests
+cargo test
+
+# Run specific test
+cargo test test_blog_app_handle_retry
+
+# Run with verbose output
+cargo test -- --nocapture
+```
+
+## Linting & Code Quality
+```bash
+# Run clippy
+cargo clippy -p blog_app
+
+# Format code
+cargo fmt -p blog_app
+```

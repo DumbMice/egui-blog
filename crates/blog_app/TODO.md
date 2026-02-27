@@ -37,7 +37,48 @@
 - [x] Support both inline ($formula$) and display ($$ formula $$) math
 - [x] Add manifest system for formula caching and tracking
 
-## Priority 4: Enhanced Styling
+## Priority 4: Build System Restructuring ✅ COMPLETED 2026-02-27
+- [x] Implement three-target architecture (native, WASM, web server)
+- [x] Fix winit dependency issues for native builds
+- [x] Create unified development server with hot reload
+- [x] Separate dev/release build outputs
+- [x] Replace shell scripts with Rust-based workflow
+- [x] Update documentation and cargo aliases
+- [x] Implement file watching with auto-rebuild
+- [x] Add proper error handling for build failures
+- [x] See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for implementation details
+
+### New Development Workflow
+```bash
+# Development server with hot reload (default)
+cargo run --bin blog_web_server --features dev
+
+# Production server with optimized builds
+cargo run --bin blog_web_server --features dev -- --serve-release
+
+# Native desktop app
+cargo run --bin blog_native
+
+# Build only (no server)
+cargo run --bin blog_web_server --features dev -- --build-only --serve-release
+
+# Using cargo aliases
+cargo blog          # Development server (hot reload)
+cargo blog-release  # Production server (optimized)
+cargo blog-native   # Native desktop app
+cargo blog-wasm     # Build WASM library only
+```
+
+### Key Features
+- **Hot reload**: File changes trigger automatic WASM rebuild
+- **Error handling**: Build failures show compiler errors, server continues running
+- **Multiple modes**: Development (debug) vs Production (optimized with wasm-opt)
+- **Auto tool installation**: wasm-bindgen, basic-http-server installed if missing
+- **Port management**: Checks for port conflicts, supports custom ports
+- **Browser auto-open**: `--open` flag opens browser automatically
+- **Logging control**: `--log-level` option for verbosity control
+
+## Priority 5: Enhanced Styling
 - [ ] Design custom theme system
 - [ ] Implement color customization
 - [ ] Improve typography (fonts, spacing)
@@ -86,6 +127,30 @@
 - **Accessibility**: Screen reader support for math formulas
 
 ## Notes
-- Server runs on port 8766 (`./scripts/start_server_blog.sh`)
-- Build with `./scripts/build_blog_web.sh`
-- Test changes via web interface at http://localhost:8766
+### New Development Workflow (2026-02-27)
+- **Development server**: `cargo run --bin blog_web_server --features dev` (port 8766)
+  - File watching with auto-rebuild on changes
+  - Compiler errors shown in terminal
+  - Server continues running after rebuild failures
+- **Production server**: `cargo run --bin blog_web_server --features dev -- --serve-release`
+  - Optimized builds with wasm-opt
+  - No file watching
+- **Native desktop**: `cargo run --bin blog_native`
+- **Using aliases**: `cargo blog`, `cargo blog-release`, `cargo blog-native`
+- **Build outputs**: `web_blog/dev/` (development), `web_blog/release/` (production)
+
+### Command Options
+```bash
+--port 9999           # Custom port (default: 8766)
+--open                # Open browser automatically
+--build-only          # Build only, don't start server
+--log-level info      # Control log verbosity (debug, info, warn, error)
+```
+
+### Legacy Scripts (Deprecated)
+- `./scripts/start_server_blog.sh` - Use `blog_web_server` binary instead
+- `./scripts/build_blog_web.sh` - Use `blog_web_server --build-only --serve-release`
+- `./scripts/watch_blog.sh` - Use `blog_web_server` (development mode)
+- `./scripts/setup_web.sh` - Tools auto-installed by `blog_web_server`
+
+Test changes via web interface at http://localhost:8766

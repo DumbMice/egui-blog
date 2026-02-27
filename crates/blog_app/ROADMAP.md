@@ -125,8 +125,8 @@ This is my first blog post using egui!
 ## Development Workflow
 - **Git checkpoints** - Commit after each major feature
 - **Testing** - Manual testing via web server (port 8766)
-- **Build scripts** - Use existing `./scripts/build_blog_web.sh`
-- **Server** - `./scripts/start_server_blog.sh` for local testing
+- **Build system** - Unified Rust binary with hot reload (`cargo blog`)
+- **Server** - Development server with auto-rebuild on file changes
 
 ## Technical Considerations
 - **WASM size** - Keep dependencies minimal

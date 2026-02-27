@@ -16,29 +16,54 @@ Key characteristics:
 
 ### Building and Running
 
-**Development (auto-rebuild):**
-```bash
-./scripts/watch_blog.sh
-```
-Starts a file watcher that rebuilds WASM on changes and serves the app at http://localhost:8766. Requires `cargo-watch` and `basic-http-server`.
+**New Unified Development Workflow (2026-02-27):**
 
-**Manual build and serve:**
+**Development server (hot reload):**
 ```bash
-./scripts/build_blog_web.sh          # Build WASM only
-./scripts/start_server_blog.sh       # Start HTTP server on port 8766
+cargo blog
+# or
+cargo run --bin blog_web_server --features dev
+```
+- Starts server with file watching on http://localhost:8766
+- Auto-rebuilds WASM on changes to `.rs`, `.md`, `posts/` files
+- Shows compiler errors in terminal, continues running after failures
+- Auto-installs required tools (wasm-bindgen, basic-http-server)
+
+**Production server (optimized):**
+```bash
+cargo blog-release
+# or
+cargo run --bin blog_web_server --features dev -- --serve-release
+```
+- Optimized builds with `wasm-opt -O2 --fast-math`
+- Serves from `web_blog/release/`
+- No file watching
+
+**Native desktop app:**
+```bash
+cargo blog-native
+# or
+cargo run --bin blog_native
 ```
 
-**Build options:**
+**Build only (no server):**
 ```bash
-./scripts/build_blog_web.sh --release  # Optimized build with wasm-opt
-./scripts/build_blog_web.sh --glow     # Use glow backend instead of wgpu
-./scripts/build_blog_web.sh --open     # Build and open browser
+cargo run --bin blog_web_server --features dev -- --build-only --serve-release
 ```
 
-**Native run:**
+**Command options:**
 ```bash
-cd crates/blog_app
-cargo run --release
+--port 9999           # Custom port (default: 8766)
+--open                # Open browser automatically
+--log-level info      # Control verbosity (debug, info, warn, error)
+```
+
+**Legacy scripts (deprecated):**
+```bash
+./scripts/watch_blog.sh           # Use `cargo blog` instead
+./scripts/build_blog_web.sh       # Use `cargo blog-release --build-only`
+./scripts/start_server_blog.sh    # Use `cargo blog-release`
+./scripts/setup_web.sh            # Tools auto-installed by server
 ```
 
 ### Testing
