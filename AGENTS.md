@@ -49,6 +49,14 @@ cd crates/blog_app
 cargo run --release
 ```
 
+### Math Formula Rendering Requirements
+The blog supports Typst math formulas in markdown. To enable math rendering:
+1. Install Typst CLI: `cargo install typst` (or download from https://github.com/typst/typst)
+2. Build with math feature: `cargo build --features math` or use the provided scripts
+3. Formulas are processed at build time and embedded in the binary
+4. Math formulas use Typst syntax: `$formula$` (inline) or `$ formula $` (display)
+5. Generated math assets (SVGs, manifest) are not committed to git - they are rebuilt on each build
+
 ## Testing Commands
 
 ### Run All Tests
