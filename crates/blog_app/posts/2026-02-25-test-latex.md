@@ -8,16 +8,16 @@ tags: ["test", "typst", "math"]
 
 ### Inline Math
 
-Hi.
+hello my blog. this is a test.
 Here's some inline math: $E = m c^2$ and $3/2 + 5/4 = 11/4$ (testing improved file watcher).
 
 ### Display Math
 
 Display math should be centered:
 
-$ integral\_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi) $
+$ integral_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi) $
 
-$ sum\_(n=1)^infinity 1/n^2 = pi^2/6 $
+$ sum_(n=1)^infinity 1/n^2 = pi^2/6 $
 
 ### More Complex Examples
 
