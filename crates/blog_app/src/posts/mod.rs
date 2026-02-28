@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[allow(unused_imports)]
 pub use loader::{
-    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
-    LoadError,
+    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
+    parse_post_content,
 };
 pub use state::PostManagerState; // NEW
 
@@ -59,6 +59,9 @@ pub struct PostManager {
     posts: Vec<BlogPost>,
     next_id: usize,
     state: PostManagerState, // NEW
+    // Cache for sorted posts to avoid sorting every frame
+    sorted_posts_newest_first: Vec<BlogPost>,
+    sorted_posts_oldest_first: Vec<BlogPost>,
 }
 
 impl Default for PostManager {
@@ -67,6 +70,8 @@ impl Default for PostManager {
             posts: Vec::new(),
             next_id: 0,
             state: PostManagerState::Loading, // NEW
+            sorted_posts_newest_first: Vec::new(),
+            sorted_posts_oldest_first: Vec::new(),
         };
 
         // Load posts embedded at compile time
@@ -155,8 +160,17 @@ Let me know what you think!",
 
     /// Add a new post to the collection.
     pub fn add_post(&mut self, post: BlogPost) {
-        self.posts.push(post);
+        self.posts.push(post.clone());
+        // Update sorted caches
+        self.sorted_posts_newest_first.push(post.clone());
+        self.sorted_posts_oldest_first.push(post);
         self.next_id += 1;
+
+        // Sort the caches
+        self.sorted_posts_newest_first
+            .sort_by(|a, b| b.date.cmp(&a.date));
+        self.sorted_posts_oldest_first
+            .sort_by(|a, b| a.date.cmp(&b.date));
     }
 
     /// Get all posts.
@@ -175,13 +189,23 @@ Let me know what you think!",
     }
 
     /// Find posts containing text in title or content.
-    pub fn search(&self, query: &str) -> Vec<&BlogPost> {
+    pub fn search(
+        &self,
+        query: &str,
+        sort_order: crate::ui::layout::PostSortOrder,
+    ) -> Vec<&BlogPost> {
         if query.is_empty() {
-            return self.posts.iter().collect();
+            return self.sorted_posts(sort_order);
         }
 
         let query_lower = query.to_lowercase();
-        self.posts
+        // Filter from the appropriate sorted cache
+        let source = match sort_order {
+            crate::ui::layout::PostSortOrder::NewestFirst => &self.sorted_posts_newest_first,
+            crate::ui::layout::PostSortOrder::OldestFirst => &self.sorted_posts_oldest_first,
+        };
+
+        source
             .iter()
             .filter(|post| {
                 post.title.to_lowercase().contains(&query_lower)
@@ -190,20 +214,16 @@ Let me know what you think!",
             .collect()
     }
 
-    /// Get posts sorted by date.
+    /// Get posts sorted by date (uses cache).
     pub fn sorted_posts(&self, sort_order: crate::ui::layout::PostSortOrder) -> Vec<&BlogPost> {
-        let mut posts: Vec<&BlogPost> = self.posts.iter().collect();
-
         match sort_order {
             crate::ui::layout::PostSortOrder::NewestFirst => {
-                posts.sort_by(|a, b| b.date.cmp(&a.date));
+                self.sorted_posts_newest_first.iter().collect()
             }
             crate::ui::layout::PostSortOrder::OldestFirst => {
-                posts.sort_by(|a, b| a.date.cmp(&b.date));
+                self.sorted_posts_oldest_first.iter().collect()
             }
         }
-
-        posts
     }
 
     /// Get current loading state
@@ -215,8 +235,10 @@ Let me know what you think!",
     pub fn reload(&mut self) -> Result<(), LoadError> {
         self.state = PostManagerState::Loading;
 
-        // Clear existing posts
+        // Clear existing posts and caches
         self.posts.clear();
+        self.sorted_posts_newest_first.clear();
+        self.sorted_posts_oldest_first.clear();
         self.next_id = 0;
 
         // Attempt to load embedded posts first

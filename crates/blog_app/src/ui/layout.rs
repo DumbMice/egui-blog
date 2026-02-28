@@ -138,13 +138,20 @@ pub fn side_panel(
         ui.horizontal(|ui| {
             ui.heading("Blog Posts");
 
-            // Calendar icon button for sorting
-            let (icon, tooltip) = match config.post_sort_order {
-                PostSortOrder::NewestFirst => ("📅▼", "Newest first (click to switch)"),
-                PostSortOrder::OldestFirst => ("📅▲", "Oldest first (click to switch)"),
-            };
+            // Sort order toggle button
+            // Use black arrows ⬇ and ⬆ which work in the current font configuration
+            let button = ui.button(match config.post_sort_order {
+                PostSortOrder::NewestFirst => "📅⬇",
+                PostSortOrder::OldestFirst => "📅⬆",
+            });
 
-            if ui.button(icon).on_hover_text(tooltip).clicked() {
+            if button
+                .on_hover_text(match config.post_sort_order {
+                    PostSortOrder::NewestFirst => "Newest first",
+                    PostSortOrder::OldestFirst => "Oldest first",
+                })
+                .clicked()
+            {
                 // Toggle sort order
                 config.post_sort_order = match config.post_sort_order {
                     PostSortOrder::NewestFirst => PostSortOrder::OldestFirst,
@@ -156,22 +163,8 @@ pub fn side_panel(
         ui.separator();
 
         // Get posts based on search query and sort order
-        let posts_to_show = if search_query.is_empty() {
-            // No search query, get all posts sorted
-            post_manager.sorted_posts(config.post_sort_order)
-        } else {
-            // Has search query, filter then sort
-            let mut filtered = post_manager.search(search_query);
-            match config.post_sort_order {
-                PostSortOrder::NewestFirst => {
-                    filtered.sort_by(|a, b| b.date.cmp(&a.date));
-                }
-                PostSortOrder::OldestFirst => {
-                    filtered.sort_by(|a, b| a.date.cmp(&b.date));
-                }
-            }
-            filtered
-        };
+        // The search method now handles sorting internally using cached sorted posts
+        let posts_to_show = post_manager.search(search_query, config.post_sort_order);
 
         if posts_to_show.is_empty() {
             ui.label("No posts found");

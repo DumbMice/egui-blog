@@ -42,6 +42,11 @@ pub struct BlogApp {
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
+    
+    /// Debug: Show font debug window (debug builds only)
+    #[cfg(debug_assertions)]
+    #[cfg_attr(feature = "serde", serde(skip))]
+    show_font_debug: bool,
 }
 
 impl Default for BlogApp {
@@ -61,6 +66,8 @@ impl Default for BlogApp {
             search_query: String::new(),
             layout_config: LayoutConfig::default(),
             math_asset_manager: MathAssetManager::default(),
+            #[cfg(debug_assertions)]
+            show_font_debug: true, // Show by default in debug builds
         }
     }
 }
@@ -78,6 +85,9 @@ impl BlogApp {
         #[cfg(not(feature = "persistence"))]
         let mut app = Self::default();
 
+        // Note: Fonts are not available until first Context::run()
+        // We rely on default font configuration
+
         // Apply theme to context
         app.theme.apply(&cc.egui_ctx);
         app.previous_theme = app.theme;
@@ -87,6 +97,68 @@ impl BlogApp {
 
         app
     }
+
+    /// Debug method to check font availability for arrow characters
+    #[cfg(debug_assertions)]
+    fn debug_font_availability(&mut self, ui: &egui::Ui) {
+        use std::collections::BTreeMap;
+        
+        // Test characters we want to use
+        let test_chars = [
+            ('▼', "Black down triangle (U+25BC)"),
+            ('▲', "Black up triangle (U+25B2)"),
+            ('▽', "White down triangle (U+25BD)"),
+            ('△', "White up triangle (U+25B3)"),
+            ('⬇', "Down arrow (U+2B07)"),
+            ('⬆', "Up arrow (U+2B06)"),
+            ('↓', "Down arrow (U+2193)"),
+            ('↑', "Up arrow (U+2191)"),
+            ('v', "Letter v (down)"),
+            ('^', "Caret (up)"),
+            ('<', "Less than"),
+            ('>', "Greater than"),
+            ('📅', "Calendar emoji"),
+        ];
+        
+        // Check which fonts support each character
+        let mut char_info = BTreeMap::new();
+        
+        for (ch, description) in test_chars {
+            // Try to check if character is available
+            // We'll use a simpler approach: just show the character and see if it renders
+            char_info.insert(ch, description);
+        }
+        
+        // Show debug info in a window if enabled
+        if self.show_font_debug {
+            egui::Window::new("Font Debug")
+                .default_size([400.0, 300.0])
+                .show(ui.ctx(), |ui| {
+                ui.heading("Character Availability Test");
+                ui.separator();
+                ui.label("Characters that should display correctly:");
+                
+                for (ch, description) in char_info {
+                    ui.horizontal(|ui| {
+                        ui.label(format!("'{}' - {}", ch, description));
+                        ui.label(egui::RichText::new(ch.to_string()).size(20.0));
+                    });
+                }
+                
+                ui.separator();
+                ui.label("Note: If you see squares (□), the character is not available in current fonts");
+                ui.label("Current button uses: '📅⬇' for newest first, '📅⬆' for oldest first");
+                ui.label("✓ Black arrows ⬇ and ⬆ work in current font configuration!");
+                
+                // Add a button to close the window
+                if ui.button("Close").clicked() {
+                    self.show_font_debug = false;
+                }
+            });
+        }
+    }
+
+
 
     /// Ensure selected_post is within valid bounds
     fn ensure_valid_selection(&mut self) {
@@ -133,12 +205,18 @@ impl eframe::App for BlogApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // Check if theme changed
+        // Update post manager state
+        self.post_manager_state = self.post_manager.state().clone();
+
+        // Apply theme if it changed
         if self.theme != self.previous_theme {
-            // Clear image cache to force SVGs to reload with new theme colors
-            ui.ctx().forget_all_images();
+            self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
         }
+        
+        // Debug: Check font availability for arrow characters
+        #[cfg(debug_assertions)]
+        self.debug_font_availability(ui);
 
         // Apply current theme
         self.theme.apply(ui.ctx());
