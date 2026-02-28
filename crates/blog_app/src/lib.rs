@@ -170,7 +170,7 @@ impl eframe::App for BlogApp {
                 &self.post_manager_state, // NEW: pass state
                 &self.search_query,
                 &mut self.selected_post,
-                &self.layout_config,
+                &mut self.layout_config,
             );
         });
 

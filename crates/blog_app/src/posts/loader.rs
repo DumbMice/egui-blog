@@ -135,6 +135,9 @@ pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
         }
     }
 
+    // Sort posts by date in reverse chronological order (newest first)
+    posts.sort_by(|a, b| b.date.cmp(&a.date));
+
     Ok(posts)
 }
 
@@ -158,11 +161,9 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(
-            missing_delimiter
-                .to_string()
-                .contains("Missing frontmatter delimiter")
-        );
+        assert!(missing_delimiter
+            .to_string()
+            .contains("Missing frontmatter delimiter"));
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

@@ -6,6 +6,22 @@ use super::components::{self, Theme};
 use crate::math::MathAssetManager;
 use crate::posts::{PostManager, PostManagerState};
 
+/// Sort order for blog posts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub enum PostSortOrder {
+    /// Newest posts first (reverse chronological)
+    NewestFirst,
+    /// Oldest posts first (chronological)
+    OldestFirst,
+}
+
+impl Default for PostSortOrder {
+    fn default() -> Self {
+        PostSortOrder::NewestFirst
+    }
+}
+
 /// Configuration for the blog layout.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(default))]
@@ -14,13 +30,16 @@ pub struct LayoutConfig {
     pub show_tags_in_list: bool,
     /// Show post preview in list
     pub show_preview_in_list: bool,
+    /// Sort order for posts
+    pub post_sort_order: PostSortOrder,
 }
 
 impl Default for LayoutConfig {
     fn default() -> Self {
         Self {
             show_tags_in_list: true,
-            show_preview_in_list: false,
+            show_preview_in_list: true,
+            post_sort_order: PostSortOrder::default(),
         }
     }
 }
@@ -79,7 +98,7 @@ pub fn side_panel(
     post_manager_state: &PostManagerState, // NEW
     search_query: &str,
     selected_post_index: &mut usize,
-    config: &LayoutConfig,
+    config: &mut LayoutConfig,
 ) -> bool {
     let mut selection_changed = false;
 
@@ -117,9 +136,45 @@ pub fn side_panel(
 
     ui.vertical(|ui| {
         ui.heading("Blog Posts");
+
+        // Sorting controls
+        ui.horizontal(|ui| {
+            ui.label("Sort:");
+            if ui
+                .selectable_value(
+                    &mut config.post_sort_order,
+                    PostSortOrder::NewestFirst,
+                    "↓ Newest first",
+                )
+                .clicked()
+            {
+                // Sort order changed
+            }
+            if ui
+                .selectable_value(
+                    &mut config.post_sort_order,
+                    PostSortOrder::OldestFirst,
+                    "↑ Oldest first",
+                )
+                .clicked()
+            {
+                // Sort order changed
+            }
+        });
+
         ui.separator();
 
-        let posts_to_show = post_manager.search(search_query);
+        let mut posts_to_show = post_manager.search(search_query);
+
+        // Sort posts based on configuration
+        match config.post_sort_order {
+            PostSortOrder::NewestFirst => {
+                posts_to_show.sort_by(|a, b| b.date.cmp(&a.date));
+            }
+            PostSortOrder::OldestFirst => {
+                posts_to_show.sort_by(|a, b| a.date.cmp(&b.date));
+            }
+        }
 
         if posts_to_show.is_empty() {
             ui.label("No posts found");
