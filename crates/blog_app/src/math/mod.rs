@@ -9,7 +9,7 @@ mod assets;
 mod embedded;
 
 pub use assets::MathAssetManager;
-pub use embedded::{get_svg_bytes, load_manifest, FormulaMetadata, MathManifest};
+pub use embedded::{FormulaMetadata, MathManifest, get_svg_bytes, load_manifest};
 
 /// Simple formula detection without regex
 /// Returns vector of (start_index, end_index, formula_text, is_display_math)

@@ -71,4 +71,3 @@ impl WebHandle {
         self.runner.panic_summary().map(|s| s.callstack())
     }
 }
-

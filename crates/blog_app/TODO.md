@@ -97,6 +97,18 @@ cargo blog-wasm     # Build WASM library only
 - [ ] Polish UI spacing and borders
 - [ ] Add visual feedback for interactions
 
+## Priority 7: Dynamic Content Loading (Low Priority)
+- [ ] Evaluate dynamic loading benefits vs complexity
+- [ ] Research HTTP fetching with ehttp crate
+- [ ] Design async loading architecture
+- [ ] Implement post loading from server/API
+- [ ] Implement SVG/PNG fetching for math formulas
+- [ ] Add loading states and error handling
+- [ ] Implement client-side caching
+- [ ] Test offline fallback behavior
+
+**Note**: Dynamic loading would reduce WASM size by moving posts (~10KB) and SVGs (~105KB) out of binary, but requires server infrastructure and adds network complexity. The SVG rendering stack (~3MB) would still be needed unless formulas are pre-rasterized server-side.
+
 ## Completed Tasks
 ✅ **Foundation (2026-02-13)**
 - Basic blog UI with panels and navigation

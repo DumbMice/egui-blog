@@ -1,11 +1,14 @@
 //! Blog post data structures and management.
 
 mod loader;
-mod state;  // NEW
+mod state; // NEW
 
 #[allow(unused_imports)]
-pub use loader::{Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content};
-pub use state::PostManagerState;  // NEW
+pub use loader::{
+    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
+    parse_post_content,
+};
+pub use state::PostManagerState; // NEW
 
 /// A blog post.
 #[derive(Clone, Debug)]
@@ -55,7 +58,7 @@ impl BlogPost {
 pub struct PostManager {
     posts: Vec<BlogPost>,
     next_id: usize,
-    state: PostManagerState,  // NEW
+    state: PostManagerState, // NEW
 }
 
 impl Default for PostManager {
@@ -63,7 +66,7 @@ impl Default for PostManager {
         let mut manager = Self {
             posts: Vec::new(),
             next_id: 0,
-            state: PostManagerState::Loading,  // NEW
+            state: PostManagerState::Loading, // NEW
         };
 
         // Load posts embedded at compile time
@@ -90,7 +93,6 @@ impl Default for PostManager {
 }
 
 impl PostManager {
-
     /// Add example posts for demonstration.
     pub fn add_example_posts(&mut self) {
         self.add_post(BlogPost::new(
@@ -132,10 +134,11 @@ fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
             "2026-02-11",
         ).with_tags(&["tutorial", "egui", "learning"]));
 
-        self.add_post(BlogPost::new(
-            self.next_id,
-            "Future Plans",
-            "I plan to add more features to this blog:
+        self.add_post(
+            BlogPost::new(
+                self.next_id,
+                "Future Plans",
+                "I plan to add more features to this blog:
 
 1. Markdown rendering
 2. Code syntax highlighting
@@ -144,8 +147,10 @@ fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 5. Comments section
 
 Let me know what you think!",
-            "2026-02-12",
-        ).with_tags(&["planning", "features"]));
+                "2026-02-12",
+            )
+            .with_tags(&["planning", "features"]),
+        );
     }
 
     /// Add a new post to the collection.
@@ -179,8 +184,8 @@ Let me know what you think!",
         self.posts
             .iter()
             .filter(|post| {
-                post.title.to_lowercase().contains(&query_lower) ||
-                post.content.to_lowercase().contains(&query_lower)
+                post.title.to_lowercase().contains(&query_lower)
+                    || post.content.to_lowercase().contains(&query_lower)
             })
             .collect()
     }
@@ -217,7 +222,6 @@ Let me know what you think!",
             }
         }
     }
-
 }
 
 #[cfg(test)]

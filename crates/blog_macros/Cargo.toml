@@ -1,0 +1,27 @@
+[package]
+name = "blog_macros"
+version = "0.1.0"
+edition = "2021"
+authors = ["You <your@email.com>"]
+description = "Procedural macros for embedding files in the blog application"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/DumbMice/egui-blog"
+readme = "README.md"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+walkdir = "2.5"
+glob = "0.3"
+anyhow = "1.0"
+
+[dev-dependencies]
+trybuild = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--generate-link-to-definition"]

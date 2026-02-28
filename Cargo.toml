@@ -4,6 +4,7 @@ members = [
   "crates/ecolor",
   "crates/egui_demo_app",
   "crates/blog_app",
+  "crates/blog_macros",
   "crates/egui_demo_lib",
   "crates/egui_extras",
   "crates/egui_glow",

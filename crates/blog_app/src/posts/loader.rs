@@ -122,15 +122,10 @@ pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
 
 /// Load posts embedded at compile time.
 pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
-    // Embedded post files
-    let post_contents = [
-        include_str!("../../posts/2026-02-10-welcome.md"),
-        include_str!("../../posts/2026-02-11-learning-egui.md"),
-        include_str!("../../posts/2026-02-12-future-plans.md"),
-        include_str!("../../posts/2026-02-25-test-table-no-headers.md"),
-        include_str!("../../posts/2026-02-25-test-valid-table.md"),
-        include_str!("../../posts/2026-02-25-test-latex.md"),
-    ];
+    use blog_macros::embed_file_array;
+
+    // Embedded post files using procedural macro
+    let post_contents = embed_file_array!("../../posts/", pattern = "*.md");
 
     let mut posts = Vec::new();
     for (id, content) in post_contents.iter().enumerate() {
@@ -163,9 +158,11 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(missing_delimiter
-            .to_string()
-            .contains("Missing frontmatter delimiter"));
+        assert!(
+            missing_delimiter
+                .to_string()
+                .contains("Missing frontmatter delimiter")
+        );
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }
