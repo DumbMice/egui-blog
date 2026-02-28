@@ -135,30 +135,21 @@ pub fn side_panel(
     }
 
     ui.vertical(|ui| {
-        ui.heading("Blog Posts");
-
-        // Sorting controls
         ui.horizontal(|ui| {
-            ui.label("Sort:");
-            if ui
-                .selectable_value(
-                    &mut config.post_sort_order,
-                    PostSortOrder::NewestFirst,
-                    "↓ Newest first",
-                )
-                .clicked()
-            {
-                // Sort order changed
-            }
-            if ui
-                .selectable_value(
-                    &mut config.post_sort_order,
-                    PostSortOrder::OldestFirst,
-                    "↑ Oldest first",
-                )
-                .clicked()
-            {
-                // Sort order changed
+            ui.heading("Blog Posts");
+
+            // Calendar icon button for sorting
+            let (icon, tooltip) = match config.post_sort_order {
+                PostSortOrder::NewestFirst => ("📅↓", "Newest first (click to switch)"),
+                PostSortOrder::OldestFirst => ("📅↑", "Oldest first (click to switch)"),
+            };
+
+            if ui.button(icon).on_hover_text(tooltip).clicked() {
+                // Toggle sort order
+                config.post_sort_order = match config.post_sort_order {
+                    PostSortOrder::NewestFirst => PostSortOrder::OldestFirst,
+                    PostSortOrder::OldestFirst => PostSortOrder::NewestFirst,
+                };
             }
         });
 
