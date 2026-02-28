@@ -140,8 +140,8 @@ pub fn side_panel(
 
             // Calendar icon button for sorting
             let (icon, tooltip) = match config.post_sort_order {
-                PostSortOrder::NewestFirst => ("📅↓", "Newest first (click to switch)"),
-                PostSortOrder::OldestFirst => ("📅↑", "Oldest first (click to switch)"),
+                PostSortOrder::NewestFirst => ("📅▼", "Newest first (click to switch)"),
+                PostSortOrder::OldestFirst => ("📅▲", "Oldest first (click to switch)"),
             };
 
             if ui.button(icon).on_hover_text(tooltip).clicked() {
@@ -155,17 +155,23 @@ pub fn side_panel(
 
         ui.separator();
 
-        let mut posts_to_show = post_manager.search(search_query);
-
-        // Sort posts based on configuration
-        match config.post_sort_order {
-            PostSortOrder::NewestFirst => {
-                posts_to_show.sort_by(|a, b| b.date.cmp(&a.date));
+        // Get posts based on search query and sort order
+        let posts_to_show = if search_query.is_empty() {
+            // No search query, get all posts sorted
+            post_manager.sorted_posts(config.post_sort_order)
+        } else {
+            // Has search query, filter then sort
+            let mut filtered = post_manager.search(search_query);
+            match config.post_sort_order {
+                PostSortOrder::NewestFirst => {
+                    filtered.sort_by(|a, b| b.date.cmp(&a.date));
+                }
+                PostSortOrder::OldestFirst => {
+                    filtered.sort_by(|a, b| a.date.cmp(&b.date));
+                }
             }
-            PostSortOrder::OldestFirst => {
-                posts_to_show.sort_by(|a, b| a.date.cmp(&b.date));
-            }
-        }
+            filtered
+        };
 
         if posts_to_show.is_empty() {
             ui.label("No posts found");

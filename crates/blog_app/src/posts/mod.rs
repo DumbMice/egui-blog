@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[allow(unused_imports)]
 pub use loader::{
-    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
-    parse_post_content,
+    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
+    LoadError,
 };
 pub use state::PostManagerState; // NEW
 
@@ -188,6 +188,22 @@ Let me know what you think!",
                     || post.content.to_lowercase().contains(&query_lower)
             })
             .collect()
+    }
+
+    /// Get posts sorted by date.
+    pub fn sorted_posts(&self, sort_order: crate::ui::layout::PostSortOrder) -> Vec<&BlogPost> {
+        let mut posts: Vec<&BlogPost> = self.posts.iter().collect();
+
+        match sort_order {
+            crate::ui::layout::PostSortOrder::NewestFirst => {
+                posts.sort_by(|a, b| b.date.cmp(&a.date));
+            }
+            crate::ui::layout::PostSortOrder::OldestFirst => {
+                posts.sort_by(|a, b| a.date.cmp(&b.date));
+            }
+        }
+
+        posts
     }
 
     /// Get current loading state
