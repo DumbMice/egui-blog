@@ -51,7 +51,8 @@ pub fn top_panel(
     theme: &mut Theme,
     search_query: &mut String,
     post_manager: &PostManager,
-    current_post_index: usize,
+    selected_post: usize,
+    #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
 ) -> bool {
     let mut theme_changed = false;
     let mut search_changed = false;
@@ -73,7 +74,7 @@ pub fn top_panel(
         ui.label(format!(
             "Posts: {}/{}",
             if post_manager.count() > 0 {
-                current_post_index + 1
+                selected_post + 1
             } else {
                 0
             },
@@ -85,6 +86,15 @@ pub fn top_panel(
         // Theme toggle
         if components::theme_toggle(ui, theme) {
             theme_changed = true;
+        }
+
+        // Debug menu (only in debug builds)
+        #[cfg(debug_assertions)]
+        {
+            ui.separator();
+            if components::debug_menu(ui, debug_state) {
+                // Debug menu was interacted with
+            }
         }
     });
 

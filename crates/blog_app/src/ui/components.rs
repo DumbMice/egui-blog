@@ -71,6 +71,46 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
     changed
 }
 
+/// Debug menu widget (only in debug builds).
+#[cfg(debug_assertions)]
+pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugState) -> bool {
+    let mut interacted = false;
+
+    ui.horizontal(|ui| {
+        ui.label("Debug:");
+
+        // Debug dropdown menu
+        egui::ComboBox::from_id_salt("debug_menu")
+            .selected_text("🐛")
+            .width(60.0)
+            .show_ui(ui, |ui| {
+                // Font book button - toggle display
+                if ui.button("Toggle font book").clicked() {
+                    debug_state.show_font_book = !debug_state.show_font_book;
+                    interacted = true;
+                }
+
+                ui.separator();
+
+                // Frame rate button - toggle display
+                if ui.button("Toggle frame rate").clicked() {
+                    debug_state.show_frame_rate = !debug_state.show_frame_rate;
+                    interacted = true;
+                }
+
+                ui.separator();
+
+                // Clear cache button
+                if ui.button("Clear cache").clicked() {
+                    println!("[DEBUG] Clear cache requested");
+                    interacted = true;
+                }
+            });
+    });
+
+    interacted
+}
+
 /// A search bar widget.
 pub fn search_bar(ui: &mut Ui, query: &mut String) -> bool {
     let mut changed = false;

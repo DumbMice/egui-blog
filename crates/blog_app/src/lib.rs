@@ -8,6 +8,9 @@ pub mod math;
 mod posts;
 mod ui;
 
+#[cfg(debug_assertions)]
+mod debug_windows;
+
 use egui::{CentralPanel, Panel, ScrollArea};
 pub use posts::{PostManager, PostManagerState};
 use ui::{LayoutConfig, Theme};
@@ -43,10 +46,10 @@ pub struct BlogApp {
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
     
-    /// Debug: Show font debug window (debug builds only)
+    /// Debug state (only available in debug builds)
     #[cfg(debug_assertions)]
     #[cfg_attr(feature = "serde", serde(skip))]
-    show_font_debug: bool,
+    debug_state: crate::debug_windows::DebugState,
 }
 
 impl Default for BlogApp {
@@ -67,7 +70,7 @@ impl Default for BlogApp {
             layout_config: LayoutConfig::default(),
             math_asset_manager: MathAssetManager::default(),
             #[cfg(debug_assertions)]
-            show_font_debug: true, // Show by default in debug builds
+            debug_state: crate::debug_windows::DebugState::default(),
         }
     }
 }
@@ -98,65 +101,8 @@ impl BlogApp {
         app
     }
 
-    /// Debug method to check font availability for arrow characters
-    #[cfg(debug_assertions)]
-    fn debug_font_availability(&mut self, ui: &egui::Ui) {
-        use std::collections::BTreeMap;
-        
-        // Test characters we want to use
-        let test_chars = [
-            ('▼', "Black down triangle (U+25BC)"),
-            ('▲', "Black up triangle (U+25B2)"),
-            ('▽', "White down triangle (U+25BD)"),
-            ('△', "White up triangle (U+25B3)"),
-            ('⬇', "Down arrow (U+2B07)"),
-            ('⬆', "Up arrow (U+2B06)"),
-            ('↓', "Down arrow (U+2193)"),
-            ('↑', "Up arrow (U+2191)"),
-            ('v', "Letter v (down)"),
-            ('^', "Caret (up)"),
-            ('<', "Less than"),
-            ('>', "Greater than"),
-            ('📅', "Calendar emoji"),
-        ];
-        
-        // Check which fonts support each character
-        let mut char_info = BTreeMap::new();
-        
-        for (ch, description) in test_chars {
-            // Try to check if character is available
-            // We'll use a simpler approach: just show the character and see if it renders
-            char_info.insert(ch, description);
-        }
-        
-        // Show debug info in a window if enabled
-        if self.show_font_debug {
-            egui::Window::new("Font Debug")
-                .default_size([400.0, 300.0])
-                .show(ui.ctx(), |ui| {
-                ui.heading("Character Availability Test");
-                ui.separator();
-                ui.label("Characters that should display correctly:");
-                
-                for (ch, description) in char_info {
-                    ui.horizontal(|ui| {
-                        ui.label(format!("'{}' - {}", ch, description));
-                        ui.label(egui::RichText::new(ch.to_string()).size(20.0));
-                    });
-                }
-                
-                ui.separator();
-                ui.label("Note: If you see squares (□), the character is not available in current fonts");
-                ui.label("Current button uses: '📅⬇' for newest first, '📅⬆' for oldest first");
-                ui.label("✓ Black arrows ⬇ and ⬆ work in current font configuration!");
-                
-                // Add a button to close the window
-                if ui.button("Close").clicked() {
-                    self.show_font_debug = false;
-                }
-            });
-        }
-    }
+
+
 
 
 
@@ -214,10 +160,6 @@ impl eframe::App for BlogApp {
             self.previous_theme = self.theme;
         }
         
-        // Debug: Check font availability for arrow characters
-        #[cfg(debug_assertions)]
-        self.debug_font_availability(ui);
-
         // Apply current theme
         self.theme.apply(ui.ctx());
 
@@ -231,12 +173,31 @@ impl eframe::App for BlogApp {
                 &mut self.search_query,
                 &self.post_manager,
                 self.selected_post,
+                #[cfg(debug_assertions)]
+                &mut self.debug_state,
             );
         });
 
         if top_panel_changed {
             // If search changed, we might need to adjust selection
             // For now, just keep current selection if possible
+        }
+
+        // Update and show debug windows (debug builds only)
+        #[cfg(debug_assertions)]
+        {
+            // Update frame rate calculation
+            crate::debug_windows::update_frame_rate(ui.ctx(), &mut self.debug_state);
+            
+            // Show font book window if enabled
+            if self.debug_state.show_font_book {
+                crate::debug_windows::show_font_book_window(ui, &mut self.debug_state);
+            }
+            
+            // Show frame rate window if enabled
+            if self.debug_state.show_frame_rate {
+                crate::debug_windows::show_frame_rate_window(ui, &mut self.debug_state);
+            }
         }
 
         // Side panel
