@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -322,7 +322,7 @@ fn create_placeholder_svg(formula: &str, is_display: bool) -> String {
         .replace('\'', "&apos;");
 
     format!(
-        r##"<?xml version="1.0" encoding="UTF-8"?>
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="background-color: transparent;">
   <!-- Transparent background - no fill rect -->
   <!-- Border to show it's a math area -->
@@ -334,7 +334,7 @@ fn create_placeholder_svg(formula: &str, is_display: bool) -> String {
   <!-- Display type indicator -->
   <rect x="100" y="10" width="80" height="20" fill="currentColor" opacity="0.2" rx="5"/>
   <text x="140" y="25" font-family="Arial" font-size="12" text-anchor="middle" fill="currentColor" opacity="0.5">{math_type}</text>
-</svg>"##
+</svg>"#
     )
 }
 

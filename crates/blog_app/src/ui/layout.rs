@@ -339,8 +339,16 @@ fn main_content_internal_impl(
                     components::post_metadata(ui, &post.date, &post.tags);
                     ui.separator();
 
-                    // Render markdown content with math support
-                    super::markdown::render_markdown(ui, &post.content, state.math_asset_manager);
+                    // Render markdown content with math support using preprocessed content
+                    if let Some(content) = post.processed_content() {
+                        super::markdown::render_preprocessed_markdown(
+                            ui,
+                            content,
+                            state.math_asset_manager,
+                        );
+                    } else {
+                        ui.label("Error: Post content not available");
+                    }
 
                     ui.separator();
 

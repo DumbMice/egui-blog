@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
-    LoadError,
+    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
+    parse_post_content,
 };
 pub use state::PostManagerState; // NEW
 
@@ -23,23 +23,30 @@ pub struct BlogPost {
     pub date: String,
     /// Optional tags/categories
     pub tags: Vec<String>,
+    /// Cached processed content with math placeholders
+    cached_processed_content: Option<String>,
 }
 
 impl BlogPost {
     /// Create a new blog post.
     pub fn new(id: usize, title: &str, content: &str, date: &str) -> Self {
+        let manifest = crate::math::load_manifest();
+        let processed_content =
+            crate::ui::markdown::extract_and_replace_math_formulas(content, manifest);
+
         Self {
             id,
             title: title.to_owned(),
             content: content.to_owned(),
             date: date.to_owned(),
             tags: Vec::new(),
+            cached_processed_content: Some(processed_content),
         }
     }
 
     /// Create a new blog post with tags.
     pub fn with_tags(mut self, tags: &[&str]) -> Self {
-        self.tags = tags.iter().map(|s| s.to_string()).collect();
+        self.tags = tags.iter().map(ToString::to_string).collect();
         self
     }
 
@@ -51,6 +58,12 @@ impl BlogPost {
         } else {
             preview
         }
+    }
+
+    /// Get processed content with math formulas replaced by placeholders.
+    /// Content is preprocessed when the post is created.
+    pub fn processed_content(&self) -> Option<&str> {
+        self.cached_processed_content.as_deref()
     }
 }
 

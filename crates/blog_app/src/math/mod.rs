@@ -20,10 +20,7 @@ pub fn find_formulas(text: &str) -> Vec<(usize, usize, String, bool)> {
     while let Some((i, ch)) = chars.next() {
         if ch == '$' {
             // Check if it's display math ($$)
-            let is_display = chars
-                .peek()
-                .map(|(_, next_ch)| *next_ch == '$')
-                .unwrap_or(false);
+            let is_display = chars.peek().is_some_and(|(_, next_ch)| *next_ch == '$');
             let start = i;
 
             // Skip second $ if display math

@@ -216,8 +216,7 @@ pub fn show_font_book_window(ui: &egui::Ui, debug_state: &mut DebugState) {
                         ch.to_string().to_lowercase().contains(&filter_lower) ||
                         // Filter by Unicode name
                         unicode_names2::name(ch)
-                            .map(|name| name.to_string().to_lowercase().contains(&filter_lower))
-                            .unwrap_or(false) ||
+                            .is_some_and(|name| name.to_string().to_lowercase().contains(&filter_lower)) ||
                         // Filter by hex code
                         format!("{:04X}", ch as u32).to_lowercase().contains(&filter_lower)
                     })
@@ -250,8 +249,7 @@ pub fn show_font_book_window(ui: &egui::Ui, debug_state: &mut DebugState) {
 
                         // Get character info for tooltip
                         let char_name = unicode_names2::name(ch)
-                            .map(|s| s.to_string())
-                            .unwrap_or_else(|| "Unknown".to_owned());
+                            .map_or_else(|| "Unknown".to_owned(), |s| s.to_string());
 
                         let tooltip_text = format!(
                             "'{}' - U+{:04X}\n{}\nClick to copy",
@@ -317,8 +315,7 @@ pub fn show_font_book_window(ui: &egui::Ui, debug_state: &mut DebugState) {
                                         ch,
                                         *ch as u32,
                                         unicode_names2::name(*ch)
-                                            .map(|n| n.to_string())
-                                            .unwrap_or_else(|| "Unknown".to_owned())
+                                            .map_or_else(|| "Unknown".to_owned(), |n| n.to_string())
                                     ))
                                     .clicked()
                                 {

@@ -88,7 +88,22 @@ cargo blog-wasm     # Build WASM library only
 - **Browser auto-open**: `--open` flag opens browser automatically
 - **Logging control**: `--log-level` option for verbosity control
 
-## Priority 6: Enhanced Styling
+## Priority 6: Performance Optimizations ✅ COMPLETED 2026-03-01
+- [x] Math manifest caching with `OnceLock` (3752× faster loading)
+- [x] Formula reverse index for O(1) lookup instead of O(n) linear search
+- [x] Markdown processing cache to avoid reprocessing static content every frame
+- [x] Remove unused code and clean up function hierarchy
+- [x] Add benchmark tests to measure performance improvements
+- [x] Fix all clippy warnings and code quality issues
+
+### Implementation Details:
+1. **Math Manifest Caching**: Added `static MANIFEST_CACHE: OnceLock<MathManifest>` to cache JSON parsing
+2. **Reverse Index**: Added `reverse_index: HashMap<(String, bool), String>` to `MathManifest` for O(1) formula lookup
+3. **Markdown Cache**: Added `cached_processed_content: Option<String>` to `BlogPost` with preprocessing at creation
+4. **API Updates**: Created `render_preprocessed_markdown()` function and updated rendering to use cached content
+5. **Benchmarks**: Added performance benchmark tests showing 3752× faster manifest loading and O(1) formula lookup
+
+## Priority 7: Enhanced Styling
 - [ ] Design custom theme system
 - [ ] Implement color customization
 - [ ] Improve typography (fonts, spacing)
@@ -133,11 +148,20 @@ cargo blog-wasm     # Build WASM library only
 - Post content and math SVGs reloaded from source (not serialized)
 - Follows egui demo app persistence pattern
 
+✅ **Performance Optimizations (2026-03-01)**
+- Math manifest caching with `OnceLock` (3752× faster loading)
+- Formula reverse index for O(1) lookup instead of O(n) linear search  
+- Markdown processing cache to avoid reprocessing static content every frame
+- Removed unused code and cleaned up function hierarchy
+- Added benchmark tests showing significant performance improvements
+- Fixed all clippy warnings and code quality issues
+
 ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support
 - `6ace4f51` - Clean up blog_app crate warnings and unused code
 - `d3dcb0d7` - WIP: Implement paragraph accumulation for inline math rendering
 - `5b39f118` - Fix horizontal spacing for inline math formulas
+- `66d90429` - Performance optimizations: manifest caching, reverse index, markdown cache
 - *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
@@ -155,17 +179,22 @@ cargo blog-wasm     # Build WASM library only
 - **Performance optimization**: Formula caching could be more intelligent
 - **Accessibility**: Screen reader support for math formulas
 
-### Performance Optimizations Needed
-- **Math formula lookup optimization**: `find_hash` uses O(n) linear search through HashMap instead of O(1) hash lookup
-  - **Current**: 9 formulas × 5 formulas per post × 60 FPS = ~2,700 comparisons/second
-  - **Impact**: Minimal now (9 formulas) but scales poorly with more formulas
-  - **Fix**: Add reverse index `HashMap<(formula, is_display), hash>` or cache processed markdown text
-- **Markdown processing per frame**: `extract_and_replace_math_formulas` runs every frame on static content
-  - **Current**: Same formula extraction and hash lookups repeated 60 times/second
-  - **Fix**: Cache processed markdown text with `(hash.typ)` placeholders
-- **HashMap iteration warnings**: Several `#[allow(clippy::iter_over_hash_type)]` attributes hide potential order-dependent bugs
-  - **Build script**: Iterations where order doesn't matter (updating metadata, processing formulas)
-  - **Runtime**: `find_hash` linear search through HashMap (design issue, not just iteration order)
+### Performance Optimizations ✅ COMPLETED 2026-03-01
+- **Math formula lookup optimization**: `find_hash` now uses O(1) reverse index lookup instead of O(n) linear search
+  - **Before**: 9 formulas × 5 formulas per post × 60 FPS = ~2,700 comparisons/second
+  - **After**: O(1) hash map lookup with reverse index `HashMap<(formula, is_display), hash>`
+  - **Result**: 313ns average lookup time, scales efficiently with more formulas
+- **Math manifest caching**: `load_manifest()` now cached with `OnceLock` instead of parsing JSON every frame
+  - **Before**: JSON parsing 60 times/second
+  - **After**: One-time initialization with static reference
+  - **Result**: 3752× faster (75µs cold → 20ns average)
+- **Markdown processing caching**: `extract_and_replace_math_formulas` now preprocessed at load time
+  - **Before**: Same formula extraction repeated 60 times/second on static content
+  - **After**: Content preprocessed when `BlogPost` is created, cached with `(hash.typ)` placeholders
+  - **Result**: Eliminates reprocessing of static markdown every frame
+- **HashMap iteration warnings**: Fixed by sorting entries for deterministic iteration
+  - **Build script**: Now sorts by hash before building reverse index
+  - **Runtime**: All `#[allow(clippy::iter_over_hash_type)]` attributes removed
 
 ## Notes
 ### New Development Workflow (2026-02-27)

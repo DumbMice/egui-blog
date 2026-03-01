@@ -5,7 +5,7 @@ use egui::ImageSource;
 /// Manages math SVG assets
 pub struct MathAssetManager {
     /// Manifest of available formulas
-    manifest: crate::math::embedded::MathManifest,
+    manifest: &'static crate::math::embedded::MathManifest,
 }
 
 impl Default for MathAssetManager {

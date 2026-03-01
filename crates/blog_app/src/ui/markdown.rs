@@ -1,12 +1,12 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
-use egui_extras::syntax_highlighting::{highlight, CodeTheme};
+use egui::{Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui, vec2};
+use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use log;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{ui::table_renderer, MathAssetManager};
+use crate::{MathAssetManager, ui::table_renderer};
 
 /// Content that can appear within a paragraph
 #[derive(Clone)]
@@ -33,7 +33,10 @@ enum ParagraphContent {
 
 /// Extract math formulas from text and replace with (hash.typ) placeholders
 /// Returns text with placeholders
-fn extract_and_replace_math_formulas(text: &str, manifest: &crate::math::MathManifest) -> String {
+pub fn extract_and_replace_math_formulas(
+    text: &str,
+    manifest: &crate::math::MathManifest,
+) -> String {
     let mut result = String::with_capacity(text.len());
     let mut i = 0;
     let chars: Vec<char> = text.chars().collect();
@@ -95,40 +98,33 @@ fn extract_and_replace_math_formulas(text: &str, manifest: &crate::math::MathMan
     result
 }
 
-/// Render markdown content to an egui UI with math support.
-pub fn render_markdown(
+/// Render preprocessed markdown content to an egui UI with math support.
+/// This function accepts markdown that has already been processed with math placeholders.
+pub fn render_preprocessed_markdown(
     ui: &mut Ui,
-    markdown: &str,
+    preprocessed_markdown: &str,
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
 ) {
-    render_markdown_internal(ui, markdown, math_asset_manager);
-}
-
-fn render_markdown_internal(
-    ui: &mut Ui,
-    markdown: &str,
-    math_asset_manager: Option<&mut crate::math::MathAssetManager>,
-) {
-    render_markdown_impl(ui, markdown, math_asset_manager);
+    render_markdown_impl(ui, preprocessed_markdown, math_asset_manager, true);
 }
 
 fn render_markdown_impl(
     ui: &mut Ui,
     markdown: &str,
-    math_asset_manager: Option<&mut crate::math::MathAssetManager>,
-) {
-    render_markdown_with_math(ui, markdown, math_asset_manager);
-}
-
-fn render_markdown_with_math(
-    ui: &mut Ui,
-    markdown: &str,
     mut math_asset_manager: Option<&mut crate::math::MathAssetManager>,
+    is_preprocessed: bool,
 ) {
-    // Extract math formulas and replace with (hash.typ) placeholders
-    let manifest = crate::math::load_manifest();
+    let protected_text = if is_preprocessed {
+        // Content is already preprocessed with math placeholders
+        markdown.to_owned()
+    } else {
+        // Extract math formulas and replace with (hash.typ) placeholders
+        let manifest = crate::math::load_manifest();
+        extract_and_replace_math_formulas(markdown, manifest)
+    };
 
-    let protected_text = extract_and_replace_math_formulas(markdown, &manifest);
+    // Load manifest for metadata lookup (needed for both preprocessed and raw content)
+    let manifest = crate::math::load_manifest();
 
     let mut events =
         pulldown_cmark::Parser::new_ext(&protected_text, pulldown_cmark::Options::ENABLE_TABLES)
@@ -493,7 +489,7 @@ fn render_markdown_with_math(
                     // Accumulate text content for paragraph rendering
                     accumulate_text_content(
                         &text,
-                        &manifest,
+                        manifest,
                         &mut math_asset_manager,
                         &mut paragraph_content,
                     );
@@ -501,7 +497,7 @@ fn render_markdown_with_math(
                     // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
                     // Check for math placeholders in the text (format: (hash.typ))
                     let mut remaining = &text[..];
-                    let _last_pos = 0;
+                    let _ = 0;
 
                     while let Some(start) = remaining.find('(') {
                         // Render text before the placeholder
@@ -512,7 +508,7 @@ fn render_markdown_with_math(
 
                         // Find the end of the placeholder - look for closing ')'
                         if let Some(end) = remaining[start..].find(')') {
-                            let placeholder = &remaining[start..start + end + 1];
+                            let placeholder = &remaining[start..=start + end];
 
                             // Check if this is a math placeholder: (hash.typ)
                             if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
@@ -1049,7 +1045,7 @@ fn accumulate_text_content(
 
         // Find the end of the placeholder - look for closing ')'
         if let Some(end) = remaining[start..].find(')') {
-            let placeholder = &remaining[start..start + end + 1];
+            let placeholder = &remaining[start..=start + end];
 
             // Check if this is a math placeholder: (hash.typ)
             if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
@@ -1176,7 +1172,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                                           // Skip through the list events
+                // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;

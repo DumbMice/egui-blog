@@ -80,13 +80,18 @@ pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadErro
     // Parse frontmatter
     let frontmatter: Frontmatter = serde_yaml::from_str(frontmatter_yaml)?;
 
-    // Create blog post
+    // Create blog post with preprocessed content
+    let manifest = crate::math::load_manifest();
+    let processed_content =
+        crate::ui::markdown::extract_and_replace_math_formulas(markdown_content, manifest);
+
     Ok(BlogPost {
         id,
         title: frontmatter.title,
         content: markdown_content.to_owned(),
         date: frontmatter.date,
         tags: frontmatter.tags,
+        cached_processed_content: Some(processed_content),
     })
 }
 
@@ -103,8 +108,7 @@ pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
         .filter_map(|entry| entry.ok().map(|e| e.path()))
         .filter(|path| {
             path.extension()
-                .map(|ext| ext == "md" || ext == "markdown")
-                .unwrap_or(false)
+                .is_some_and(|ext| ext == "md" || ext == "markdown")
         })
         .collect();
 
@@ -162,9 +166,11 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(missing_delimiter
-            .to_string()
-            .contains("Missing frontmatter delimiter"));
+        assert!(
+            missing_delimiter
+                .to_string()
+                .contains("Missing frontmatter delimiter")
+        );
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

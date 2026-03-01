@@ -55,8 +55,8 @@ pub fn render_table(
     // Determine number of columns from first row
     let col_count = headers
         .first()
-        .map(|r| r.len())
-        .or_else(|| rows.first().map(|r| r.len()))
+        .map(Vec::len)
+        .or_else(|| rows.first().map(Vec::len))
         .unwrap_or(0);
 
     if col_count == 0 {
