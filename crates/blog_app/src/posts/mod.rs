@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
-    LoadError,
+    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
+    parse_post_content,
 };
 pub use state::PostManagerState; // NEW
 
@@ -70,12 +70,12 @@ impl BlogPost {
         // Use preprocessed content (with math placeholders) if available
         let content = self.processed_content().unwrap_or(&self.content);
 
-        let mut parser = Parser::new(content);
+        let parser = Parser::new(content);
         let mut in_paragraph = false;
         let mut paragraph_text = String::new();
         let mut found_non_paragraph = false;
 
-        while let Some(event) = parser.next() {
+        for event in parser {
             match event {
                 Event::Start(Tag::Paragraph) => {
                     if !found_non_paragraph {
@@ -88,7 +88,7 @@ impl BlogPost {
                         // Found a paragraph with content
                         // Clean up math placeholders (replace (hash.typ) with [formula])
                         let cleaned = Self::clean_math_placeholders(&paragraph_text);
-                        return Some(cleaned.trim().to_string());
+                        return Some(cleaned.trim().to_owned());
                     }
                     in_paragraph = false;
                 }
@@ -160,7 +160,7 @@ impl BlogPost {
 
                 if j < chars.len() && chars[j] == ')' {
                     let placeholder: String = chars[i..=j].iter().collect();
-                    if placeholder.ends_with(".typ)") {
+                    if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
                         // Replace math placeholder with [formula]
                         result.push_str("[formula]");
                         i = j + 1;

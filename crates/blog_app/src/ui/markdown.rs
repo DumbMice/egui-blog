@@ -152,30 +152,52 @@ fn render_markdown_impl(
                             }
                         }
 
-                        // Add spacing before heading (proportional to heading level)
+                        // Add spacing before heading (GitHub pattern: 24px for most headings)
                         let spacing_before = match level {
-                            HeadingLevel::H1 => 24.0,
-                            HeadingLevel::H2 => 20.0,
-                            HeadingLevel::H3 => 16.0,
-                            HeadingLevel::H4 => 12.0,
-                            HeadingLevel::H5 => 8.0,
-                            HeadingLevel::H6 => 4.0,
+                            HeadingLevel::H1 => 21.0, // 0.67em of 32px ≈ 21px
+                            HeadingLevel::H2
+                            | HeadingLevel::H3
+                            | HeadingLevel::H4
+                            | HeadingLevel::H5
+                            | HeadingLevel::H6 => 24.0, // GitHub: 24px for h2-h6
                         };
                         ui.add_space(spacing_before);
 
                         let rich_text = match level {
-                            HeadingLevel::H1 => RichText::new(heading_text).heading().size(28.0),
-                            HeadingLevel::H2 => RichText::new(heading_text).heading().size(24.0),
-                            HeadingLevel::H3 => RichText::new(heading_text).heading().size(20.0),
-                            HeadingLevel::H4 => RichText::new(heading_text).size(18.0),
-                            HeadingLevel::H5 => RichText::new(heading_text).size(16.0),
-                            HeadingLevel::H6 => RichText::new(heading_text).size(14.0),
+                            HeadingLevel::H1 => RichText::new(heading_text).heading(), // Uses TextStyle::Heading (32px)
+                            HeadingLevel::H2 => RichText::new(heading_text)
+                                .text_style(TextStyle::Name("Heading2".into())), // 24px
+                            HeadingLevel::H3 => RichText::new(heading_text)
+                                .text_style(TextStyle::Name("Heading3".into())), // 20px
+                            HeadingLevel::H4 => RichText::new(heading_text)
+                                .text_style(TextStyle::Name("Heading4".into())), // 16px
+                            HeadingLevel::H5 => RichText::new(heading_text)
+                                .text_style(TextStyle::Name("Heading5".into())), // 14px
+                            HeadingLevel::H6 => RichText::new(heading_text)
+                                .text_style(TextStyle::Name("Heading6".into())), // 13.6px
                         };
 
                         ui.label(rich_text);
 
-                        // Add spacing after heading (slightly less than before)
-                        let spacing_after = spacing_before * 0.75;
+                        // Add bottom border for h1 and h2 (GitHub style)
+                        match level {
+                            HeadingLevel::H1 | HeadingLevel::H2 => {
+                                ui.add_space(7.2); // GitHub: 0.3em padding-bottom (24px * 0.3 = 7.2px for h2)
+                                ui.separator();
+                            }
+                            _ => {}
+                        }
+
+                        // Add spacing after heading (GitHub pattern: 16px for most headings)
+                        // Note: For h1/h2, this spacing comes after the separator
+                        let spacing_after = match level {
+                            HeadingLevel::H1 => 21.0, // 0.67em of 32px ≈ 21px
+                            HeadingLevel::H2
+                            | HeadingLevel::H3
+                            | HeadingLevel::H4
+                            | HeadingLevel::H5
+                            | HeadingLevel::H6 => 16.0, // GitHub: 16px for h2-h6
+                        };
                         ui.add_space(spacing_after);
                     }
                     Tag::List(ordered) => {

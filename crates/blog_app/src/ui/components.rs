@@ -1,6 +1,7 @@
 //! Reusable UI components for the blog app.
 
-use egui::{Context, Ui};
+use egui::{Context, FontFamily, FontId, TextStyle, Ui};
+use std::collections::BTreeMap;
 
 /// Theme configuration for the blog.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -13,7 +14,7 @@ pub enum Theme {
 
 impl Theme {
     /// Apply this theme to the egui context.
-    pub fn apply(&self, ctx: &Context) {
+    pub fn apply(self, ctx: &Context) {
         match self {
             Self::Light => ctx.set_visuals(egui::Visuals::light()),
             Self::Dark => ctx.set_visuals(egui::Visuals::dark()),
@@ -23,10 +24,55 @@ impl Theme {
                 ctx.set_visuals(egui::Visuals::light());
             }
         }
+
+        // Set GitHub-like text styles (16px base font size)
+        let text_styles: BTreeMap<TextStyle, FontId> = [
+            (
+                TextStyle::Small,
+                FontId::new(12.0, FontFamily::Proportional),
+            ), // 75% of 16px
+            (TextStyle::Body, FontId::new(16.0, FontFamily::Proportional)), // GitHub: 16px base
+            (
+                TextStyle::Button,
+                FontId::new(16.0, FontFamily::Proportional),
+            ), // Same as body
+            (
+                TextStyle::Heading,
+                FontId::new(32.0, FontFamily::Proportional),
+            ), // GitHub H1: 2em = 32px
+            (
+                TextStyle::Monospace,
+                FontId::new(13.6, FontFamily::Monospace),
+            ), // GitHub: 85% of 16px = 13.6px
+            // Custom heading styles for GitHub sizes
+            (
+                TextStyle::Name("Heading2".into()),
+                FontId::new(24.0, FontFamily::Proportional),
+            ), // GitHub H2: 1.5em = 24px
+            (
+                TextStyle::Name("Heading3".into()),
+                FontId::new(20.0, FontFamily::Proportional),
+            ), // GitHub H3: 1.25em = 20px
+            (
+                TextStyle::Name("Heading4".into()),
+                FontId::new(16.0, FontFamily::Proportional),
+            ), // GitHub H4: 1em = 16px
+            (
+                TextStyle::Name("Heading5".into()),
+                FontId::new(14.0, FontFamily::Proportional),
+            ), // GitHub H5: 0.875em = 14px
+            (
+                TextStyle::Name("Heading6".into()),
+                FontId::new(13.6, FontFamily::Proportional),
+            ), // GitHub H6: 0.85em = 13.6px
+        ]
+        .into();
+
+        ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
     }
 
     /// Get the name of the theme.
-    pub fn name(&self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Self::Light => "Light",
             Self::Dark => "Dark",

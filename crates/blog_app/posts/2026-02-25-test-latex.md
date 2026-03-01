@@ -4,11 +4,13 @@ date: "2026-02-25"
 tags: ["test", "typst", "math"]
 ---
 
-## Testing Typst Math Rendering
+A first paragraph containg formula $e^(i pi) +1 = 0$.
 
+## Testing Typst Math Rendering
 ### Inline Math
 
 hello my blog. this is a test.
+
 Here's some inline math: $E = m c^2$ and $3/2 + 5/4 = 11/4$ (testing improved file watcher).
 
 ### Display Math
@@ -23,7 +25,7 @@ $ sum_(n=1)^infinity 1/n^2 = pi^2/6 $
 
 The quadratic formula:
 
-$ x = (-b +- sqrt(b^2 - 4 a c)) / (2a) $
+$ x = (-b plus.minus sqrt(b^2 - 4 a c)) / (2a) $
 
 Matrix example:
 
