@@ -7,6 +7,7 @@
 //! The default binary (`blog_app`) shows this help message.
 //! Use `cargo run --bin <binary_name>` to run a specific binary.
 
+#[expect(clippy::print_stderr)]
 fn main() {
     eprintln!("Blog App - Available binaries:");
     eprintln!();

@@ -74,11 +74,15 @@ fn test_asset_manager_basics() {
     let mut manager = MathAssetManager::default();
 
     // Check manifest is loaded
-    assert_eq!(manager.cache_size(), 0, "Cache should be empty initially");
+    assert_eq!(
+        MathAssetManager::cache_size(),
+        0,
+        "Cache should be empty initially"
+    );
 
     // Test cache management
-    manager.set_max_cache_size(5);
-    manager.clear_cache();
+    MathAssetManager::set_max_cache_size(5);
+    MathAssetManager::clear_cache();
 
     println!("MathAssetManager created successfully");
 }

@@ -19,7 +19,7 @@ fn test_image_source_creation() {
     println!("Hash: {}", hash);
 
     // Try to get image source
-    let image_source = asset_manager.get_image_source_for_hash(hash);
+    let image_source = MathAssetManager::get_image_source_for_hash(hash);
 
     match image_source {
         Some(image_source) => {

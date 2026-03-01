@@ -1,11 +1,12 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
+use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use log;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
-use crate::ui::table_renderer;
+use crate::ui::table_renderer::TableConfig;
+use crate::{ui::table_renderer, MathAssetManager};
 
 /// Content that can appear within a paragraph
 #[derive(Clone)]
@@ -59,20 +60,19 @@ fn extract_and_replace_math_formulas(text: &str, manifest: &crate::math::MathMan
 
             if j < chars.len() && chars[j] == '$' {
                 let formula_start_idx = if is_display { i + 2 } else { i + 1 };
-                let mut formula_end_idx = j;
-
-                // For Typst display math, check if there's a space before closing $
-                if is_display && j > 0 && chars[j - 1] == ' ' {
-                    formula_end_idx = j - 1; // Exclude the space before closing $
-                }
+                let formula_end_idx = if is_display && j > 0 && chars[j - 1] == ' ' {
+                    j - 1 // Exclude the space before closing $
+                } else {
+                    j
+                };
 
                 let formula: String = chars[formula_start_idx..formula_end_idx].iter().collect();
                 let formula = formula.trim();
 
                 if !formula.is_empty() {
                     // Look up hash in manifest
-                    if let Some(hash) = manifest.find_hash(&formula, is_display) {
-                        let placeholder = format!("({}.typ)", hash);
+                    if let Some(hash) = manifest.find_hash(formula, is_display) {
+                        let placeholder = format!("({hash}.typ)");
                         result.push_str(&placeholder);
                         i = j + 1;
                         continue;
@@ -82,8 +82,8 @@ fn extract_and_replace_math_formulas(text: &str, manifest: &crate::math::MathMan
 
             // If we get here, formula extraction failed or hash not found
             // Copy the original formula text as fallback
-            for k in formula_start..=i {
-                result.push(chars[k]);
+            for ch in chars.iter().take(i + 1).skip(formula_start) {
+                result.push(*ch);
             }
         }
 
@@ -101,7 +101,7 @@ pub fn render_markdown(
     markdown: &str,
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
 ) {
-    render_markdown_internal(ui, markdown, math_asset_manager)
+    render_markdown_internal(ui, markdown, math_asset_manager);
 }
 
 fn render_markdown_internal(
@@ -109,7 +109,7 @@ fn render_markdown_internal(
     markdown: &str,
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
 ) {
-    render_markdown_impl(ui, markdown, math_asset_manager)
+    render_markdown_impl(ui, markdown, math_asset_manager);
 }
 
 fn render_markdown_impl(
@@ -117,7 +117,7 @@ fn render_markdown_impl(
     markdown: &str,
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
 ) {
-    render_markdown_with_math(ui, markdown, math_asset_manager)
+    render_markdown_with_math(ui, markdown, math_asset_manager);
 }
 
 fn render_markdown_with_math(
@@ -150,7 +150,7 @@ fn render_markdown_with_math(
                         // Headings
                         let mut heading_text = String::new();
                         while let Some(Event::Text(text)) = events.next() {
-                            heading_text.push_str(&*text);
+                            heading_text.push_str(&text);
                             if let Some(Event::End(Tag::Heading(_, _, _))) = events.peek() {
                                 break;
                             }
@@ -183,7 +183,7 @@ fn render_markdown_with_math(
                         ui.add_space(spacing_after);
                     }
                     Tag::List(ordered) => {
-                        log::debug!("Start List, ordered: {:?}", ordered);
+                        log::debug!("Start List, ordered: {ordered:?}");
                         // Lists
                         let mut list_items = Vec::new();
                         while let Some(event) = events.next() {
@@ -191,10 +191,10 @@ fn render_markdown_with_math(
                                 Event::End(Tag::List(_)) => break,
                                 Event::Start(Tag::Item) => {
                                     let mut item_text = String::new();
-                                    while let Some(event) = events.next() {
+                                    for event in events.by_ref() {
                                         match event {
                                             Event::End(Tag::Item) => break,
-                                            Event::Text(text) => item_text.push_str(&*text),
+                                            Event::Text(text) => item_text.push_str(&text),
                                             Event::SoftBreak => item_text.push(' '),
                                             Event::HardBreak => item_text.push('\n'),
                                             _ => {} // Skip other events for now
@@ -218,19 +218,15 @@ fn render_markdown_with_math(
                                 // Add indentation for the list
                                 ui.add_space(one_indent);
 
-                                match ordered {
-                                    Some(start) => {
-                                        let number = (start + i as u64).to_string();
-                                        // Render number as text label (part of the text flow)
-                                        ui.label(RichText::new(format!("{}.", number)));
-                                        ui.add_space(one_indent / 3.0);
-                                    }
-                                    None => {
-                                        // Render bullet as text character (•) instead of drawn circle
-                                        ui.label(RichText::new("•"));
-                                        ui.add_space(one_indent / 3.0);
-                                    }
+                                if let Some(start) = ordered {
+                                    let number = (start + i as u64).to_string();
+                                    // Render number as text label (part of the text flow)
+                                    ui.label(RichText::new(format!("{number}.")));
+                                } else {
+                                    // Render bullet as text character (•) instead of drawn circle
+                                    ui.label(RichText::new("•"));
                                 }
+                                ui.add_space(one_indent / 3.0);
                                 ui.label(item);
                             });
                         }
@@ -242,12 +238,11 @@ fn render_markdown_with_math(
                     Tag::CodeBlock(kind) => {
                         // Code blocks
                         let mut code_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::CodeBlock(_)) => break,
-                                Event::Text(text) => code_text.push_str(&*text),
-                                Event::SoftBreak => code_text.push('\n'),
-                                Event::HardBreak => code_text.push('\n'),
+                                Event::Text(text) => code_text.push_str(&text),
+                                Event::SoftBreak | Event::HardBreak => code_text.push('\n'),
                                 _ => {} // Skip other events
                             }
                         }
@@ -316,10 +311,10 @@ fn render_markdown_with_math(
                     Tag::Strong => {
                         // Bold text
                         let mut bold_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::Strong) => break,
-                                Event::Text(text) => bold_text.push_str(&*text),
+                                Event::Text(text) => bold_text.push_str(&text),
                                 Event::SoftBreak => bold_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -333,10 +328,10 @@ fn render_markdown_with_math(
                     Tag::Emphasis => {
                         // Italic text
                         let mut italic_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::Emphasis) => break,
-                                Event::Text(text) => italic_text.push_str(&*text),
+                                Event::Text(text) => italic_text.push_str(&text),
                                 Event::SoftBreak => italic_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -351,10 +346,10 @@ fn render_markdown_with_math(
                         // Links
                         let url = url.to_string();
                         let mut link_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::Link(_, _, _)) => break,
-                                Event::Text(text) => link_text.push_str(&*text),
+                                Event::Text(text) => link_text.push_str(&text),
                                 Event::SoftBreak => link_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -372,10 +367,10 @@ fn render_markdown_with_math(
                     Tag::Strikethrough => {
                         // Strikethrough text
                         let mut strike_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::Strikethrough) => break,
-                                Event::Text(text) => strike_text.push_str(&*text),
+                                Event::Text(text) => strike_text.push_str(&text),
                                 Event::SoftBreak => strike_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -389,12 +384,11 @@ fn render_markdown_with_math(
                     Tag::BlockQuote => {
                         // Block quotes
                         let mut quote_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::BlockQuote) => break,
-                                Event::Text(text) => quote_text.push_str(&*text),
-                                Event::SoftBreak => quote_text.push('\n'),
-                                Event::HardBreak => quote_text.push('\n'),
+                                Event::Text(text) => quote_text.push_str(&text),
+                                Event::SoftBreak | Event::HardBreak => quote_text.push('\n'),
                                 _ => {} // Skip other events
                             }
                         }
@@ -419,7 +413,7 @@ fn render_markdown_with_math(
                     }
                     Tag::FootnoteDefinition(_) => {
                         // Skip footnotes for now
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             if matches!(event, Event::End(Tag::FootnoteDefinition(_))) {
                                 break;
                             }
@@ -427,21 +421,24 @@ fn render_markdown_with_math(
                     }
                     Tag::Table(alignments) => {
                         log::info!("Found table with {} alignments", alignments.len());
-                        if let Some((headers, rows)) = parse_table(&mut events, &alignments) {
-                            log::info!(
-                                "Parsed table: {} headers (first: {:?}), {} rows",
-                                headers.len(),
-                                headers.first(),
-                                rows.len()
-                            );
-                            render_table(ui, &alignments, &headers, &rows);
-                        } else {
-                            log::warn!("Failed to parse table");
-                        }
+                        let (headers, rows) = parse_table(&mut events, &alignments);
+                        log::info!(
+                            "Parsed table: {} headers (first: {:?}), {} rows",
+                            headers.len(),
+                            headers.first(),
+                            rows.len()
+                        );
+                        table_renderer::render_table(
+                            ui,
+                            &alignments,
+                            &headers,
+                            &rows,
+                            &TableConfig::default(),
+                        );
                     }
                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
                         // Skip table elements that appear outside a table (should not happen)
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             if matches!(
                                 event,
                                 Event::End(Tag::TableHead | Tag::TableRow | Tag::TableCell)
@@ -454,16 +451,16 @@ fn render_markdown_with_math(
                         // Images - display alt text as placeholder
                         let _url = url.to_string();
                         let mut alt_text = String::new();
-                        while let Some(event) = events.next() {
+                        for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::Image(_, _, _)) => break,
-                                Event::Text(text) => alt_text.push_str(&*text),
+                                Event::Text(text) => alt_text.push_str(&text),
                                 Event::SoftBreak => alt_text.push(' '),
                                 _ => {} // Skip other events
                             }
                         }
                         ui.label(
-                            RichText::new(format!("[Image: {}]", alt_text))
+                            RichText::new(format!("[Image: {alt_text}]"))
                                 .italics()
                                 .weak(),
                         );
@@ -471,27 +468,24 @@ fn render_markdown_with_math(
                 }
             }
             Event::End(tag) => {
-                match tag {
-                    Tag::Paragraph => {
-                        if in_paragraph && !paragraph_content.is_empty() {
-                            // Render the accumulated paragraph content in a horizontal layout
-                            ui.horizontal_wrapped(|ui| {
-                                // Remove horizontal spacing between inline elements
-                                // This eliminates excessive spacing between text and math images
-                                ui.spacing_mut().item_spacing.x = 0.0;
+                if tag == Tag::Paragraph {
+                    if in_paragraph && !paragraph_content.is_empty() {
+                        // Render the accumulated paragraph content in a horizontal layout
+                        ui.horizontal_wrapped(|ui| {
+                            // Remove horizontal spacing between inline elements
+                            // This eliminates excessive spacing between text and math images
+                            ui.spacing_mut().item_spacing.x = 0.0;
 
-                                for content in &paragraph_content {
-                                    render_paragraph_content(ui, content);
-                                }
-                            });
-                            ui.add_space(4.0); // Add spacing after paragraph
-                            paragraph_content.clear();
-                        }
-                        in_paragraph = false;
+                            for content in &paragraph_content {
+                                render_paragraph_content(ui, content);
+                            }
+                        });
+                        ui.add_space(4.0); // Add spacing after paragraph
+                        paragraph_content.clear();
                     }
-                    _ => {
-                        // Other end tags are handled within Start match
-                    }
+                    in_paragraph = false;
+                } else {
+                    // Other end tags are handled within Start match
                 }
             }
             Event::Text(text) => {
@@ -527,13 +521,13 @@ fn render_markdown_with_math(
 
                                 // Look up metadata in manifest
                                 if let Some(metadata) = manifest.get_metadata(hash) {
-                                    if let Some(asset_manager) = &mut math_asset_manager {
+                                    if let Some(_asset_manager) = &mut math_asset_manager {
                                         // Try to render as SVG using hash
                                         if let Some(image_source) =
-                                            asset_manager.get_image_source_for_hash(hash)
+                                            MathAssetManager::get_image_source_for_hash(hash)
                                         {
                                             // Get the SVG's intrinsic size
-                                            let svg_size = asset_manager.get_svg_size(hash);
+                                            let svg_size = MathAssetManager::get_svg_size(hash);
 
                                             if let Some(size) = svg_size {
                                                 // Use SVG's intrinsic size directly (both in points)
@@ -599,7 +593,7 @@ fn render_markdown_with_math(
                                             // Fallback: render as code block
                                             render_math_as_code(
                                                 ui,
-                                                &format!("Math formula: {}", hash),
+                                                &format!("Math formula: {hash}"),
                                                 metadata.is_display,
                                             );
                                         }
@@ -607,7 +601,7 @@ fn render_markdown_with_math(
                                         // No asset manager, render as code block
                                         render_math_as_code(
                                             ui,
-                                            &format!("Math formula: {}", hash),
+                                            &format!("Math formula: {hash}"),
                                             metadata.is_display,
                                         );
                                     }
@@ -643,16 +637,13 @@ fn render_markdown_with_math(
                     ui.label(RichText::new(&*code).code());
                 }
             }
-            Event::Html(_) => {
-                // Skip HTML
-            }
-            Event::FootnoteReference(_) => {
-                // Skip footnotes
+            Event::Html(_) | Event::FootnoteReference(_) => {
+                // Skip HTML and footnotes
             }
             Event::SoftBreak => {
                 // Soft line break (treated as space)
                 if in_paragraph {
-                    paragraph_content.push(ParagraphContent::Text(" ".to_string()));
+                    paragraph_content.push(ParagraphContent::Text(" ".to_owned()));
                 } else {
                     ui.label(" ");
                 }
@@ -663,7 +654,7 @@ fn render_markdown_with_math(
                     // For hard breaks within paragraphs, we need to handle them specially
                     // Since we're using horizontal_wrapped, we can't easily add vertical space
                     // We'll add a special marker that we can handle during rendering
-                    paragraph_content.push(ParagraphContent::Text("\n".to_string()));
+                    paragraph_content.push(ParagraphContent::Text("\n".to_owned()));
                 } else {
                     ui.add_space(4.0);
                 }
@@ -690,7 +681,7 @@ fn render_markdown_with_math(
                 // Task list marker
                 let marker = if checked { "[x]" } else { "[ ]" };
                 if in_paragraph {
-                    paragraph_content.push(ParagraphContent::Text(marker.to_string()));
+                    paragraph_content.push(ParagraphContent::Text(marker.to_owned()));
                 } else {
                     ui.label(marker);
                 }
@@ -703,7 +694,7 @@ fn render_markdown_with_math(
 pub(crate) fn parse_table<'a>(
     events: &mut std::iter::Peekable<Parser<'a, 'a>>,
     _alignments: &[Alignment],
-) -> Option<(Vec<Vec<String>>, Vec<Vec<String>>)> {
+) -> (Vec<Vec<String>>, Vec<Vec<String>>) {
     log::debug!("parse_table called");
 
     let mut headers = Vec::new();
@@ -712,7 +703,7 @@ pub(crate) fn parse_table<'a>(
     let mut in_header = false;
 
     while let Some(event) = events.next() {
-        log::debug!("parse_table event: {:?}", event);
+        log::debug!("parse_table event: {event:?}");
         match event {
             Event::Start(Tag::TableHead) => {
                 in_header = true;
@@ -739,10 +730,10 @@ pub(crate) fn parse_table<'a>(
             }
             Event::Start(Tag::TableCell) => {
                 let mut cell_text = String::new();
-                while let Some(event) = events.next() {
+                for event in events.by_ref() {
                     match event {
                         Event::End(Tag::TableCell) => break,
-                        Event::Text(text) => cell_text.push_str(&*text),
+                        Event::Text(text) => cell_text.push_str(&text),
                         Event::SoftBreak => cell_text.push(' '),
                         Event::HardBreak => cell_text.push('\n'),
                         _ => {}
@@ -760,7 +751,7 @@ pub(crate) fn parse_table<'a>(
         headers.len(),
         rows.len()
     );
-    Some((headers, rows))
+    (headers, rows)
 }
 
 /// Render text that may contain Typst math expressions.
@@ -769,7 +760,7 @@ fn render_text_with_latex(
     text: &str,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
 ) {
-    render_text_with_math_impl(ui, text, math_asset_manager)
+    render_text_with_math_impl(ui, text, math_asset_manager);
 }
 
 /// Internal implementation for rendering text with math formulas.
@@ -780,10 +771,10 @@ fn render_text_with_math_impl(
 ) {
     // If we have an asset manager, try to render actual SVG textures
     if let Some(asset_manager) = math_asset_manager {
-        render_text_with_math_and_assets(ui, text, asset_manager)
+        render_text_with_math_and_assets(ui, text, asset_manager);
     } else {
         // Fall back to code rendering
-        render_text_with_math(ui, text)
+        render_text_with_math(ui, text);
     }
 }
 
@@ -791,7 +782,7 @@ fn render_text_with_math_impl(
 fn render_text_with_math_and_assets(
     ui: &mut Ui,
     text: &str,
-    asset_manager: &mut crate::math::MathAssetManager,
+    asset_manager: &crate::math::MathAssetManager,
 ) {
     let mut remaining = text;
 
@@ -1052,7 +1043,7 @@ fn accumulate_text_content(
         if start > 0 {
             let before_text = &remaining[..start];
             if !before_text.is_empty() {
-                paragraph_content.push(ParagraphContent::Text(before_text.to_string()));
+                paragraph_content.push(ParagraphContent::Text(before_text.to_owned()));
             }
         }
 
@@ -1068,11 +1059,13 @@ fn accumulate_text_content(
                 // Look up metadata in manifest
                 if let Some(metadata) = manifest.get_metadata(hash) {
                     // Inline math - accumulate in paragraph content
-                    if let Some(asset_manager) = math_asset_manager {
+                    if let Some(_asset_manager) = math_asset_manager {
                         // Try to get SVG using hash
-                        if let Some(image_source) = asset_manager.get_image_source_for_hash(hash) {
+                        if let Some(image_source) =
+                            MathAssetManager::get_image_source_for_hash(hash)
+                        {
                             // Get the SVG's intrinsic size
-                            let svg_size = asset_manager.get_svg_size(hash);
+                            let svg_size = MathAssetManager::get_svg_size(hash);
 
                             if let Some(size) = svg_size {
                                 paragraph_content.push(ParagraphContent::MathImage {
@@ -1083,63 +1076,46 @@ fn accumulate_text_content(
                             } else {
                                 // Fallback: use code rendering
                                 paragraph_content.push(ParagraphContent::MathCode {
-                                    content: format!("Math formula: {}", hash),
+                                    content: format!("Math formula: {hash}"),
                                     is_display: metadata.is_display,
                                 });
                             }
                         } else {
                             // Fallback: render as code
                             paragraph_content.push(ParagraphContent::MathCode {
-                                content: format!("Math formula: {}", hash),
+                                content: format!("Math formula: {hash}"),
                                 is_display: metadata.is_display,
                             });
                         }
                     } else {
                         // No asset manager, render as code
                         paragraph_content.push(ParagraphContent::MathCode {
-                            content: format!("Math formula: {}", hash),
+                            content: format!("Math formula: {hash}"),
                             is_display: metadata.is_display,
                         });
                     }
                 } else {
                     // Hash not found in manifest, add placeholder as text
-                    paragraph_content.push(ParagraphContent::Text(placeholder.to_string()));
+                    paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
                 }
             } else {
                 // Not a math placeholder, add as normal text
-                paragraph_content.push(ParagraphContent::Text(placeholder.to_string()));
+                paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
             }
 
             // Skip past the placeholder
             remaining = &remaining[start + end + 1..];
         } else {
             // No closing ')', add the '(' and continue
-            paragraph_content.push(ParagraphContent::Text("(".to_string()));
+            paragraph_content.push(ParagraphContent::Text("(".to_owned()));
             remaining = &remaining[start + 1..];
         }
     }
 
     // Add any remaining text
     if !remaining.is_empty() {
-        paragraph_content.push(ParagraphContent::Text(remaining.to_string()));
+        paragraph_content.push(ParagraphContent::Text(remaining.to_owned()));
     }
-}
-
-/// Render a markdown table.
-fn render_table(
-    ui: &mut Ui,
-    alignments: &[Alignment],
-    headers: &[Vec<String>],
-    rows: &[Vec<String>],
-) {
-    log::debug!(
-        "render_table: headers={}, rows={}",
-        headers.len(),
-        rows.len()
-    );
-
-    // Use the enhanced table renderer with default configuration
-    table_renderer::render_table_simple(ui, alignments, headers, rows);
 }
 
 #[cfg(test)]
@@ -1166,9 +1142,7 @@ mod tests {
         // Let's manually iterate to find Table start
         while let Some(event) = events.next() {
             if let Event::Start(Tag::Table(alignments)) = event {
-                let result = parse_table(&mut events, &alignments);
-                assert!(result.is_some());
-                let (headers, rows) = result.unwrap();
+                let (headers, rows) = parse_table(&mut events, &alignments);
                 assert_eq!(headers.len(), 1); // one header row
                 assert_eq!(headers[0].len(), 4); // four columns
                 assert_eq!(rows.len(), 4); // four data rows
@@ -1202,7 +1176,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
+                                           // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;

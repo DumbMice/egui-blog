@@ -46,7 +46,7 @@ pub fn render_table(
     alignments: &[Alignment],
     headers: &[Vec<String>],
     rows: &[Vec<String>],
-    config: TableConfig,
+    config: &TableConfig,
 ) {
     if headers.is_empty() && rows.is_empty() {
         return;
@@ -92,11 +92,7 @@ pub fn render_table(
                         for (col_idx, cell) in header_row.iter().enumerate() {
                             let alignment =
                                 alignments.get(col_idx).copied().unwrap_or(Alignment::None);
-                            let label = if config.header_background {
-                                RichText::new(cell).strong()
-                            } else {
-                                RichText::new(cell).strong()
-                            };
+                            let label = RichText::new(cell).strong();
 
                             // Apply alignment
                             match alignment {
@@ -201,14 +197,4 @@ pub fn render_table(
 
         ui.add_space(config.outer_margin);
     });
-}
-
-/// Simplified version with default configuration (backward compatible).
-pub fn render_table_simple(
-    ui: &mut Ui,
-    alignments: &[Alignment],
-    headers: &[Vec<String>],
-    rows: &[Vec<String>],
-) {
-    render_table(ui, alignments, headers, rows, TableConfig::default());
 }

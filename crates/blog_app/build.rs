@@ -28,11 +28,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context as _, Result};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::{Digest as _, Sha256};
 use walkdir::WalkDir;
 
 /// Metadata for a rendered formula
@@ -110,7 +110,7 @@ fn extract_formulas_from_markdown(content: &str) -> Vec<(String, bool)> {
                     let formula: String = chars[i + 2..j].iter().collect();
                     let formula = formula.trim();
                     if !formula.is_empty() && !formula.starts_with('#') {
-                        formulas.push((formula.to_string(), true));
+                        formulas.push((formula.to_owned(), true));
                     }
                     i = j + 2;
                     continue;
@@ -128,7 +128,7 @@ fn extract_formulas_from_markdown(content: &str) -> Vec<(String, bool)> {
                     let formula: String = chars[i + 2..j].iter().collect();
                     let formula = formula.trim();
                     if !formula.is_empty() && !formula.starts_with('#') {
-                        formulas.push((formula.to_string(), true));
+                        formulas.push((formula.to_owned(), true));
                     }
                     i = j + 2;
                     continue;
@@ -144,7 +144,7 @@ fn extract_formulas_from_markdown(content: &str) -> Vec<(String, bool)> {
                     let formula: String = chars[i + 1..j].iter().collect();
                     let formula = formula.trim();
                     if !formula.is_empty() && !formula.starts_with('#') {
-                        formulas.push((formula.to_string(), false));
+                        formulas.push((formula.to_owned(), false));
                     }
                     i = j + 1;
                     continue;
@@ -169,9 +169,13 @@ fn create_typst_svg(formula: &str, is_display: bool) -> Result<String> {
     // Try to use Typst CLI if available
     if Command::new("typst").arg("--version").output().is_ok() {
         // Create a temporary Typst file
-        let temp_dir = std::env::temp_dir();
-        let typst_file = temp_dir.join(format!("formula_{}.typ", hash_formula(formula)));
-        let svg_file = temp_dir.join(format!("formula_{}.svg", hash_formula(formula)));
+        let temp_dir = tempfile::tempdir().context("Failed to create temp directory")?;
+        let typst_file = temp_dir
+            .path()
+            .join(format!("formula_{}.typ", hash_formula(formula)));
+        let svg_file = temp_dir
+            .path()
+            .join(format!("formula_{}.svg", hash_formula(formula)));
 
         // Create Typst content
         let typst_content = if is_display {
@@ -212,7 +216,7 @@ ${formula}$"#
             let _ = fs::remove_file(typst_file);
             let _ = fs::remove_file(svg_file);
 
-            return Ok(svg_content);
+            Ok(svg_content)
         } else {
             let error_msg = if output.stderr.is_empty() {
                 format!("Typst CLI failed with status: {}", output.status)
@@ -222,15 +226,15 @@ ${formula}$"#
                     String::from_utf8_lossy(&output.stderr)
                 )
             };
-            return Err(anyhow!(error_msg));
+            Err(anyhow!(error_msg))
         }
     } else {
-        return Err(anyhow!("Typst CLI not found"));
+        Err(anyhow!("Typst CLI not found"))
     }
 }
 
 /// Process SVG to make it theme-aware with transparent background
-fn process_svg_for_theme(svg_content: &str) -> Result<String> {
+fn process_svg_for_theme(svg_content: &str) -> String {
     // Simple string processing to:
     // 1. Remove white background paths (Typst may add them)
     // 2. Ensure transparent background
@@ -257,7 +261,7 @@ fn process_svg_for_theme(svg_content: &str) -> Result<String> {
             continue;
         }
 
-        let mut processed_line = line.to_string();
+        let mut processed_line = line.to_owned();
 
         // Handle any remaining black strokes (Typst should set them to white with fill: white)
         // But we keep this as a safety measure
@@ -272,10 +276,8 @@ fn process_svg_for_theme(svg_content: &str) -> Result<String> {
             if let Some(pos) = processed_line.find('>') {
                 let before = &processed_line[..pos];
                 let after = &processed_line[pos..];
-                processed_line = format!(
-                    "{} style=\"background-color: transparent;\"{}",
-                    before, after
-                );
+                processed_line =
+                    format!("{before} style=\"background-color: transparent;\"{after}");
             }
         }
 
@@ -283,7 +285,7 @@ fn process_svg_for_theme(svg_content: &str) -> Result<String> {
         processed.push('\n');
     }
 
-    Ok(processed)
+    processed
 }
 
 /// Check if an SVG needs processing (has white background, black strokes, or missing transparent background)
@@ -337,7 +339,7 @@ fn create_placeholder_svg(formula: &str, is_display: bool) -> String {
 }
 
 /// Scan all markdown files in the posts directory
-fn scan_markdown_files(posts_dir: &Path) -> Result<Vec<(PathBuf, String)>> {
+fn scan_markdown_files(posts_dir: &Path) -> Vec<(PathBuf, String)> {
     let mut files = Vec::new();
 
     for entry in WalkDir::new(posts_dir)
@@ -346,22 +348,22 @@ fn scan_markdown_files(posts_dir: &Path) -> Result<Vec<(PathBuf, String)>> {
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
             match fs::read_to_string(path) {
                 Ok(content) => files.push((path.to_path_buf(), content)),
-                Err(e) => eprintln!("Warning: Failed to read {}: {}", path.display(), e),
+                Err(e) => println!("cargo:warning=Failed to read {}: {}", path.display(), e),
             }
         }
     }
 
-    Ok(files)
+    files
 }
 
 fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=posts/");
     println!("cargo:rerun-if-changed=assets/math/");
 
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned());
     let crate_dir = Path::new(&manifest_dir);
     let posts_dir = crate_dir.join("posts");
     let assets_dir = crate_dir.join("assets").join("math");
@@ -378,6 +380,7 @@ fn main() -> Result<()> {
                     serde_json::from_str(&content).context("Failed to parse existing manifest")?;
 
                 // Update old manifests to include missing fields
+                #[expect(clippy::iter_over_hash_type)]
                 for metadata in manifest.formulas.values_mut() {
                     // If is_placeholder field doesn't exist in JSON, it will default to false
                     // which is what we want for old manifests (they were actual renderings)
@@ -389,7 +392,7 @@ fn main() -> Result<()> {
                 manifest
             }
             Err(e) => {
-                eprintln!("Warning: Failed to load manifest: {}", e);
+                println!("cargo:warning=Failed to load manifest: {e}");
                 MathManifest {
                     formulas: HashMap::new(),
                     updated_at: String::new(),
@@ -404,7 +407,7 @@ fn main() -> Result<()> {
     };
 
     // Scan all markdown files
-    let markdown_files = scan_markdown_files(&posts_dir)?;
+    let markdown_files = scan_markdown_files(&posts_dir);
 
     // Extract all formulas from markdown files
     let mut all_formulas = Vec::new();
@@ -418,20 +421,23 @@ fn main() -> Result<()> {
     // Deduplicate formulas
     let unique_formulas: HashSet<_> = all_formulas.into_iter().collect();
 
-    println!(
-        "cargo:warning=Found {} unique math formulas",
-        unique_formulas.len()
-    );
-
     // Track which formulas we're using
     let mut used_hashes = HashSet::new();
 
+    // Counters for summary
+    let mut rendered_count = 0;
+    let mut placeholder_count = 0;
+    let mut error_count = 0;
+    let mut processed_count = 0;
+    let mut skipped_count = 0;
+
     // Process each unique formula
+    #[expect(clippy::iter_over_hash_type)]
     for (formula, is_display) in unique_formulas {
         let hash = hash_formula(&formula);
         used_hashes.insert(hash.clone());
 
-        let svg_path = assets_dir.join(format!("{}.svg", hash));
+        let svg_path = assets_dir.join(format!("{hash}.svg"));
 
         // Check if we need to render or reprocess this formula
         let needs_rendering = if let Some(metadata) = manifest.formulas.get(&hash) {
@@ -448,28 +454,16 @@ fn main() -> Result<()> {
         };
 
         if needs_rendering {
-            println!("cargo:warning=Rendering formula: {}", formula);
-
             // Create SVG using Typst or placeholder
             match create_typst_svg(&formula, is_display) {
                 Ok(svg_content) => {
+                    rendered_count += 1;
+
                     // Process SVG for theme adaptation
                     let processed_svg = if svg_needs_processing(&svg_content) {
-                        match process_svg_for_theme(&svg_content) {
-                            Ok(processed) => {
-                                println!("cargo:warning=Processed SVG for theme adaptation");
-                                processed
-                            }
-                            Err(e) => {
-                                eprintln!(
-                                    "cargo:warning=Failed to process SVG: {}, using original",
-                                    e
-                                );
-                                svg_content
-                            }
-                        }
+                        process_svg_for_theme(&svg_content)
                     } else {
-                        svg_content
+                        svg_content.clone()
                     };
 
                     // Save processed SVG
@@ -486,47 +480,25 @@ fn main() -> Result<()> {
                             svg_size: processed_svg.len(),
                             hash: hash.clone(),
                             is_placeholder: false,
-                            theme_processed: true,
+                            theme_processed: !svg_needs_processing(&svg_content),
                         },
                     );
                 }
                 Err(e) => {
-                    eprintln!("cargo:warning=Error rendering formula '{}': {}", formula, e);
-                    eprintln!(
-                        "cargo:warning=Creating placeholder SVG for formula: {}",
-                        formula
-                    );
+                    error_count += 1;
+                    placeholder_count += 1;
+                    println!("cargo:warning=Error rendering formula '{formula}': {e}");
+                    println!("cargo:warning=Creating placeholder SVG for formula: {formula}");
 
                     // Create placeholder SVG
                     let placeholder_svg = create_placeholder_svg(&formula, is_display);
+                    let processed_placeholder = process_svg_for_theme(&placeholder_svg);
 
-                    // Process placeholder SVG for theme adaptation
-                    let processed_placeholder = if svg_needs_processing(&placeholder_svg) {
-                        match process_svg_for_theme(&placeholder_svg) {
-                            Ok(processed) => {
-                                println!(
-                                    "cargo:warning=Processed placeholder SVG for theme adaptation"
-                                );
-                                processed
-                            }
-                            Err(e) => {
-                                eprintln!(
-                                    "cargo:warning=Failed to process placeholder SVG: {}, using original",
-                                    e
-                                );
-                                placeholder_svg
-                            }
-                        }
-                    } else {
-                        placeholder_svg
-                    };
-
-                    // Save processed placeholder SVG
                     fs::write(&svg_path, &processed_placeholder).with_context(|| {
                         format!("Failed to write placeholder SVG: {}", svg_path.display())
                     })?;
 
-                    // Update manifest with placeholder flag
+                    // Update manifest with placeholder info
                     manifest.formulas.insert(
                         hash.clone(),
                         FormulaMetadata {
@@ -542,57 +514,30 @@ fn main() -> Result<()> {
                 }
             }
         } else {
-            println!("cargo:warning=Formula already rendered: {}", formula);
+            skipped_count += 1;
 
             // Process existing SVG for theme if needed
             if needs_theme_processing {
-                println!(
-                    "cargo:warning=Processing existing SVG for theme adaptation: {}",
-                    formula
-                );
+                processed_count += 1;
 
                 match fs::read_to_string(&svg_path) {
                     Ok(svg_content) => {
                         if svg_needs_processing(&svg_content) {
-                            match process_svg_for_theme(&svg_content) {
-                                Ok(processed_svg) => {
-                                    // Save processed SVG
-                                    fs::write(&svg_path, &processed_svg).with_context(|| {
-                                        format!(
-                                            "Failed to write processed SVG: {}",
-                                            svg_path.display()
-                                        )
-                                    })?;
+                            let processed_svg = process_svg_for_theme(&svg_content);
 
-                                    // Update manifest to mark as processed
-                                    if let Some(metadata) = manifest.formulas.get_mut(&hash) {
-                                        metadata.theme_processed = true;
-                                        metadata.svg_size = processed_svg.len();
-                                        metadata.rendered_at = Utc::now().to_rfc3339();
-                                        println!(
-                                            "cargo:warning=Successfully processed SVG for theme adaptation"
-                                        );
-                                    }
-                                }
-                                Err(e) => {
-                                    eprintln!(
-                                        "cargo:warning=Failed to process existing SVG: {}, keeping original",
-                                        e
-                                    );
-                                }
-                            }
-                        } else {
-                            // SVG doesn't need processing, mark as processed
+                            // Save processed SVG
+                            fs::write(&svg_path, &processed_svg).with_context(|| {
+                                format!("Failed to write processed SVG: {}", svg_path.display())
+                            })?;
+
+                            // Update manifest to mark as theme processed
                             if let Some(metadata) = manifest.formulas.get_mut(&hash) {
                                 metadata.theme_processed = true;
                             }
                         }
                     }
                     Err(e) => {
-                        eprintln!(
-                            "cargo:warning=Failed to read existing SVG for processing: {}",
-                            e
-                        );
+                        println!("cargo:warning=Failed to read existing SVG for processing: {e}");
                     }
                 }
             }
@@ -607,13 +552,12 @@ fn main() -> Result<()> {
         .cloned()
         .collect();
 
-    for hash in unused_hashes {
-        let svg_path = assets_dir.join(format!("{}.svg", hash));
+    for hash in &unused_hashes {
+        let svg_path = assets_dir.join(format!("{hash}.svg"));
         if svg_path.exists() {
-            println!("cargo:warning=Removing unused formula: {}", hash);
             let _ = fs::remove_file(&svg_path);
         }
-        manifest.formulas.remove(&hash);
+        manifest.formulas.remove(hash);
     }
 
     // Update manifest timestamp
@@ -624,13 +568,40 @@ fn main() -> Result<()> {
         serde_json::to_string_pretty(&manifest).context("Failed to serialize manifest")?;
     fs::write(&manifest_path, manifest_json).context("Failed to save manifest")?;
 
-    println!(
-        "cargo:warning=Manifest saved to: {}",
-        manifest_path.display()
-    );
+    // Output summary
+    let total_formulas = rendered_count + placeholder_count + skipped_count;
+    println!("cargo:warning=Found {total_formulas} unique math formulas");
+
+    if rendered_count > 0 {
+        println!("cargo:warning=  • Rendered {rendered_count} new formulas");
+    }
+
+    if placeholder_count > 0 {
+        println!(
+            "cargo:warning=  • Created {placeholder_count} placeholder formulas (Typst errors)"
+        );
+    }
+
+    if error_count > 0 {
+        println!("cargo:warning=  • Encountered {error_count} Typst rendering errors");
+    }
+
+    if processed_count > 0 {
+        println!(
+            "cargo:warning=  • Processed {processed_count} existing SVGs for theme adaptation"
+        );
+    }
+
+    if skipped_count > 0 {
+        println!("cargo:warning=  • Skipped {skipped_count} already rendered formulas");
+    }
+
+    let unused_count = unused_hashes.len();
+    if unused_count > 0 {
+        println!("cargo:warning=  • Removed {unused_count} unused formula SVGs");
+    }
 
     println!("cargo:warning=Math processing completed successfully");
-    println!("cargo:warning=Note: embedded.rs is now handwritten and uses procedural macros");
 
     Ok(())
 }

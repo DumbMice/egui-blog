@@ -160,7 +160,7 @@ pub fn validate_relative_dir(relative_dir: &str) -> Result<()> {
     let components: Vec<_> = path.components().collect();
     let mut found_non_parent = false;
 
-    for (_i, component) in components.iter().enumerate() {
+    for component in components.iter() {
         match component {
             std::path::Component::ParentDir => {
                 if found_non_parent {

@@ -155,6 +155,18 @@ cargo blog-wasm     # Build WASM library only
 - **Performance optimization**: Formula caching could be more intelligent
 - **Accessibility**: Screen reader support for math formulas
 
+### Performance Optimizations Needed
+- **Math formula lookup optimization**: `find_hash` uses O(n) linear search through HashMap instead of O(1) hash lookup
+  - **Current**: 9 formulas × 5 formulas per post × 60 FPS = ~2,700 comparisons/second
+  - **Impact**: Minimal now (9 formulas) but scales poorly with more formulas
+  - **Fix**: Add reverse index `HashMap<(formula, is_display), hash>` or cache processed markdown text
+- **Markdown processing per frame**: `extract_and_replace_math_formulas` runs every frame on static content
+  - **Current**: Same formula extraction and hash lookups repeated 60 times/second
+  - **Fix**: Cache processed markdown text with `(hash.typ)` placeholders
+- **HashMap iteration warnings**: Several `#[allow(clippy::iter_over_hash_type)]` attributes hide potential order-dependent bugs
+  - **Build script**: Iterations where order doesn't matter (updating metadata, processing formulas)
+  - **Runtime**: `find_hash` linear search through HashMap (design issue, not just iteration order)
+
 ## Notes
 ### New Development Workflow (2026-02-27)
 - **Development server**: `cargo run --bin blog_web_server --features dev` (port 8766)

@@ -3,10 +3,10 @@
 mod loader;
 mod state; // NEW
 
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 pub use loader::{
-    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
-    parse_post_content,
+    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
+    LoadError,
 };
 pub use state::PostManagerState; // NEW
 
@@ -30,9 +30,9 @@ impl BlogPost {
     pub fn new(id: usize, title: &str, content: &str, date: &str) -> Self {
         Self {
             id,
-            title: title.to_string(),
-            content: content.to_string(),
-            date: date.to_string(),
+            title: title.to_owned(),
+            content: content.to_owned(),
+            date: date.to_owned(),
             tags: Vec::new(),
         }
     }
@@ -47,7 +47,7 @@ impl BlogPost {
     pub fn preview(&self) -> String {
         let preview = self.content.chars().take(100).collect::<String>();
         if self.content.len() > 100 {
-            format!("{}...", preview)
+            format!("{preview}...")
         } else {
             preview
         }
@@ -75,24 +75,15 @@ impl Default for PostManager {
         };
 
         // Load posts embedded at compile time
-        match load_embedded_posts() {
-            Ok(posts) => {
-                for post in posts {
-                    manager.add_post(post);
-                }
-                manager.state = if manager.posts.is_empty() {
-                    PostManagerState::Empty
-                } else {
-                    PostManagerState::Loaded
-                };
-            }
-            Err(err) => {
-                eprintln!("Failed to load embedded posts: {}", err);
-                manager.state = PostManagerState::Error(err.to_string());
-                // Don't add example posts in error state - user can retry
-                // Error state will be shown in UI with retry option
-            }
+        let posts = load_embedded_posts();
+        for post in posts {
+            manager.add_post(post);
         }
+        manager.state = if manager.posts.is_empty() {
+            PostManagerState::Empty
+        } else {
+            PostManagerState::Loaded
+        };
         manager
     }
 }
@@ -232,33 +223,26 @@ Let me know what you think!",
     }
 
     /// Reload posts from disk/embedded sources.
-    pub fn reload(&mut self) -> Result<(), LoadError> {
-        self.state = PostManagerState::Loading;
-
-        // Clear existing posts and caches
+    pub fn reload(&mut self) {
+        // Clear existing posts
         self.posts.clear();
         self.sorted_posts_newest_first.clear();
         self.sorted_posts_oldest_first.clear();
         self.next_id = 0;
+        self.state = PostManagerState::Loading;
 
-        // Attempt to load embedded posts first
-        match load_embedded_posts() {
-            Ok(posts) => {
-                for post in posts {
-                    self.add_post(post);
-                }
-                self.state = if self.posts.is_empty() {
-                    PostManagerState::Empty
-                } else {
-                    PostManagerState::Loaded
-                };
-                Ok(())
-            }
-            Err(err) => {
-                self.state = PostManagerState::Error(err.to_string());
-                Err(err)
-            }
+        // Load posts embedded at compile time
+        let posts = load_embedded_posts();
+        for post in posts {
+            self.add_post(post);
         }
+
+        // Update state based on whether we loaded any posts
+        self.state = if self.posts.is_empty() {
+            PostManagerState::Empty
+        } else {
+            PostManagerState::Loaded
+        };
     }
 }
 
@@ -283,10 +267,7 @@ mod tests {
         let mut manager = PostManager::default();
 
         // Test that reload method exists and can be called
-        let result = manager.reload();
-
-        // Should return Ok(()) since load_embedded_posts should succeed
-        assert!(result.is_ok());
+        manager.reload();
 
         // After reload, state should be Loaded (if posts exist) or Empty
         let state = manager.state();

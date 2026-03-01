@@ -94,6 +94,7 @@ required-features = ["dev"]
 sha2 = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
+tempfile = "3.10"
 walkdir = "2.5"
 regex = "1.10"
 anyhow = "1.0"

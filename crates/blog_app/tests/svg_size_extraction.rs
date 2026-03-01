@@ -19,9 +19,7 @@ fn test_svg_size_extraction() {
     println!("Hash: {}", hash);
 
     // Get SVG size
-    let svg_size = asset_manager
-        .get_svg_size(hash)
-        .expect("Should get SVG size");
+    let svg_size = MathAssetManager::get_svg_size(hash).expect("Should get SVG size");
 
     println!("  SVG size: {}x{}", svg_size.x, svg_size.y);
 
@@ -82,7 +80,7 @@ fn test_multiple_svg_sizes() {
     for (hash, metadata) in &manifest.formulas {
         total_formulas += 1;
 
-        if let Some(svg_size) = asset_manager.get_svg_size(hash) {
+        if let Some(svg_size) = MathAssetManager::get_svg_size(hash) {
             formulas_with_size += 1;
 
             println!(

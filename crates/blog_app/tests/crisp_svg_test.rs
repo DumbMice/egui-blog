@@ -21,9 +21,8 @@ fn test_crisp_svg_image_source() {
     println!("Hash: {}", hash);
 
     // Get image source
-    let image_source = asset_manager
-        .get_image_source_for_hash(hash)
-        .expect("Should get image source");
+    let image_source =
+        MathAssetManager::get_image_source_for_hash(hash).expect("Should get image source");
 
     // Verify it's a Bytes variant with correct URI pattern
     match &image_source {
@@ -78,9 +77,8 @@ fn test_image_widget_creation() {
     println!("Testing Image widget creation for formula: {}", formula);
 
     // Get image source
-    let image_source = asset_manager
-        .get_image_source_for_hash(hash)
-        .expect("Should get image source");
+    let image_source =
+        MathAssetManager::get_image_source_for_hash(hash).expect("Should get image source");
 
     // Create Image widget (simulating what markdown.rs does)
     let _image = Image::new(image_source)
@@ -111,9 +109,8 @@ fn test_multiple_formulas() {
         if let Some(hash) = manifest.find_hash(formula, *is_display) {
             println!("Testing formula: {} (display: {})", formula, is_display);
 
-            let image_source = asset_manager
-                .get_image_source_for_hash(hash)
-                .expect("Should get image source");
+            let image_source =
+                MathAssetManager::get_image_source_for_hash(hash).expect("Should get image source");
 
             match image_source {
                 ImageSource::Bytes { uri, bytes } => {

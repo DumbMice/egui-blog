@@ -6,20 +6,57 @@ use super::components::{self, Theme};
 use crate::math::MathAssetManager;
 use crate::posts::{PostManager, PostManagerState};
 
+/// State bundle for rendering the main content area
+pub struct MainContentState<'a> {
+    /// Post manager containing all posts
+    pub post_manager: &'a PostManager,
+    /// Index of the currently selected post
+    pub selected_post_index: usize,
+    /// Whether we're editing a new post
+    pub is_editing_new_post: bool,
+    /// Title for the new post being edited (mutable)
+    pub new_post_title: &'a mut String,
+    /// Content for the new post being edited (mutable)
+    pub new_post_content: &'a mut String,
+    /// Current state of the post manager (loading, loaded, error, etc.)
+    pub post_manager_state: &'a PostManagerState,
+    /// Optional math asset manager for formula rendering
+    pub math_asset_manager: Option<&'a mut MathAssetManager>,
+}
+
+impl<'a> MainContentState<'a> {
+    /// Create a new state bundle
+    pub fn new(
+        post_manager: &'a PostManager,
+        selected_post_index: usize,
+        is_editing_new_post: bool,
+        new_post_title: &'a mut String,
+        new_post_content: &'a mut String,
+        post_manager_state: &'a PostManagerState,
+        math_asset_manager: Option<&'a mut MathAssetManager>,
+    ) -> Self {
+        Self {
+            post_manager,
+            selected_post_index,
+            is_editing_new_post,
+            new_post_title,
+            new_post_content,
+            post_manager_state,
+            math_asset_manager,
+        }
+    }
+}
+
 /// Sort order for blog posts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Default)]
 pub enum PostSortOrder {
     /// Newest posts first (reverse chronological)
+    #[default]
     NewestFirst,
     /// Oldest posts first (chronological)
     OldestFirst,
-}
-
-impl Default for PostSortOrder {
-    fn default() -> Self {
-        PostSortOrder::NewestFirst
-    }
 }
 
 /// Configuration for the blog layout.
@@ -204,7 +241,7 @@ pub fn side_panel(
                             ui.horizontal_wrapped(|ui| {
                                 for tag in &post.tags {
                                     ui.label(
-                                        egui::RichText::new(format!("#{}", tag))
+                                        egui::RichText::new(format!("#{tag}"))
                                             .small()
                                             .color(ui.visuals().weak_text_color()),
                                     );
@@ -228,66 +265,27 @@ pub fn side_panel(
 }
 
 /// Main content area showing a post or editor with math support.
-pub fn main_content(
-    ui: &mut Ui,
-    post_manager: &PostManager,
-    selected_post_index: usize,
-    is_editing_new_post: bool,
-    new_post_title: &mut String,
-    new_post_content: &mut String,
-    post_manager_state: &PostManagerState,
-    math_asset_manager: Option<&mut MathAssetManager>,
-) -> (bool, bool, Option<usize>, bool) {
-    main_content_internal(
-        ui,
-        post_manager,
-        selected_post_index,
-        is_editing_new_post,
-        new_post_title,
-        new_post_content,
-        post_manager_state,
-        math_asset_manager,
-    )
+pub fn main_content(ui: &mut Ui, state: MainContentState<'_>) -> (bool, bool, Option<usize>, bool) {
+    main_content_internal(ui, state)
 }
 
 fn main_content_internal(
     ui: &mut Ui,
-    post_manager: &PostManager,
-    selected_post_index: usize,
-    is_editing_new_post: bool,
-    new_post_title: &mut String,
-    new_post_content: &mut String,
-    post_manager_state: &PostManagerState,
-    math_asset_manager: Option<&mut MathAssetManager>,
+    state: MainContentState<'_>,
 ) -> (bool, bool, Option<usize>, bool) {
-    main_content_internal_impl(
-        ui,
-        post_manager,
-        selected_post_index,
-        is_editing_new_post,
-        new_post_title,
-        new_post_content,
-        post_manager_state,
-        math_asset_manager,
-    )
+    main_content_internal_impl(ui, state)
 }
 
 fn main_content_internal_impl(
     ui: &mut Ui,
-    post_manager: &PostManager,
-    selected_post_index: usize,
-    is_editing_new_post: bool,
-    new_post_title: &mut String,
-    new_post_content: &mut String,
-    post_manager_state: &PostManagerState,
-    math_asset_manager: Option<&mut MathAssetManager>,
+    state: MainContentState<'_>,
 ) -> (bool, bool, Option<usize>, bool) {
     let mut post_saved = false;
     let mut editing_cancelled = false;
     let mut navigation_index = None;
     let mut retry_requested = false;
 
-    match post_manager_state {
+    match state.post_manager_state {
         PostManagerState::Loading => {
             super::components::loading_spinner(ui, "Loading blog posts...");
         }
@@ -304,19 +302,19 @@ fn main_content_internal_impl(
             super::components::empty_state(ui, false);
         }
         PostManagerState::Loaded => {
-            if post_manager.count() == 0 {
+            if state.post_manager.count() == 0 {
                 super::components::empty_state(ui, false);
-            } else if is_editing_new_post {
+            } else if state.is_editing_new_post {
                 // New post editor
                 ui.heading("Create New Post");
                 ui.separator();
 
                 ui.label("Title:");
-                ui.text_edit_singleline(new_post_title);
+                ui.text_edit_singleline(state.new_post_title);
 
                 ui.label("Content (markdown):");
                 ui.add(
-                    egui::TextEdit::multiline(new_post_content)
+                    egui::TextEdit::multiline(state.new_post_content)
                         .desired_rows(20)
                         .desired_width(f32::INFINITY),
                 );
@@ -324,7 +322,7 @@ fn main_content_internal_impl(
                 ui.separator();
 
                 ui.horizontal(|ui| {
-                    if ui.button("💾 Save").clicked() && !new_post_title.trim().is_empty() {
+                    if ui.button("💾 Save").clicked() && !state.new_post_title.trim().is_empty() {
                         post_saved = true;
                     }
 
@@ -332,7 +330,7 @@ fn main_content_internal_impl(
                         editing_cancelled = true;
                     }
                 });
-            } else if let Some(post) = post_manager.get(selected_post_index) {
+            } else if let Some(post) = state.post_manager.get(state.selected_post_index) {
                 // Display existing post
                 ui.vertical(|ui| {
                     ui.heading(&post.title);
@@ -342,14 +340,16 @@ fn main_content_internal_impl(
                     ui.separator();
 
                     // Render markdown content with math support
-                    super::markdown::render_markdown(ui, &post.content, math_asset_manager);
+                    super::markdown::render_markdown(ui, &post.content, state.math_asset_manager);
 
                     ui.separator();
 
                     // Navigation buttons
-                    if let Some(new_index) =
-                        components::post_navigation(ui, selected_post_index, post_manager.count())
-                    {
+                    if let Some(new_index) = components::post_navigation(
+                        ui,
+                        state.selected_post_index,
+                        state.post_manager.count(),
+                    ) {
                         navigation_index = Some(new_index);
                     }
                 });

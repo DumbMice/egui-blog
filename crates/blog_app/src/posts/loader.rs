@@ -30,16 +30,18 @@ pub enum LoadError {
     Yaml(#[from] serde_yaml::Error),
 
     #[error("Invalid file format: {0}")]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Format(String),
 
     #[error("Missing frontmatter delimiter")]
     MissingDelimiter,
 
     #[error("File not found: {0:?}")]
+    #[expect(dead_code)]
     FileNotFound(PathBuf),
 
     #[error("Directory not found: {0:?}")]
+    #[expect(dead_code)]
     DirectoryNotFound(PathBuf),
 }
 
@@ -55,7 +57,6 @@ pub enum LoadError {
 ///
 /// Post content in markdown format...
 /// ```
-#[allow(unused)]
 pub fn load_post_from_file(path: &Path, id: usize) -> Result<BlogPost, LoadError> {
     let content = fs::read_to_string(path)?;
     parse_post_content(&content, id)
@@ -83,14 +84,14 @@ pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadErro
     Ok(BlogPost {
         id,
         title: frontmatter.title,
-        content: markdown_content.to_string(),
+        content: markdown_content.to_owned(),
         date: frontmatter.date,
         tags: frontmatter.tags,
     })
 }
 
 /// Load all posts from a directory.
-#[allow(unused)]
+#[expect(unused)]
 pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
     let mut posts = Vec::new();
 
@@ -113,7 +114,7 @@ pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
     for (idx, path) in entries.iter().enumerate() {
         match load_post_from_file(path, idx) {
             Ok(post) => posts.push(post),
-            Err(err) => eprintln!("Warning: Failed to load {}: {}", path.display(), err),
+            Err(err) => log::warn!("Failed to load {}: {}", path.display(), err),
         }
     }
 
@@ -121,7 +122,7 @@ pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
 }
 
 /// Load posts embedded at compile time.
-pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
+pub fn load_embedded_posts() -> Vec<BlogPost> {
     use blog_macros::embed_file_array;
 
     // Embedded post files using procedural macro
@@ -131,14 +132,14 @@ pub fn load_embedded_posts() -> Result<Vec<BlogPost>, LoadError> {
     for (id, content) in post_contents.iter().enumerate() {
         match parse_post_content(content, id) {
             Ok(post) => posts.push(post),
-            Err(err) => eprintln!("Warning: Failed to parse embedded post {}: {}", id, err),
+            Err(err) => log::warn!("Failed to parse embedded post {id}: {err}"),
         }
     }
 
     // Sort posts by date in reverse chronological order (newest first)
     posts.sort_by(|a, b| b.date.cmp(&a.date));
 
-    Ok(posts)
+    posts
 }
 
 #[cfg(test)]
@@ -161,11 +162,9 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(
-            missing_delimiter
-                .to_string()
-                .contains("Missing frontmatter delimiter")
-        );
+        assert!(missing_delimiter
+            .to_string()
+            .contains("Missing frontmatter delimiter"));
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

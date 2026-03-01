@@ -12,7 +12,7 @@ pub use assets::MathAssetManager;
 pub use embedded::{FormulaMetadata, MathManifest, get_svg_bytes, load_manifest};
 
 /// Simple formula detection without regex
-/// Returns vector of (start_index, end_index, formula_text, is_display_math)
+/// Returns vector of (`start_index`, `end_index`, `formula_text`, `is_display_math`)
 pub fn find_formulas(text: &str) -> Vec<(usize, usize, String, bool)> {
     let mut formulas = Vec::new();
     let mut chars = text.char_indices().peekable();
@@ -45,23 +45,23 @@ pub fn find_formulas(text: &str) -> Vec<(usize, usize, String, bool)> {
                 if ch == '$' && !escaped {
                     // Check if we need another $ for display math
                     if is_display {
-                        if let Some((_, next_ch)) = chars.peek() {
-                            if *next_ch == '$' {
-                                chars.next(); // Skip the second $
-                                found = true;
-                                let formula_text = if let Some(formula_start_idx) = formula_start {
-                                    text[formula_start_idx..j].trim().to_string()
-                                } else {
-                                    String::new()
-                                };
-                                formulas.push((start, j + 2, formula_text, true)); // +2 for both $$
-                                break;
-                            }
+                        if let Some((_, next_ch)) = chars.peek()
+                            && *next_ch == '$'
+                        {
+                            chars.next(); // Skip the second $
+                            found = true;
+                            let formula_text = if let Some(formula_start_idx) = formula_start {
+                                text[formula_start_idx..j].trim().to_owned()
+                            } else {
+                                String::new()
+                            };
+                            formulas.push((start, j + 2, formula_text, true)); // +2 for both $$
+                            break;
                         }
                     } else {
                         found = true;
                         let formula_text = if let Some(formula_start_idx) = formula_start {
-                            text[formula_start_idx..j].trim().to_string()
+                            text[formula_start_idx..j].trim().to_owned()
                         } else {
                             String::new()
                         };
@@ -76,8 +76,8 @@ pub fn find_formulas(text: &str) -> Vec<(usize, usize, String, bool)> {
             // If we didn't find a closing $, don't add it as a formula
             if !found {
                 // Backtrack to continue searching from after the opening $
-                let mut backtrack = text[start + (if is_display { 2 } else { 1 })..].char_indices();
-                while let Some((_, _ch)) = backtrack.next() {
+                let backtrack = text[start + (if is_display { 2 } else { 1 })..].char_indices();
+                for (_, _ch) in backtrack {
                     chars.next(); // Advance the iterator
                 }
             }
@@ -99,7 +99,7 @@ pub fn extract_formula_text(text: &str, start: usize, end: usize, is_display: bo
     let formula_end = end - skip;
 
     if formula_start < formula_end {
-        text[formula_start..formula_end].trim().to_string()
+        text[formula_start..formula_end].trim().to_owned()
     } else {
         String::new()
     }

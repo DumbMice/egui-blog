@@ -45,7 +45,7 @@ pub struct BlogApp {
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
-    
+
     /// Debug state (only available in debug builds)
     #[cfg(debug_assertions)]
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -76,7 +76,7 @@ impl Default for BlogApp {
 }
 
 impl BlogApp {
-    /// Create a new BlogApp, optionally loading from storage.
+    /// Create a new `BlogApp`, optionally loading from storage.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         #[cfg(feature = "persistence")]
         let mut app = if let Some(storage) = cc.storage {
@@ -101,12 +101,7 @@ impl BlogApp {
         app
     }
 
-
-
-
-
-
-    /// Ensure selected_post is within valid bounds
+    /// Ensure `selected_post` is within valid bounds
     fn ensure_valid_selection(&mut self) {
         if self.post_manager.count() == 0 {
             self.selected_post = 0;
@@ -119,17 +114,9 @@ impl BlogApp {
     /// Handle retry button click from error state.
     fn handle_retry(&mut self) {
         // Trigger reload
-        match self.post_manager.reload() {
-            Ok(()) => {
-                // Update our state tracking
-                self.post_manager_state = self.post_manager.state().clone();
-            }
-            Err(err) => {
-                // Error already captured in PostManager state
-                eprintln!("Retry failed: {}", err);
-                self.post_manager_state = self.post_manager.state().clone();
-            }
-        }
+        self.post_manager.reload();
+        // Update our state tracking
+        self.post_manager_state = self.post_manager.state().clone();
 
         // Ensure valid selection
         self.ensure_valid_selection();
@@ -159,7 +146,7 @@ impl eframe::App for BlogApp {
             self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
         }
-        
+
         // Apply current theme
         self.theme.apply(ui.ctx());
 
@@ -188,12 +175,12 @@ impl eframe::App for BlogApp {
         {
             // Update frame rate calculation
             crate::debug_windows::update_frame_rate(ui.ctx(), &mut self.debug_state);
-            
+
             // Show font book window if enabled
             if self.debug_state.show_font_book {
                 crate::debug_windows::show_font_book_window(ui, &mut self.debug_state);
             }
-            
+
             // Show frame rate window if enabled
             if self.debug_state.show_frame_rate {
                 crate::debug_windows::show_frame_rate_window(ui, &mut self.debug_state);
@@ -224,8 +211,7 @@ impl eframe::App for BlogApp {
         let mut retry_requested = false;
         CentralPanel::default().show_inside(ui, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
-                let result = ui::layout::main_content(
-                    ui,
+                let state = ui::layout::MainContentState::new(
                     &self.post_manager,
                     self.selected_post,
                     self.editing_new_post,
@@ -234,6 +220,7 @@ impl eframe::App for BlogApp {
                     &self.post_manager_state,
                     Some(&mut self.math_asset_manager),
                 );
+                let result = ui::layout::main_content(ui, state);
                 (
                     post_saved,
                     editing_cancelled,

@@ -22,14 +22,14 @@ impl MathAssetManager {
         Self::default()
     }
 
-    /// Get an ImageSource for a math formula hash
-    pub fn get_image_source_for_hash(&self, hash: &str) -> Option<ImageSource<'static>> {
+    /// Get an `ImageSource` for a math formula hash
+    pub fn get_image_source_for_hash(hash: &str) -> Option<ImageSource<'static>> {
         // Get SVG bytes from embedded assets
         let svg_bytes = crate::math::embedded::get_svg_bytes(hash)?;
 
         // Create ImageSource from bytes (similar to include_image! macro)
         // Use hash as part of URI for unique identification
-        let uri = format!("bytes://math/{}.svg", hash);
+        let uri = format!("bytes://math/{hash}.svg");
 
         Some(ImageSource::Bytes {
             uri: std::borrow::Cow::Owned(uri),
@@ -38,23 +38,23 @@ impl MathAssetManager {
     }
 
     /// Get the intrinsic size of an SVG from its bytes
-    pub fn get_svg_size(&self, hash: &str) -> Option<egui::Vec2> {
+    pub fn get_svg_size(hash: &str) -> Option<egui::Vec2> {
         // Get SVG bytes from embedded assets
         let svg_bytes = crate::math::embedded::get_svg_bytes(hash)?;
 
         // Parse SVG to extract size
-        self.extract_svg_size(svg_bytes)
+        Self::extract_svg_size(svg_bytes)
     }
 
     /// Get the intrinsic size of an SVG for a formula
     pub fn get_svg_size_for_formula(&self, formula: &str, is_display: bool) -> Option<egui::Vec2> {
         // Find the hash for this formula
-        let hash = self.manifest.find_hash(formula, is_display)?.to_string();
-        self.get_svg_size(&hash)
+        let hash = self.manifest.find_hash(formula, is_display)?.to_owned();
+        Self::get_svg_size(&hash)
     }
 
     /// Extract size from SVG bytes
-    fn extract_svg_size(&self, svg_bytes: &[u8]) -> Option<egui::Vec2> {
+    fn extract_svg_size(svg_bytes: &[u8]) -> Option<egui::Vec2> {
         let svg_str = std::str::from_utf8(svg_bytes).ok()?;
 
         // Try to parse viewBox first (most reliable)
@@ -100,7 +100,7 @@ impl MathAssetManager {
 
     /// Parse a dimension attribute (width or height)
     fn parse_svg_dimension(svg_str: &str, attr: &str) -> Option<f32> {
-        let pattern = format!("{}=\"", attr);
+        let pattern = format!("{attr}=\"");
         let start = svg_str.find(&pattern)? + pattern.len();
         let end = svg_str[start..].find('"')?;
         let dim_str = &svg_str[start..start + end];
@@ -118,29 +118,29 @@ impl MathAssetManager {
         number_str.parse::<f32>().ok()
     }
 
-    /// Get an ImageSource for a math formula text
+    /// Get an `ImageSource` for a math formula text
     pub fn get_image_source_for_formula(
         &self,
         formula: &str,
         is_display: bool,
     ) -> Option<ImageSource<'static>> {
         // Find the hash for this formula
-        let hash = self.manifest.find_hash(formula, is_display)?.to_string();
-        self.get_image_source_for_hash(&hash)
+        let hash = self.manifest.find_hash(formula, is_display)?.to_owned();
+        Self::get_image_source_for_hash(&hash)
     }
 
     /// Clear any cached textures (no-op in new implementation)
-    pub fn clear_cache(&mut self) {
+    pub fn clear_cache() {
         // No texture cache to clear - egui handles caching internally
     }
 
     /// Get current cache size (always 0 in new implementation)
-    pub fn cache_size(&self) -> usize {
+    pub fn cache_size() -> usize {
         0 // egui handles caching internally
     }
 
     /// Set maximum cache size (no-op in new implementation)
-    pub fn set_max_cache_size(&mut self, _size: usize) {
+    pub fn set_max_cache_size(_size: usize) {
         // egui handles caching internally
     }
 }

@@ -249,15 +249,37 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     if release {
         println!("⚡ Optimizing WASM...");
         let wasm_file = format!("{}/blog_app_bg.wasm", output_path);
-        let status = Command::new("wasm-opt")
-            .args([&wasm_file, "-O2", "--fast-math", "-o", &wasm_file])
-            .status();
+        // Use temporary file to avoid wasm-opt bug with in-place optimization
+        let temp_file = format!("{}.tmp", wasm_file);
+        let output = Command::new("wasm-opt")
+            .args([&wasm_file, "-O1", "--fast-math", "-o", &temp_file])
+            .output();
 
-        match status {
-            Ok(exit_status) if exit_status.success() => {
-                println!("✅ WASM optimized");
+        match output {
+            Ok(output) if output.status.success() => {
+                // Move temp file back to original
+                if let Err(e) = fs::rename(&temp_file, &wasm_file) {
+                    println!("⚠️  Failed to move optimized WASM: {}", e);
+                } else {
+                    println!("✅ WASM optimized with -O1");
+                }
             }
-            _ => {
+            Ok(output) => {
+                let status_str = output.status.to_string();
+                if status_str.contains("SIGSEGV") || status_str.contains("signal: 11") {
+                    // SIGSEGV (segmentation fault) - wasm-opt bug
+                    println!("⚠️  wasm-opt crashed (SIGSEGV) - known issue with version 116");
+                    println!("⚠️  WASM will be unoptimized but still functional");
+                } else {
+                    println!("⚠️  wasm-opt failed with status: {}", status_str);
+                    if !output.stderr.is_empty() {
+                        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+                    }
+                }
+                // Clean up temp file if it exists
+                let _ = fs::remove_file(&temp_file);
+            }
+            Err(_) => {
                 println!("⚠️  wasm-opt not available (install with: cargo install wasm-opt)");
             }
         }

@@ -85,13 +85,13 @@ pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
                 } else {
                     egui::Color32::RED
                 };
-                ui.colored_label(color, format!("{:.1} FPS", current_fps));
+                ui.colored_label(color, format!("{current_fps:.1} FPS"));
             });
 
             // Average FPS
             ui.horizontal(|ui| {
                 ui.label("Average:");
-                ui.label(format!("{:.1} FPS", avg_fps));
+                ui.label(format!("{avg_fps:.1} FPS"));
             });
 
             // Frame time
@@ -291,31 +291,37 @@ pub fn show_font_book_window(ui: &egui::Ui, debug_state: &mut DebugState) {
                     ),
                 ];
 
-                for &(category_name, ref chars) in &categories {
-                    ui.collapsing(category_name, |ui| {
+                for (category_name, chars) in &categories {
+                    ui.collapsing(*category_name, |ui| {
                         ui.horizontal_wrapped(|ui| {
                             ui.spacing_mut().item_spacing = egui::Vec2::new(2.0, 2.0);
 
-                            for &ch in chars {
+                            for ch in chars {
                                 let button = egui::Button::new(
                                     egui::RichText::new(ch.to_string())
                                         .family(debug_state.font_book_selected_family.clone())
                                         .size(16.0),
                                 )
-                                .frame(false)
                                 .min_size(egui::Vec2::new(30.0, 30.0));
 
-                                let char_name = unicode_names2::name(ch)
-                                    .map(|s| s.to_string())
-                                    .unwrap_or_else(|| "Unknown".to_owned());
+                                if ui.add(button).clicked() {
+                                    ui.ctx().copy_text(ch.to_string());
+                                }
 
-                                let tooltip_text = format!(
-                                    "'{}' - U+{:04X}\n{}\nClick to copy",
-                                    ch, ch as u32, char_name
-                                );
-
-                                let response = ui.add(button).on_hover_text(tooltip_text);
-                                if response.clicked() {
+                                if ui
+                                    .add(
+                                        egui::Button::new("").min_size(egui::Vec2::new(30.0, 30.0)),
+                                    )
+                                    .on_hover_text(format!(
+                                        "{} (U+{:04X}): {}",
+                                        ch,
+                                        *ch as u32,
+                                        unicode_names2::name(*ch)
+                                            .map(|n| n.to_string())
+                                            .unwrap_or_else(|| "Unknown".to_owned())
+                                    ))
+                                    .clicked()
+                                {
                                     ui.ctx().copy_text(ch.to_string());
                                 }
                             }
