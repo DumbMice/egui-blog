@@ -234,7 +234,13 @@ pub fn side_panel(
                         let clicked = components::post_preview(ui, post, is_selected);
 
                         if config.show_preview_in_list {
-                            ui.small(post.preview());
+                            // Try to show first paragraph, fall back to preview if no paragraph
+                            if let Some(paragraph) = post.first_paragraph() {
+                                ui.small(paragraph);
+                            } else {
+                                // Show nothing if first content is not a paragraph
+                                // (e.g., heading, table, formula, etc.)
+                            }
                         }
 
                         if config.show_tags_in_list && !post.tags.is_empty() {

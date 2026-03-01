@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
-    parse_post_content,
+    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
+    LoadError,
 };
 pub use state::PostManagerState; // NEW
 
@@ -58,6 +58,122 @@ impl BlogPost {
         } else {
             preview
         }
+    }
+
+    /// Get the first paragraph of the content as a description.
+    /// Returns the first paragraph text if it exists and is plain text.
+    /// Returns None if the first content after frontmatter is not a paragraph
+    /// (e.g., heading, table, code block, formula, etc.).
+    pub fn first_paragraph(&self) -> Option<String> {
+        use pulldown_cmark::{Event, Parser, Tag};
+
+        // Use preprocessed content (with math placeholders) if available
+        let content = self.processed_content().unwrap_or(&self.content);
+
+        let mut parser = Parser::new(content);
+        let mut in_paragraph = false;
+        let mut paragraph_text = String::new();
+        let mut found_non_paragraph = false;
+
+        while let Some(event) = parser.next() {
+            match event {
+                Event::Start(Tag::Paragraph) => {
+                    if !found_non_paragraph {
+                        in_paragraph = true;
+                        paragraph_text.clear();
+                    }
+                }
+                Event::End(Tag::Paragraph) => {
+                    if in_paragraph && !paragraph_text.is_empty() {
+                        // Found a paragraph with content
+                        // Clean up math placeholders (replace (hash.typ) with [formula])
+                        let cleaned = Self::clean_math_placeholders(&paragraph_text);
+                        return Some(cleaned.trim().to_string());
+                    }
+                    in_paragraph = false;
+                }
+                Event::Text(text) => {
+                    if in_paragraph {
+                        paragraph_text.push_str(&text);
+                    } else if !found_non_paragraph {
+                        // If we encounter text outside a paragraph before finding a paragraph,
+                        // it means the first content is not a paragraph
+                        found_non_paragraph = true;
+                    }
+                }
+                Event::Code(_) => {
+                    if in_paragraph {
+                        // Code within paragraph is OK, but we might want to skip it
+                        // For simplicity, we'll include it
+                    } else if !found_non_paragraph {
+                        // First content is code (inline or block)
+                        found_non_paragraph = true;
+                    }
+                }
+                Event::Start(tag) => {
+                    if !matches!(tag, Tag::Paragraph) && !found_non_paragraph {
+                        // First content is not a paragraph (heading, list, blockquote, etc.)
+                        found_non_paragraph = true;
+                    }
+                }
+                Event::SoftBreak => {
+                    if in_paragraph {
+                        paragraph_text.push(' ');
+                    }
+                }
+                Event::HardBreak => {
+                    if in_paragraph {
+                        paragraph_text.push('\n');
+                    }
+                }
+                _ => {
+                    // Other events (HTML, footnote, etc.)
+                    if !found_non_paragraph && !in_paragraph {
+                        found_non_paragraph = true;
+                    }
+                }
+            }
+
+            // If we've already found non-paragraph content and we're not in a paragraph,
+            // we can stop searching
+            if found_non_paragraph && !in_paragraph && paragraph_text.is_empty() {
+                break;
+            }
+        }
+
+        None
+    }
+
+    /// Clean math placeholders from text, replacing (hash.typ) with [formula]
+    fn clean_math_placeholders(text: &str) -> String {
+        let mut result = String::with_capacity(text.len());
+        let chars = text.chars().collect::<Vec<_>>();
+        let mut i = 0;
+
+        while i < chars.len() {
+            if chars[i] == '(' && i + 1 < chars.len() {
+                // Check if this might be a math placeholder
+                let mut j = i + 1;
+                while j < chars.len() && chars[j] != ')' {
+                    j += 1;
+                }
+
+                if j < chars.len() && chars[j] == ')' {
+                    let placeholder: String = chars[i..=j].iter().collect();
+                    if placeholder.ends_with(".typ)") {
+                        // Replace math placeholder with [formula]
+                        result.push_str("[formula]");
+                        i = j + 1;
+                        continue;
+                    }
+                }
+            }
+
+            result.push(chars[i]);
+            i += 1;
+        }
+
+        result
     }
 
     /// Get processed content with math formulas replaced by placeholders.
