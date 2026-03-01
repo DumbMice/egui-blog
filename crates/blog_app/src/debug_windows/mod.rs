@@ -78,12 +78,10 @@ pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
             // Current FPS with color coding
             ui.horizontal(|ui| {
                 ui.label("Current:");
-                let color = if current_fps >= 30.0 {
-                    egui::Color32::GREEN
-                } else if current_fps >= 15.0 {
-                    egui::Color32::YELLOW
+                let color = if current_fps >= 15.0 {
+                    ui.visuals().warn_fg_color // Use Catppuccin yellow for warning (≥15 FPS)
                 } else {
-                    egui::Color32::RED
+                    ui.visuals().error_fg_color // Use Catppuccin red for error (<15 FPS)
                 };
                 ui.colored_label(color, format!("{current_fps:.1} FPS"));
             });
@@ -114,12 +112,10 @@ pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
                 "Poor (< 15 FPS)"
             };
 
-            let performance_color = if current_fps >= 30.0 {
-                egui::Color32::GREEN
-            } else if current_fps >= 15.0 {
-                egui::Color32::YELLOW
+            let performance_color = if current_fps >= 15.0 {
+                ui.visuals().warn_fg_color // Use Catppuccin yellow for warning (≥15 FPS)
             } else {
-                egui::Color32::RED
+                ui.visuals().error_fg_color // Use Catppuccin red for error (<15 FPS)
             };
 
             ui.colored_label(performance_color, performance_text);

@@ -54,6 +54,9 @@ unicode_names2 = { version = "2.0.0", default-features = false }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 regex = "1.10"
 
+# Catppuccin theme colors
+catppuccin = "2.4.0"
+
 # Syntax highlighting and image loading
 egui_extras = { workspace = true, default-features = false, features = ["syntect", "svg"] }
 

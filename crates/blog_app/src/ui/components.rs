@@ -1,27 +1,27 @@
 //! Reusable UI components for the blog app.
 
-use egui::{Context, FontFamily, FontId, TextStyle, Ui};
+use catppuccin::{Flavor, PALETTE};
+use egui::{Context, FontFamily, FontId, TextStyle, Ui, Visuals};
 use std::collections::BTreeMap;
 
 /// Theme configuration for the blog.
+/// Only Catppuccin themes are supported for consistent aesthetics.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Theme {
-    Light,
-    Dark,
-    Auto,
+    /// Catppuccin Latte theme (light)
+    CatppuccinLatte,
+    /// Catppuccin Macchiato theme (dark)
+    CatppuccinMacchiato,
 }
 
 impl Theme {
     /// Apply this theme to the egui context.
     pub fn apply(self, ctx: &Context) {
         match self {
-            Self::Light => ctx.set_visuals(egui::Visuals::light()),
-            Self::Dark => ctx.set_visuals(egui::Visuals::dark()),
-            Self::Auto => {
-                // Auto theme based on system preference
-                // For now, default to light
-                ctx.set_visuals(egui::Visuals::light());
+            Self::CatppuccinLatte => ctx.set_visuals(Self::catppuccin_visuals(&PALETTE.latte)),
+            Self::CatppuccinMacchiato => {
+                ctx.set_visuals(Self::catppuccin_visuals(&PALETTE.macchiato));
             }
         }
 
@@ -71,13 +71,108 @@ impl Theme {
         ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
     }
 
-    /// Get the name of the theme.
+    /// Get the display name of the theme.
+    /// Returns "Light" for Latte and "Dark" for Macchiato for simplicity.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Light => "Light",
-            Self::Dark => "Dark",
-            Self::Auto => "Auto",
+            Self::CatppuccinLatte => "Light",
+            Self::CatppuccinMacchiato => "Dark",
         }
+    }
+
+    /// Create egui Visuals from a Catppuccin flavour.
+    fn catppuccin_visuals(flavor: &Flavor) -> Visuals {
+        // Convert Catppuccin colors to egui Color32
+        fn to_color32(rgb: catppuccin::Rgb) -> egui::Color32 {
+            egui::Color32::from_rgb(rgb.r, rgb.g, rgb.b)
+        }
+
+        // Apply opacity to a color using gamma_multiply (simulates alpha blending)
+        fn with_opacity(color: egui::Color32, opacity: f32) -> egui::Color32 {
+            color.gamma_multiply(opacity)
+        }
+
+        // Check if flavor is dark based on its name
+        // We only use Latte (light) and Macchiato (dark)
+        let is_dark = match flavor.name {
+            catppuccin::FlavorName::Latte => false,
+            catppuccin::FlavorName::Macchiato
+            | catppuccin::FlavorName::Frappe
+            | catppuccin::FlavorName::Mocha => true,
+        };
+
+        let mut visuals = if is_dark {
+            Visuals::dark()
+        } else {
+            Visuals::light()
+        };
+
+        // Set base colors according to Catppuccin style guide
+        visuals.window_fill = to_color32(flavor.colors.base.rgb);
+        visuals.panel_fill = to_color32(flavor.colors.base.rgb);
+        visuals.widgets.noninteractive.bg_fill = to_color32(flavor.colors.surface0.rgb);
+        visuals.widgets.noninteractive.fg_stroke.color = to_color32(flavor.colors.text.rgb);
+        visuals.widgets.inactive.bg_fill = to_color32(flavor.colors.surface1.rgb);
+        visuals.widgets.inactive.fg_stroke.color = to_color32(flavor.colors.text.rgb);
+        visuals.widgets.hovered.bg_fill = to_color32(flavor.colors.surface2.rgb);
+        visuals.widgets.hovered.fg_stroke.color = to_color32(flavor.colors.text.rgb);
+        visuals.widgets.active.bg_fill = to_color32(flavor.colors.blue.rgb);
+
+        // Strong text color: used by .strong() for emphasis
+        // Since .strong() doesn't make text bold (no font weight change), we need distinct but not alarming colors
+        // Using Catppuccin "Rainbow Highlights" colors that provide good visibility:
+        // - Light theme (Latte): Sapphire (stands out but not aggressive like Red)
+        // - Dark theme (Macchiato): Peach (light, warm, good contrast on dark backgrounds)
+        // These are visually distinct from normal text while maintaining Catppuccin aesthetics
+        if is_dark {
+            // Dark theme: use Peach for good contrast without being too bright
+            visuals.widgets.active.fg_stroke.color = to_color32(flavor.colors.peach.rgb);
+        } else {
+            // Light theme: use Sapphire for distinct but calm emphasis
+            visuals.widgets.active.fg_stroke.color = to_color32(flavor.colors.sapphire.rgb);
+        }
+
+        // Text colors according to Catppuccin style guide
+        // Body copy: Text color
+        // Sub-headlines, labels: Subtext 0, Subtext 1
+        // Subtle: Overlay 1
+        visuals.weak_text_color = Some(to_color32(flavor.colors.subtext0.rgb));
+        visuals.extreme_bg_color = to_color32(flavor.colors.crust.rgb);
+
+        // Text edit background (slightly different from extreme_bg_color)
+        visuals.text_edit_bg_color = Some(to_color32(flavor.colors.mantle.rgb));
+
+        // Faint background for striped grids
+        visuals.faint_bg_color = to_color32(flavor.colors.surface0.rgb);
+
+        // Semantic colors according to Catppuccin style guide
+        visuals.warn_fg_color = to_color32(flavor.colors.yellow.rgb);
+        visuals.error_fg_color = to_color32(flavor.colors.red.rgb);
+
+        // Success color (green) - not directly used by egui but available for custom use
+        // Catppuccin style guide: "Success" → Green
+
+        // Hyperlink color: Links/URLs should use Blue (not Sapphire)
+        // Catppuccin style guide: "Links, URLs" → Blue
+        visuals.hyperlink_color = to_color32(flavor.colors.blue.rgb);
+
+        // Selection colors
+        // Catppuccin style guide: "Selection Background" → Overlay 2 with 20-30% opacity
+        let overlay2 = to_color32(flavor.colors.overlay2.rgb);
+        visuals.selection.bg_fill = with_opacity(overlay2, 0.25); // 25% opacity
+        visuals.selection.stroke.color = to_color32(flavor.colors.text.rgb);
+
+        // Code block background
+        visuals.code_bg_color = to_color32(flavor.colors.mantle.rgb);
+
+        // Additional colors that might be useful
+        // Tags/Pills should use Blue (Catppuccin style guide)
+        // We don't have a direct field for this in egui Visuals, but it's available
+
+        // Overlay colors for future use
+        // overlay0, overlay1, overlay2 are available in the flavor.colors
+
+        visuals
     }
 }
 
@@ -88,26 +183,22 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
     ui.horizontal(|ui| {
         ui.label("Theme:");
 
-        if ui
-            .button("🌙")
-            .on_hover_text("Switch to dark theme")
-            .clicked()
-        {
-            *current_theme = Theme::Dark;
-            changed = true;
-        }
-
+        // Only two themes: Catppuccin Latte (light) and Macchiato (dark)
         if ui
             .button("☀")
-            .on_hover_text("Switch to light theme")
+            .on_hover_text("Switch to light theme (Catppuccin Latte)")
             .clicked()
         {
-            *current_theme = Theme::Light;
+            *current_theme = Theme::CatppuccinLatte;
             changed = true;
         }
 
-        if ui.button("⚙").on_hover_text("Auto theme").clicked() {
-            *current_theme = Theme::Auto;
+        if ui
+            .button("🌙")
+            .on_hover_text("Switch to dark theme (Catppuccin Macchiato)")
+            .clicked()
+        {
+            *current_theme = Theme::CatppuccinMacchiato;
             changed = true;
         }
 
