@@ -13,8 +13,89 @@
 # Build artifacts
 web_blog/blog_app.js
 web_blog/blog_app_bg.wasm
+web_blog/dev/
+web_blog/release/
 web_demo/egui_demo_app.js
 web_demo/egui_demo_app_bg.wasm
+
+# Rust/Cargo build artifacts
+**/target/
+**/*.rs.bk
+
+# Compiled binaries
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.a
+**/*.lib
+**/*.rlib
+**/*.d
+
+# WASM build artifacts
+**/*.wasm
+**/*.js
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Node.js/npm build artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Coverage reports
+*.gcda
+*.gcno
+*.lcov
+
+# Profiling data
+*.profdata
+*.profraw
 
 # Typst binary and test files
 /typst
