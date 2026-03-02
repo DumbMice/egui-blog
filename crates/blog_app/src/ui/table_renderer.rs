@@ -129,21 +129,30 @@ pub fn render_table(
                         match alignment {
                             Alignment::Left => {
                                 ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                                    ui.label(cell);
+                                    ui.label(RichText::new(cell).color(
+                                        ui.visuals().widgets.noninteractive.fg_stroke.color,
+                                    ));
                                 });
                             }
                             Alignment::Center => {
                                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                                    ui.label(cell);
+                                    ui.label(RichText::new(cell).color(
+                                        ui.visuals().widgets.noninteractive.fg_stroke.color,
+                                    ));
                                 });
                             }
                             Alignment::Right => {
                                 ui.with_layout(Layout::left_to_right(Align::Max), |ui| {
-                                    ui.label(cell);
+                                    ui.label(RichText::new(cell).color(
+                                        ui.visuals().widgets.noninteractive.fg_stroke.color,
+                                    ));
                                 });
                             }
                             Alignment::None => {
-                                ui.label(cell);
+                                ui.label(
+                                    RichText::new(cell)
+                                        .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
+                                );
                             }
                         }
                     }

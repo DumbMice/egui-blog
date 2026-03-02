@@ -71,15 +71,6 @@ impl Theme {
         ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
     }
 
-    /// Get the display name of the theme.
-    /// Returns "Light" for Latte and "Dark" for Macchiato for simplicity.
-    pub fn name(self) -> &'static str {
-        match self {
-            Self::CatppuccinLatte => "Light",
-            Self::CatppuccinMacchiato => "Dark",
-        }
-    }
-
     /// Create egui Visuals from a Catppuccin flavour.
     fn catppuccin_visuals(flavor: &Flavor) -> Visuals {
         // Convert Catppuccin colors to egui Color32
@@ -177,33 +168,31 @@ impl Theme {
 }
 
 /// A theme toggle widget.
+/// Single button that toggles between light and dark themes.
 pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
     let mut changed = false;
 
-    ui.horizontal(|ui| {
-        ui.label("Theme:");
-
-        // Only two themes: Catppuccin Latte (light) and Macchiato (dark)
-        if ui
-            .button("☀")
-            .on_hover_text("Switch to light theme (Catppuccin Latte)")
-            .clicked()
-        {
-            *current_theme = Theme::CatppuccinLatte;
-            changed = true;
+    // Determine which icon and hover text to show based on current theme
+    let (icon, hover_text) = match current_theme {
+        Theme::CatppuccinLatte => {
+            // Currently light, show moon icon to switch to dark
+            ("🌙", "Switch to dark theme (Catppuccin Macchiato)")
         }
-
-        if ui
-            .button("🌙")
-            .on_hover_text("Switch to dark theme (Catppuccin Macchiato)")
-            .clicked()
-        {
-            *current_theme = Theme::CatppuccinMacchiato;
-            changed = true;
+        Theme::CatppuccinMacchiato => {
+            // Currently dark, show sun icon to switch to light
+            ("☀", "Switch to light theme (Catppuccin Latte)")
         }
+    };
 
-        ui.label(format!("({})", current_theme.name()));
-    });
+    // Single toggle button
+    if ui.button(icon).on_hover_text(hover_text).clicked() {
+        // Toggle to the opposite theme
+        *current_theme = match current_theme {
+            Theme::CatppuccinLatte => Theme::CatppuccinMacchiato,
+            Theme::CatppuccinMacchiato => Theme::CatppuccinLatte,
+        };
+        changed = true;
+    }
 
     changed
 }

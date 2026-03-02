@@ -77,6 +77,27 @@ cargo test test_blog_app_handle_retry
 cargo test -- --nocapture
 ```
 
+## Themes
+
+The blog app uses Catppuccin themes for consistent aesthetics with GitHub-like markdown rendering:
+
+### Available Themes
+- **Light** (☀): Catppuccin Latte theme - light pastel colors
+- **Dark** (🌙): Catppuccin Macchiato theme - dark caramel colors
+
+### Theme Switching
+- **UI**: Click theme buttons in top panel (☀ 🌙)
+- **Display**: Shows as "Light" and "Dark" for simplicity
+- **Internally**: Uses Catppuccin Latte and Macchiato color palettes
+
+### GitHub-like Markdown
+- Base font size: 16px (matches GitHub)
+- Heading sizes follow GitHub standards
+- Proper spacing between headings and paragraphs
+- Code blocks with syntax highlighting
+- Math formula rendering with Typst
+- **Strong text**: High contrast colors for accessibility
+
 ## Linting & Code Quality
 ```bash
 # Run clippy

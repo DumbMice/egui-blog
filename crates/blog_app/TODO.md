@@ -103,16 +103,92 @@ cargo blog-wasm     # Build WASM library only
 4. **API Updates**: Created `render_preprocessed_markdown()` function and updated rendering to use cached content
 5. **Benchmarks**: Added performance benchmark tests showing 3752× faster manifest loading and O(1) formula lookup
 
-## Priority 7: Enhanced Styling
-- [ ] Design custom theme system
-- [ ] Implement color customization
-- [ ] Improve typography (fonts, spacing)
-- [ ] Add responsive layout adaptations
-- [ ] Implement smooth theme transitions
-- [ ] Polish UI spacing and borders
-- [ ] Add visual feedback for interactions
+## Priority 7: Enhanced Styling ✅ COMPLETED 2026-03-02
+- [x] Design custom theme system (simplified to 2 Catppuccin themes)
+- [x] Implement color customization (Catppuccin Latte/Macchiato)
+- [x] Improve typography (fonts, spacing)
+- [x] Add responsive layout adaptations
+- [x] Implement smooth theme transitions
+- [x] Polish UI spacing and borders
+- [x] Add visual feedback for interactions
+- [x] Fix strong text contrast in Catppuccin themes
+- [x] Implement single-button theme toggle
+- [x] Ensure Catppuccin style guide compliance
 
-## Priority 7: Dynamic Content Loading (Low Priority)
+## Priority 8: Multi-Page Navigation & URL Routing
+- [ ] Implement URL routing for direct post access (`/post/slug`)
+- [ ] Add URL routing for different page types (`/notes/id`, `/reviews/id`)
+- [ ] Support browser history navigation (back/forward)
+- [ ] Make URLs bookmarkable and shareable
+- [ ] Handle hash-based routing for SPA navigation
+- [ ] Sync app state with URL parameters
+
+**Note**: Essential for sharing/bookmarking content. Uses egui's `ctx.input().raw` for URL changes. See [URL_ROUTING.md](URL_ROUTING.md) for detailed specification.
+
+## Priority 9: Multiple Content Types & Tabs
+- [ ] Support different content types: blog posts, private notes, research reviews
+- [ ] Implement tab-based navigation between content types
+- [ ] Shared search database across all content types
+- [ ] Same Markdown format with type-specific frontmatter
+- [ ] Different directories: `posts/`, `notes/`, `reviews/`
+- [ ] Filterable views or separate navigation sections
+
+**Note**: Single WASM app with multiple content sections. Tabs as starting navigation pattern.
+
+## Priority 10: Complete Label/Tag System
+- [ ] Make labels interactive (click to search)
+- [ ] Assign colors from Catppuccin palette
+- [ ] Implement tag autocomplete in search bar
+- [ ] Support multiple tag selection with visual chips
+- [ ] Allow backspace to remove selected tags
+- [ ] Combine tag search with text search (AND logic)
+- [ ] Optional tag descriptions (show on hover)
+- [ ] Tag filtering in post lists
+
+**Note**: Complex but powerful feature for content discovery. See [TAG_SYSTEM.md](TAG_SYSTEM.md) for detailed specification.
+
+## Priority 11: Keyboard Shortcuts & Vim Navigation
+- [ ] Basic navigation (arrow keys, Home/End)
+- [ ] Vim navigation (j/k for up/down, gg/G for top/bottom)
+- [ ] `/` for page content search (not post search)
+- [ ] Alt+D to focus browser address bar
+- [ ] Always-on vim mode (not toggleable)
+- [ ] Non-configurable shortcuts (hardcoded)
+
+**Note**: Power user features for efficient navigation. Vim mode always enabled.
+
+## Priority 12: Improved Responsive Layout
+- [ ] Central content width: 80-100 characters optimal
+- [ ] Responsive margins that adjust with zoom level
+- [ ] Max-width content container with auto margins
+- [ ] Breakpoint for mobile vs desktop layouts
+- [ ] Content width reduces when page width < 80-100 chars
+- [ ] Desktop-only responsive behavior
+
+**Note**: Improves readability with proper typographic margins.
+
+## Priority 13: Collapsible & Resizable Side Panel
+- [ ] Add toggle button on left panel or top-left of content
+- [ ] Persist panel state across sessions
+- [ ] Keep current resizable behavior
+- [ ] Auto-hide on small screens
+- [ ] No special keyboard shortcut for toggling (for now)
+- [ ] Adjust layout when panel is collapsed
+
+**Note**: Quick UX improvement for more screen space when needed.
+
+## Priority 14: Advanced Typography (Future Enhancement)
+- [ ] Add support for real bold fonts (font weight changes, not just color)
+- [ ] Research egui font loading and font family support
+- [ ] Implement proper font weight variations (light, regular, bold, etc.)
+- [ ] Add italic font support if not already available
+- [ ] Consider adding custom font loading for better typography
+- [ ] Test font rendering performance and WASM size impact
+- [ ] Ensure font licensing compliance for any bundled fonts
+
+**Note**: Currently `.strong()` only changes text color due to egui limitations. Real bold fonts would require proper font loading and font family support.
+
+## Priority 15: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture
@@ -156,12 +232,29 @@ cargo blog-wasm     # Build WASM library only
 - Added benchmark tests showing significant performance improvements
 - Fixed all clippy warnings and code quality issues
 
+✅ **Enhanced Styling & Theme System (2026-03-02)**
+- Simplified theme system to only 2 Catppuccin themes (Latte light / Macchiato dark)
+- Fixed critical strong text contrast bug in Catppuccin themes
+- Implemented Catppuccin style guide compliance:
+  - "On Accent" text uses Base color (for buttons)
+  - Selection uses Overlay 2 with 25% opacity
+  - Links use Blue color (not Sapphire)
+  - Semantic colors follow style guide (Yellow=warnings, Red=errors)
+- Implemented high-contrast strong text colors:
+  - Light theme: Sapphire (distinct but not aggressive)
+  - Dark theme: Peach (good contrast on dark backgrounds)
+- Improved theme toggle to single button (shows opposite theme icon)
+- Cleaned up UI by removing "Theme:" label and theme name display
+- All tests pass, no clippy warnings
+
 ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support
 - `6ace4f51` - Clean up blog_app crate warnings and unused code
 - `d3dcb0d7` - WIP: Implement paragraph accumulation for inline math rendering
 - `5b39f118` - Fix horizontal spacing for inline math formulas
 - `66d90429` - Performance optimizations: manifest caching, reverse index, markdown cache
+- `a0b6c22e` - Fix Catppuccin style guide compliance and strong text visibility
+- `54a14fe3` - Improve theme toggle to single button
 - *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
@@ -178,6 +271,8 @@ cargo blog-wasm     # Build WASM library only
 - **SVG baseline alignment**: Could improve vertical positioning of formula glyphs
 - **Performance optimization**: Formula caching could be more intelligent
 - **Accessibility**: Screen reader support for math formulas
+- **Strong text contrast**: ✅ FIXED (2026-03-02) - Now uses high-contrast colors (Sapphire/Peach) for visibility
+- **Real bold fonts**: Currently `.strong()` only changes color, not font weight (see Priority 8)
 
 ### Performance Optimizations ✅ COMPLETED 2026-03-01
 - **Math formula lookup optimization**: `find_hash` now uses O(1) reverse index lookup instead of O(n) linear search
