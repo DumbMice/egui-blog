@@ -115,7 +115,6 @@ test_typst.svg
 # Generated math assets (should be built, not committed)
 crates/blog_app/assets/math/*.svg
 crates/blog_app/assets/math/manifest.json
-crates/blog_app/src/math/embedded.rs
 
 # Session files
 session-*.json
