@@ -36,7 +36,7 @@ pub struct MainContentState<'a> {
 
 impl<'a> MainContentState<'a> {
     /// Create a new state bundle
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::allow_attributes)]
     pub fn new(
         post_manager: &'a PostManager,
         selected_post_index: usize,
@@ -152,7 +152,7 @@ pub fn top_panel(
 }
 
 /// Side panel with post list.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::allow_attributes)]
 pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
@@ -253,16 +253,15 @@ pub fn side_panel(
                         .into_iter()
                         .filter(|post| post.content_type == content_type)
                         .collect::<Vec<_>>();
-                    if let Some(first_post) = filtered_posts.first() {
-                        if let Some(index) = post_manager
+                    if let Some(first_post) = filtered_posts.first()
+                        && let Some(index) = post_manager
                             .posts()
                             .iter()
                             .position(|p| p.id == first_post.id)
-                        {
-                            *selected_post_index = index;
-                            selection_changed = true;
-                            on_selection(Some(first_post));
-                        }
+                    {
+                        *selected_post_index = index;
+                        selection_changed = true;
+                        on_selection(Some(first_post));
                     }
                 }
             }

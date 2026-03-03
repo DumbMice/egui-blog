@@ -29,7 +29,6 @@ impl Router {
     }
 
     /// Create a router from a URL hash.
-    #[allow(dead_code)]
     pub fn from_hash(hash: &str) -> Self {
         let route = Route::from_hash(hash);
         let query_params = Self::extract_query_params(hash);
@@ -58,39 +57,48 @@ impl Router {
         self.current_route.to_hash()
     }
 
-    /// Navigate to a post by slug.
-    #[allow(dead_code)]
-    pub fn navigate_to_post(&mut self, slug: &str) -> String {
-        self.navigate_to(Route::Post {
+    /// Create a route to a post by slug.
+    pub fn route_to_post(slug: &str) -> Route {
+        Route::Post {
             slug: slug.to_owned(),
-        })
+        }
     }
 
-    /// Navigate to search with query.
-    #[allow(dead_code)]
-    pub fn navigate_to_search(&mut self, query: &str) -> String {
-        self.navigate_to(Route::Search {
+    /// Create a route to a note by slug.
+    pub fn route_to_note(slug: &str) -> Route {
+        Route::Note {
+            slug: slug.to_owned(),
+        }
+    }
+
+    /// Create a route to a review by slug.
+    pub fn route_to_review(slug: &str) -> Route {
+        Route::Review {
+            slug: slug.to_owned(),
+        }
+    }
+
+    /// Create a route to search with query.
+    pub fn route_to_search(query: &str) -> Route {
+        Route::Search {
             query: query.to_owned(),
             tags: Vec::new(),
-        })
+        }
     }
 
-    /// Navigate to tag page.
-    #[allow(dead_code)]
-    pub fn navigate_to_tag(&mut self, tag: &str) -> String {
-        self.navigate_to(Route::Tag {
+    /// Create a route to tag page.
+    pub fn route_to_tag(tag: &str) -> Route {
+        Route::Tag {
             tag: tag.to_owned(),
-        })
+        }
     }
 
-    /// Navigate home.
-    #[allow(dead_code)]
-    pub fn navigate_home(&mut self) -> String {
-        self.navigate_to(Route::Home)
+    /// Create a route to home.
+    pub fn route_home() -> Route {
+        Route::Home
     }
 
     /// Update from URL hash (for browser navigation).
-    #[allow(dead_code)]
     pub fn update_from_hash(&mut self, hash: &str) -> bool {
         let new_route = Route::from_hash(hash);
         let route_changed = self.current_route != new_route;
@@ -105,25 +113,21 @@ impl Router {
     }
 
     /// Get query parameter value.
-    #[allow(dead_code)]
     pub fn get_query_param(&self, key: &str) -> Option<&String> {
         self.query_params.get(key)
     }
 
     /// Set query parameter (doesn't update URL until navigation).
-    #[allow(dead_code)]
     pub fn set_query_param(&mut self, key: String, value: String) {
         self.query_params.insert(key, value);
     }
 
     /// Get all query parameters.
-    #[allow(dead_code)]
     pub fn query_params(&self) -> &HashMap<String, String> {
         &self.query_params
     }
 
     /// Generate URL with current query parameters.
-    #[allow(dead_code)]
     pub fn current_url(&self) -> String {
         let base_url = self.current_route.to_hash();
 
@@ -191,11 +195,13 @@ mod tests {
     fn test_navigation() {
         let mut router = Router::new();
 
-        let url = router.navigate_to_post("my-post");
+        let route = Router::route_to_post("my-post");
+        let url = router.navigate_to(route);
         assert_eq!(url, "#/posts/my-post");
         assert!(matches!(router.current_route(), Route::Post { slug } if slug == "my-post"));
 
-        let url = router.navigate_home();
+        let route = Router::route_home();
+        let url = router.navigate_to(route);
         assert_eq!(url, "#/");
         assert!(matches!(router.current_route(), Route::Home));
     }

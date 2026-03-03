@@ -315,13 +315,13 @@ impl eframe::App for BlogApp {
                     // Navigate to the correct route based on content type
                     let route = match post.content_type {
                         crate::posts::ContentType::Post => {
-                            crate::routing::Route::Post { slug: post.slug }
+                            crate::routing::Router::route_to_post(&post.slug)
                         }
                         crate::posts::ContentType::Note => {
-                            crate::routing::Route::Note { slug: post.slug }
+                            crate::routing::Router::route_to_note(&post.slug)
                         }
                         crate::posts::ContentType::Review => {
-                            crate::routing::Route::Review { slug: post.slug }
+                            crate::routing::Router::route_to_review(&post.slug)
                         }
                     };
                     self.navigate_to(route);
