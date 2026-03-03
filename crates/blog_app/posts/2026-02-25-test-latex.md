@@ -7,6 +7,7 @@ tags: ["test", "typst", "math"]
 A first paragraph containg formula $e^(i pi) +1 = 0$.
 
 ## Testing Typst Math Rendering
+
 ### Inline Math
 
 hello my blog. this is a test.
@@ -17,7 +18,7 @@ Here's some inline math: $E = m c^2$ and $3/2 + 5/4 = 11/4$ (testing improved fi
 
 Display math should be centered:
 
-$ integral_(-infinity)^infinity e^(-x^2) dif x = sqrt(pi) $
+$ integral_(-infinity)^infinity e^(-x^2) dif x = sqrt(2 pi) $
 
 $ sum_(n=1)^infinity 1/n^2 = pi^2/6 $
 
