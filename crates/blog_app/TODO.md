@@ -115,15 +115,26 @@ cargo blog-wasm     # Build WASM library only
 - [x] Implement single-button theme toggle
 - [x] Ensure Catppuccin style guide compliance
 
-## Priority 8: Multi-Page Navigation & URL Routing
-- [ ] Implement URL routing for direct post access (`/post/slug`)
-- [ ] Add URL routing for different page types (`/notes/id`, `/reviews/id`)
-- [ ] Support browser history navigation (back/forward)
-- [ ] Make URLs bookmarkable and shareable
-- [ ] Handle hash-based routing for SPA navigation
-- [ ] Sync app state with URL parameters
+## Priority 8: Multi-Page Navigation & URL Routing ✅ COMPLETED 2026-03-03
+- [x] Implement URL routing for direct post access (`/post/slug`)
+- [x] Add URL routing for different page types (`/notes/id`, `/reviews/id`)
+- [x] Support browser history navigation (back/forward)
+- [x] Make URLs bookmarkable and shareable
+- [x] Handle hash-based routing for SPA navigation
+- [x] Sync app state with URL parameters
 
 **Note**: Essential for sharing/bookmarking content. Uses egui's `ctx.input().raw` for URL changes. See [URL_ROUTING.md](URL_ROUTING.md) for detailed specification.
+
+### Implementation Details:
+1. **Router Encapsulation**: Created `Router` struct to encapsulate routing state and logic
+2. **Hash-based Routing**: Supports `#/post/slug`, `#/search?q=query`, `#/tags/tag`, `#/` (home)
+3. **Slug Generation**: Auto-generates URL-friendly slugs from post titles
+4. **Browser Integration**: Handles back/forward navigation and URL persistence
+5. **Navigation Context**: `NavigationContext` struct for UI components with route and callback
+6. **404 Handling**: Shows error page with "Return to Home" navigation
+7. **Query Parameters**: Basic support for search queries and tags (extensible)
+8. **Persistence**: Router state saved across browser refreshes using serde serialization
+9. **Comprehensive Testing**: 8 routing-specific tests added, all existing tests pass
 
 ## Priority 9: Multiple Content Types & Tabs
 - [ ] Support different content types: blog posts, private notes, research reviews
@@ -247,6 +258,17 @@ cargo blog-wasm     # Build WASM library only
 - Cleaned up UI by removing "Theme:" label and theme name display
 - All tests pass, no clippy warnings
 
+✅ **URL Routing & Navigation (2026-03-03)**
+- Implemented Router struct to encapsulate routing state and logic
+- Hash-based URL routing (`#/post/slug`, `#/search?q=query`, `#/tags/tag`, `#/`)
+- Auto-generated URL-friendly slugs from post titles
+- Browser history navigation (back/forward) with route persistence
+- NavigationContext for UI components with route and callback
+- 404 error pages with "Return to Home" navigation
+- Basic query parameter support for search queries and tags
+- Router state saved across browser refreshes using serde serialization
+- 8 routing-specific tests added, all existing tests pass
+
 ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support
 - `6ace4f51` - Clean up blog_app crate warnings and unused code
@@ -255,6 +277,7 @@ cargo blog-wasm     # Build WASM library only
 - `66d90429` - Performance optimizations: manifest caching, reverse index, markdown cache
 - `a0b6c22e` - Fix Catppuccin style guide compliance and strong text visibility
 - `54a14fe3` - Improve theme toggle to single button
+- `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
 - *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
