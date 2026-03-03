@@ -1,11 +1,11 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
-use egui_extras::syntax_highlighting::{highlight, CodeTheme};
+use egui::{Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui, vec2};
+use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{ui::table_renderer, MathAssetManager};
+use crate::{MathAssetManager, ui::table_renderer};
 
 /// Content that can appear within a paragraph
 #[derive(Clone)]
@@ -1177,7 +1177,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                                           // Skip through the list events
+                // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;

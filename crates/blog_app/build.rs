@@ -338,20 +338,22 @@ fn create_placeholder_svg(formula: &str, is_display: bool) -> String {
     )
 }
 
-/// Scan all markdown files in the posts directory
-fn scan_markdown_files(posts_dir: &Path) -> Vec<(PathBuf, String)> {
+/// Scan all markdown files in multiple content directories
+fn scan_markdown_files(content_dirs: &[&Path]) -> Vec<(PathBuf, String)> {
     let mut files = Vec::new();
 
-    for entry in WalkDir::new(posts_dir)
-        .follow_links(true)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
-        let path = entry.path();
-        if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
-            match fs::read_to_string(path) {
-                Ok(content) => files.push((path.to_path_buf(), content)),
-                Err(e) => println!("cargo:warning=Failed to read {}: {}", path.display(), e),
+    for dir in content_dirs {
+        for entry in WalkDir::new(dir)
+            .follow_links(true)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
+                match fs::read_to_string(path) {
+                    Ok(content) => files.push((path.to_path_buf(), content)),
+                    Err(e) => println!("cargo:warning=Failed to read {}: {}", path.display(), e),
+                }
             }
         }
     }
@@ -361,11 +363,15 @@ fn scan_markdown_files(posts_dir: &Path) -> Vec<(PathBuf, String)> {
 
 fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=posts/");
+    println!("cargo:rerun-if-changed=notes/");
+    println!("cargo:rerun-if-changed=reviews/");
     println!("cargo:rerun-if-changed=assets/math/");
 
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned());
     let crate_dir = Path::new(&manifest_dir);
     let posts_dir = crate_dir.join("posts");
+    let notes_dir = crate_dir.join("notes");
+    let reviews_dir = crate_dir.join("reviews");
     let assets_dir = crate_dir.join("assets").join("math");
     let manifest_path = assets_dir.join("manifest.json");
 
@@ -406,8 +412,9 @@ fn main() -> Result<()> {
         }
     };
 
-    // Scan all markdown files
-    let markdown_files = scan_markdown_files(&posts_dir);
+    // Scan all markdown files from all content directories
+    let content_dirs: [&Path; 3] = [&posts_dir, &notes_dir, &reviews_dir];
+    let markdown_files = scan_markdown_files(&content_dirs);
 
     // Extract all formulas from markdown files
     let mut all_formulas = Vec::new();

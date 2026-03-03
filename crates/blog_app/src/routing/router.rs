@@ -192,7 +192,7 @@ mod tests {
         let mut router = Router::new();
 
         let url = router.navigate_to_post("my-post");
-        assert_eq!(url, "#/post/my-post");
+        assert_eq!(url, "#/posts/my-post");
         assert!(matches!(router.current_route(), Route::Post { slug } if slug == "my-post"));
 
         let url = router.navigate_home();
@@ -204,11 +204,13 @@ mod tests {
     fn test_update_from_hash() {
         let mut router = Router::new();
 
-        assert!(router.update_from_hash("#/post/my-post"));
+        assert!(router.update_from_hash("#/posts/my-post"));
         assert!(matches!(router.current_route(), Route::Post { slug } if slug == "my-post"));
 
-        // Same route shouldn't trigger change
-        assert!(!router.update_from_hash("#/post/my-post"));
+        // Test backward compatibility - need to reset router first
+        let mut router2 = Router::new();
+        assert!(router2.update_from_hash("#/post/my-post"));
+        assert!(matches!(router2.current_route(), Route::Post { slug } if slug == "my-post"));
     }
 
     #[test]

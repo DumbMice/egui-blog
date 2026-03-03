@@ -152,14 +152,16 @@ pub fn top_panel(
 }
 
 /// Side panel with post list.
+#[allow(clippy::too_many_arguments)]
 pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
     post_manager_state: &PostManagerState, // NEW
     search_query: &str,
+    selected_content_type: &mut Option<crate::posts::ContentType>,
     selected_post_index: &mut usize,
     config: &mut LayoutConfig,
-    mut on_post_selected: impl FnMut(&str),
+    mut on_selection: impl FnMut(Option<&crate::posts::BlogPost>),
 ) -> bool {
     let mut selection_changed = false;
 
@@ -223,9 +225,63 @@ pub fn side_panel(
 
         ui.separator();
 
-        // Get posts based on search query and sort order
-        // The search method now handles sorting internally using cached sorted posts
-        let posts_to_show = post_manager.search(search_query, config.post_sort_order);
+        // Content type tabs
+        ui.horizontal(|ui| {
+            // "All" tab
+            let all_selected = selected_content_type.is_none();
+            let all_response = ui.selectable_label(all_selected, "All");
+            if all_response.clicked() && !all_selected {
+                *selected_content_type = None;
+                // When switching to "All", navigate to Home to show all posts
+                selection_changed = true;
+                on_selection(None); // Navigate to Home
+            }
+
+            // Content type tabs
+            for content_type in [
+                crate::posts::ContentType::Post,
+                crate::posts::ContentType::Note,
+                crate::posts::ContentType::Review,
+            ] {
+                let is_selected = *selected_content_type == Some(content_type);
+                let response = ui.selectable_label(is_selected, content_type.display_name());
+                if response.clicked() && !is_selected {
+                    *selected_content_type = Some(content_type);
+                    // Find first post of this content type to select
+                    let filtered_posts = post_manager
+                        .search(search_query, config.post_sort_order)
+                        .into_iter()
+                        .filter(|post| post.content_type == content_type)
+                        .collect::<Vec<_>>();
+                    if let Some(first_post) = filtered_posts.first() {
+                        if let Some(index) = post_manager
+                            .posts()
+                            .iter()
+                            .position(|p| p.id == first_post.id)
+                        {
+                            *selected_post_index = index;
+                            selection_changed = true;
+                            on_selection(Some(first_post));
+                        }
+                    }
+                }
+            }
+        });
+
+        ui.separator();
+
+        // Get posts based on search query, content type filter, and sort order
+        let posts_to_show = post_manager
+            .search(search_query, config.post_sort_order)
+            .into_iter()
+            .filter(|post| {
+                // Apply content type filter if set
+                match selected_content_type {
+                    Some(content_type) => post.content_type == *content_type,
+                    None => true, // Show all
+                }
+            })
+            .collect::<Vec<_>>();
 
         if posts_to_show.is_empty() {
             ui.label("No posts found");
@@ -275,7 +331,7 @@ pub fn side_panel(
                             *selected_post_index = original_index;
                             selection_changed = true;
                             // Update URL when post is selected
-                            on_post_selected(&post.slug);
+                            on_selection(Some(post));
                         }
                     });
                 }

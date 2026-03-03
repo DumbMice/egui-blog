@@ -153,21 +153,46 @@ pub fn load_posts_from_dir(
     Ok(posts)
 }
 
-/// Load posts embedded at compile time.
-pub fn load_embedded_posts() -> Vec<BlogPost> {
+/// Load all content embedded at compile time.
+pub fn load_embedded_content() -> Vec<BlogPost> {
     use blog_macros::embed_file_array;
 
-    // Embedded post files using procedural macro
-    let post_contents = embed_file_array!("../../posts/", pattern = "*.md");
-
+    let mut all_content = Vec::new();
     let mut posts = Vec::new();
 
+    // Load posts from posts directory
+    let post_contents = embed_file_array!("../../posts/", pattern = "*.md");
     for (id, content) in post_contents.iter().enumerate() {
-        match parse_post_content(content, id, crate::posts::ContentType::Post) {
+        all_content.push((content, id, crate::posts::ContentType::Post));
+    }
+
+    // Load notes from notes directory
+    let note_contents = embed_file_array!("../../notes/", pattern = "*.md");
+    for (id, content) in note_contents.iter().enumerate() {
+        all_content.push((
+            content,
+            id + post_contents.len(),
+            crate::posts::ContentType::Note,
+        ));
+    }
+
+    // Load reviews from reviews directory
+    let review_contents = embed_file_array!("../../reviews/", pattern = "*.md");
+    for (id, content) in review_contents.iter().enumerate() {
+        all_content.push((
+            content,
+            id + post_contents.len() + note_contents.len(),
+            crate::posts::ContentType::Review,
+        ));
+    }
+
+    // Parse all content
+    for (content, id, content_type) in all_content {
+        match parse_post_content(content, id, content_type) {
             Ok(post) => {
                 posts.push(post);
             }
-            Err(err) => log::warn!("Failed to parse embedded post {id}: {err}"),
+            Err(err) => log::warn!("Failed to parse embedded content {id}: {err}"),
         }
     }
 
@@ -202,5 +227,73 @@ mod tests {
             .contains("Missing frontmatter delimiter"));
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
+    }
+
+    #[test]
+    fn test_content_type_parsing() {
+        // Test post content type
+        let post_content = r#"---
+title: Test Post
+date: 2026-03-01
+tags: [test]
+type: "post"
+---
+
+This is a test post."#;
+
+        let result = parse_post_content(post_content, 0, crate::posts::ContentType::Post);
+        assert!(result.is_ok());
+        let post = result.unwrap();
+        assert_eq!(post.content_type, crate::posts::ContentType::Post);
+        assert_eq!(post.title, "Test Post");
+
+        // Test note content type
+        let note_content = r#"---
+title: Test Note
+date: 2026-03-01
+tags: [test]
+type: "note"
+status: "draft"
+---
+
+This is a test note."#;
+
+        let result = parse_post_content(note_content, 1, crate::posts::ContentType::Note);
+        assert!(result.is_ok());
+        let note = result.unwrap();
+        assert_eq!(note.content_type, crate::posts::ContentType::Note);
+        assert_eq!(note.title, "Test Note");
+
+        // Test review content type
+        let review_content = r#"---
+title: Test Review
+date: 2026-03-01
+tags: [test]
+type: "review"
+rating: 5
+---
+
+This is a test review."#;
+
+        let result = parse_post_content(review_content, 2, crate::posts::ContentType::Review);
+        assert!(result.is_ok());
+        let review = result.unwrap();
+        assert_eq!(review.content_type, crate::posts::ContentType::Review);
+        assert_eq!(review.title, "Test Review");
+
+        // Test default content type (when type is not specified)
+        let default_content = r#"---
+title: Default Content
+date: 2026-03-01
+tags: [test]
+---
+
+This is default content."#;
+
+        let result = parse_post_content(default_content, 3, crate::posts::ContentType::Post);
+        assert!(result.is_ok());
+        let default_post = result.unwrap();
+        assert_eq!(default_post.content_type, crate::posts::ContentType::Post);
+        assert_eq!(default_post.title, "Default Content");
     }
 }

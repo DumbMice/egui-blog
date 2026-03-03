@@ -136,15 +136,66 @@ cargo blog-wasm     # Build WASM library only
 8. **Persistence**: Router state saved across browser refreshes using serde serialization
 9. **Comprehensive Testing**: 8 routing-specific tests added, all existing tests pass
 
-## Priority 9: Multiple Content Types & Tabs
-- [ ] Support different content types: blog posts, private notes, research reviews
-- [ ] Implement tab-based navigation between content types
-- [ ] Shared search database across all content types
-- [ ] Same Markdown format with type-specific frontmatter
-- [ ] Different directories: `posts/`, `notes/`, `reviews/`
-- [ ] Filterable views or separate navigation sections
+## Priority 9: Multiple Content Types & Tabs ✅ COMPLETED 2026-03-03
+- [x] Support different content types: blog posts, private notes, research reviews
+- [x] Implement tab-based navigation between content types
+- [x] Shared search database across all content types
+- [x] Same Markdown format with type-specific frontmatter
+- [x] Different directories: `posts/`, `notes/`, `reviews/`
+- [x] Filterable views or separate navigation sections
+- [x] Fix tab navigation bugs and UI issues
+- [x] Add dates to post list display
+- [x] Fix panel resizing with wrapping text labels
 
 **Note**: Single WASM app with multiple content sections. Tabs as starting navigation pattern.
+
+### Implementation Details:
+1. **ContentType Enum**: Created `ContentType` enum with `Post`, `Note`, `Review` variants
+2. **Directory Structure**: Created `notes/` and `reviews/` directories alongside existing `posts/`
+3. **Example Content**: Added example markdown files with type-specific frontmatter:
+   - `notes/2026-03-01-research-ideas.md` (with `type: "note"`, `status: "draft"`)
+   - `notes/2026-02-28-meeting-notes.md` (with `type: "note"`, `status: "active"`)
+   - `reviews/2026-02-25-deep-learning-book-review.md` (with `type: "review"`, `rating: 5`)
+   - `reviews/2026-02-20-rust-programming-language-review.md` (with `type: "review"`, `rating: 4`)
+4. **Frontmatter Extension**: Added `content_type` field to `Frontmatter` struct for YAML parsing
+5. **Backward Compatibility**: When `type` is not specified in frontmatter, defaults to `ContentType::Post`
+6. **Build System Update**: Modified `build.rs` to scan all three directories for math formulas
+7. **Content Loading**: Updated `load_embedded_content()` to load from all three directories using `embed_file_array!` macro
+8. **Testing**: Added comprehensive tests for content type parsing and loading verification
+9. **Verification**: Confirmed loading of 6 posts, 2 notes, and 2 reviews in integration test
+
+### Tab-based UI Navigation:
+1. **State Management**: Added `selected_content_type` state to `BlogApp` struct
+2. **Tab Implementation**: Updated `side_panel` function to include content type tabs ("All", "Posts", "Notes", "Reviews")
+3. **Filtering Logic**: Posts are filtered based on selected content type with proper dereferencing fix
+4. **Navigation Integration**: Tabs automatically select first post of type and trigger navigation
+5. **Visual Indicators**: Added icons (📝, 📓, ⭐) for content types in post list
+6. **Date Display**: Added publication dates to post list with proper styling
+
+### Routing Extension:
+1. **Route Enum**: Updated `Route` enum to support `Post`, `Note`, and `Review` routes
+2. **URL Parsing**: Updated URL parsing to support `#/posts/slug`, `#/notes/slug`, `#/reviews/slug`
+3. **Backward Compatibility**: Maintained backward compatibility with old `#/post/slug` URLs
+4. **Navigation Logic**: Updated navigation logic to generate correct URLs based on content type
+5. **State Sync**: Updated `sync_state_to_route` to handle new route types and update content type filter
+
+### UI Improvements:
+1. **Wrapping Labels**: Created `selectable_label_wrapping()` function to support text wrapping in post titles
+2. **Panel Resizing**: Fixed left panel resizing issue by replacing `selectable_label` with wrapping version
+3. **Date Display**: Added publication dates to post list with small, faded text styling
+4. **Visual Feedback**: Maintained proper selection and hover states in custom wrapping labels
+
+### Bug Fixes:
+1. **Tab Comparison Bug**: Fixed `*selected_content_type == Some(content_type)` comparison (was comparing references)
+2. **"All" Tab Logic**: Fixed logic for selecting first post when switching to "All" tab
+3. **Navigation State**: Fixed content type filter persistence when navigating between posts
+4. **Post Selection**: Fixed post selection click handler in `post_preview` function
+
+### Testing:
+- All 29 existing tests pass
+- Comprehensive content type parsing tests
+- Routing and navigation tests
+- UI component tests
 
 ## Priority 10: Complete Label/Tag System
 - [ ] Make labels interactive (click to search)

@@ -320,17 +320,84 @@ pub fn post_navigation(ui: &mut Ui, current_index: usize, total_posts: usize) ->
     new_index
 }
 
+/// A selectable label that supports text wrapping.
+/// This looks like a `selectable_label` but allows text to wrap to multiple lines.
+pub fn selectable_label_wrapping(ui: &mut Ui, is_selected: bool, text: &str) -> egui::Response {
+    // Use a different color for selected state that doesn't conflict with bold text
+    // Using Catppuccin "text" color for normal, "blue" for selected (links/active color)
+    let text_color = if is_selected {
+        ui.visuals().hyperlink_color // Use link color for selection
+    } else {
+        ui.visuals().widgets.noninteractive.fg_stroke.color
+    };
+
+    // Create a button but style it to look like text
+    // Buttons handle width constraints and wrapping better than Labels
+    let mut button = egui::Button::new(egui::RichText::new(text).color(text_color))
+        .wrap()
+        .fill(egui::Color32::TRANSPARENT) // No background
+        .frame(false); // No frame
+
+    // Remove padding to make it look like text
+    button = button.small();
+
+    let response = ui.add(button);
+
+    // Add hover effects to show it's clickable
+    if response.hovered() && !is_selected {
+        // Change cursor to pointer (button might already do this, but ensure it)
+        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+
+        // Add subtle background on hover (like selectable_label)
+        let mut fill = ui.visuals().widgets.hovered.bg_fill;
+        fill = fill.linear_multiply(0.15); // Very subtle
+        ui.painter().rect_filled(response.rect, 2.0, fill); // Rounded corners
+    }
+
+    // Add selection indicator (subtle background instead of vertical line)
+    if is_selected {
+        let mut fill = ui.visuals().widgets.active.bg_fill;
+        fill = fill.linear_multiply(0.1); // Very subtle background
+        ui.painter().rect_filled(response.rect, 2.0, fill); // Rounded corners
+    }
+
+    response
+}
+
 /// Display a post preview in a list.
 pub fn post_preview(ui: &mut Ui, post: &crate::posts::BlogPost, is_selected: bool) -> bool {
     let mut clicked = false;
 
     ui.vertical(|ui| {
-        let response = ui.selectable_label(is_selected, &post.title);
-        if response.clicked() {
-            clicked = true;
-        }
+        // First row: icon and title
+        ui.horizontal(|ui| {
+            // Content type icon
+            let icon = match post.content_type {
+                crate::posts::ContentType::Post => "📝",
+                crate::posts::ContentType::Note => "📓",
+                crate::posts::ContentType::Review => "⭐",
+            };
+            ui.label(icon);
 
-        ui.small(&post.date);
+            // Post title - use our custom wrapping selectable label
+            let response = selectable_label_wrapping(ui, is_selected, &post.title);
+            if response.clicked() {
+                clicked = true;
+            }
+        });
+
+        // Second row: date (indented)
+        ui.horizontal(|ui| {
+            // Add space to align with title (icon width + some padding)
+            ui.add_space(24.0); // Approximate width of icon + padding
+
+            // Date
+            ui.label(
+                egui::RichText::new(&post.date)
+                    .small()
+                    .color(ui.visuals().weak_text_color()),
+            );
+        });
         // Tags are displayed separately in side_panel based on config
     });
 

@@ -42,6 +42,8 @@ pub struct BlogApp {
     previous_theme: Theme,
     /// Search query
     search_query: String,
+    /// Selected content type filter (None = show all)
+    selected_content_type: Option<crate::posts::ContentType>,
     /// Layout configuration
     layout_config: LayoutConfig,
     /// Math asset manager for rendering formula SVGs
@@ -54,7 +56,6 @@ pub struct BlogApp {
     /// Pending URL update to push to browser history
     #[cfg_attr(feature = "serde", serde(skip))]
     pending_url_update: Option<String>,
-
 
     /// Debug state (only available in debug builds)
     #[cfg(debug_assertions)]
@@ -77,6 +78,7 @@ impl Default for BlogApp {
             theme: Theme::default(),
             previous_theme: Theme::default(),
             search_query: String::new(),
+            selected_content_type: None, // Show all content types by default
             layout_config: LayoutConfig::default(),
             math_asset_manager: MathAssetManager::default(),
             router: Router::new(),
@@ -145,10 +147,12 @@ impl BlogApp {
     /// Sync app state to match the current route.
     fn sync_state_to_route(&mut self) {
         match self.router.current_route() {
-            Route::Post { slug } => {
+            Route::Post { slug } | Route::Note { slug } | Route::Review { slug } => {
                 if let Some(index) = self.post_manager.find_post_index_by_slug(slug) {
                     self.selected_post = index;
                     self.editing_new_post = false;
+                    // Don't update selected_content_type when navigating to a post
+                    // This allows staying in "All" tab mode when clicking posts
                 } else {
                     // Post not found - show 404
                     self.router.navigate_to(Route::NotFound);
@@ -164,6 +168,7 @@ impl BlogApp {
             }
             Route::Home => {
                 // Reset to default state
+                self.selected_content_type = None; // Show all content types on home
                 if self.post_manager.count() > 0 {
                     self.selected_post = 0;
                 }
@@ -176,7 +181,7 @@ impl BlogApp {
     #[cfg(target_arch = "wasm32")]
     fn handle_url_changes(&mut self, frame: &eframe::Frame) {
         let hash = &frame.info().web_info.location.hash;
-        
+
         // Update router from hash
         if self.router.update_from_hash(hash) {
             self.sync_state_to_route();
@@ -287,25 +292,44 @@ impl eframe::App for BlogApp {
 
         // Side panel
         let mut selection_changed = false;
-        let mut selected_slug = None;
+        let mut selected_post_for_nav = None;
         Panel::left("side_panel").show_inside(ui, |ui| {
             selection_changed = ui::layout::side_panel(
                 ui,
                 &self.post_manager,
                 &self.post_manager_state, // NEW: pass state
                 &self.search_query,
+                &mut self.selected_content_type,
                 &mut self.selected_post,
                 &mut self.layout_config,
-                |slug| {
-                    selected_slug = Some(slug.to_owned());
+                |post_opt| {
+                    selected_post_for_nav = post_opt.cloned();
                 },
             );
         });
 
         if selection_changed {
             self.editing_new_post = false;
-            if let Some(slug) = selected_slug {
-                self.navigate_to(crate::routing::Route::Post { slug });
+            match selected_post_for_nav {
+                Some(post) => {
+                    // Navigate to the correct route based on content type
+                    let route = match post.content_type {
+                        crate::posts::ContentType::Post => {
+                            crate::routing::Route::Post { slug: post.slug }
+                        }
+                        crate::posts::ContentType::Note => {
+                            crate::routing::Route::Note { slug: post.slug }
+                        }
+                        crate::posts::ContentType::Review => {
+                            crate::routing::Route::Review { slug: post.slug }
+                        }
+                    };
+                    self.navigate_to(route);
+                }
+                None => {
+                    // Navigate to Home (e.g., when "All" tab is clicked)
+                    self.navigate_to(crate::routing::Route::Home);
+                }
             }
         }
 
@@ -315,19 +339,19 @@ impl eframe::App for BlogApp {
         let mut navigation_index = None;
         let mut retry_requested = false;
         let mut route_to_navigate = None;
-        
+
         CentralPanel::default().show_inside(ui, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 // Create closure first to avoid borrow conflicts
                 let mut navigate_callback = |route: crate::routing::Route| {
                     route_to_navigate = Some(route);
                 };
-                
+
                 let navigation = ui::layout::NavigationContext {
                     current_route: self.router.current_route(),
                     on_navigate: &mut navigate_callback,
                 };
-                
+
                 let state = ui::layout::MainContentState::new(
                     &self.post_manager,
                     self.selected_post,
@@ -352,7 +376,7 @@ impl eframe::App for BlogApp {
             self.selected_post = new_index;
             self.editing_new_post = false;
         }
-        
+
         if let Some(route) = route_to_navigate {
             self.navigate_to(route);
         }

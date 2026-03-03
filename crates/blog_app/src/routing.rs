@@ -13,6 +13,10 @@ pub enum Route {
     Home,
     /// Specific blog post
     Post { slug: String },
+    /// Specific note
+    Note { slug: String },
+    /// Specific review
+    Review { slug: String },
     /// Search results page
     Search { query: String, tags: Vec<String> },
     /// Posts with a specific tag
@@ -37,6 +41,37 @@ impl Route {
 
         match path_part {
             "" => Self::Home,
+            path if path.starts_with("posts/") => {
+                let slug = path.trim_start_matches("posts/").to_owned();
+                if slug.is_empty() {
+                    Self::NotFound
+                } else {
+                    Self::Post {
+                        slug: url_decode(&slug),
+                    }
+                }
+            }
+            path if path.starts_with("notes/") => {
+                let slug = path.trim_start_matches("notes/").to_owned();
+                if slug.is_empty() {
+                    Self::NotFound
+                } else {
+                    Self::Note {
+                        slug: url_decode(&slug),
+                    }
+                }
+            }
+            path if path.starts_with("reviews/") => {
+                let slug = path.trim_start_matches("reviews/").to_owned();
+                if slug.is_empty() {
+                    Self::NotFound
+                } else {
+                    Self::Review {
+                        slug: url_decode(&slug),
+                    }
+                }
+            }
+            // Backward compatibility: support old "post/" URLs
             path if path.starts_with("post/") => {
                 let slug = path.trim_start_matches("post/").to_owned();
                 if slug.is_empty() {
@@ -77,7 +112,9 @@ impl Route {
     pub fn to_hash(&self) -> String {
         match self {
             Self::Home => "#/".to_owned(),
-            Self::Post { slug } => format!("#/post/{slug}"),
+            Self::Post { slug } => format!("#/posts/{slug}"),
+            Self::Note { slug } => format!("#/notes/{slug}"),
+            Self::Review { slug } => format!("#/reviews/{slug}"),
             Self::Search { query, tags } => {
                 let mut query_parts = Vec::new();
                 if !query.is_empty() {
@@ -183,11 +220,32 @@ mod tests {
         assert_eq!(Route::from_hash("#"), Route::Home);
         assert_eq!(Route::from_hash("#/"), Route::Home);
 
-        // Post route
+        // Post route (new format)
+        assert_eq!(
+            Route::from_hash("#/posts/my-post"),
+            Route::Post {
+                slug: "my-post".to_string()
+            }
+        );
+        // Post route (backward compatibility)
         assert_eq!(
             Route::from_hash("#/post/my-post"),
             Route::Post {
                 slug: "my-post".to_string()
+            }
+        );
+        // Note route
+        assert_eq!(
+            Route::from_hash("#/notes/my-note"),
+            Route::Note {
+                slug: "my-note".to_string()
+            }
+        );
+        // Review route
+        assert_eq!(
+            Route::from_hash("#/reviews/my-review"),
+            Route::Review {
+                slug: "my-review".to_string()
             }
         );
 
@@ -232,7 +290,23 @@ mod tests {
                 slug: "my-post".to_string()
             }
             .to_url(),
-            "#/post/my-post"
+            "#/posts/my-post"
+        );
+        // Note
+        assert_eq!(
+            Route::Note {
+                slug: "my-note".to_string()
+            }
+            .to_url(),
+            "#/notes/my-note"
+        );
+        // Review
+        assert_eq!(
+            Route::Review {
+                slug: "my-review".to_string()
+            }
+            .to_url(),
+            "#/reviews/my-review"
         );
 
         // Search

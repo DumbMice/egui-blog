@@ -5,16 +5,17 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
-    LoadError,
+    load_embedded_content, load_post_from_file, load_posts_from_dir, parse_post_content,
+    Frontmatter, LoadError,
 };
 pub use state::PostManagerState; // NEW
 
 /// Type of content
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum ContentType {
     /// Public blog posts
+    #[default]
     Post,
     /// Private notes
     Note,
@@ -58,12 +59,6 @@ impl ContentType {
             "review" | "reviews" => Some(Self::Review),
             _ => None,
         }
-    }
-}
-
-impl Default for ContentType {
-    fn default() -> Self {
-        Self::Post
     }
 }
 
@@ -302,8 +297,8 @@ impl Default for PostManager {
             sorted_posts_oldest_first: Vec::new(),
         };
 
-        // Load posts embedded at compile time
-        let posts = load_embedded_posts();
+        // Load content embedded at compile time
+        let posts = load_embedded_content();
         for post in posts {
             manager.add_post(post);
         }
@@ -409,8 +404,8 @@ impl PostManager {
         self.next_id = 0;
         self.state = PostManagerState::Loading;
 
-        // Load posts embedded at compile time
-        let posts = load_embedded_posts();
+        // Load content embedded at compile time
+        let posts = load_embedded_content();
         for post in posts {
             self.add_post(post);
         }
@@ -453,6 +448,37 @@ mod tests {
             PostManagerState::Loaded => {
                 // Should have some posts
                 assert!(manager.count() > 0);
+
+                // Verify we have content from all three types
+                let mut post_count = 0;
+                let mut note_count = 0;
+                let mut review_count = 0;
+
+                for post in &manager.posts {
+                    match post.content_type {
+                        ContentType::Post => post_count += 1,
+                        ContentType::Note => note_count += 1,
+                        ContentType::Review => review_count += 1,
+                    }
+                }
+
+                println!(
+                    "Loaded {} posts, {} notes, {} reviews",
+                    post_count, note_count, review_count
+                );
+
+                // We should have at least some posts (from the posts/ directory)
+                assert!(post_count > 0, "Should have loaded at least some posts");
+                // Notes and reviews might be 0 if directories are empty, but we created example files
+                // so they should be loaded
+                assert!(
+                    note_count > 0,
+                    "Should have loaded notes from notes/ directory"
+                );
+                assert!(
+                    review_count > 0,
+                    "Should have loaded reviews from reviews/ directory"
+                );
             }
             PostManagerState::Empty => {
                 // No posts loaded
@@ -460,5 +486,32 @@ mod tests {
             }
             _ => panic!("Unexpected state after reload: {:?}", state),
         }
+    }
+
+    #[test]
+    fn test_content_type_methods() {
+        // Test display_name method
+        assert_eq!(ContentType::Post.display_name(), "Posts");
+        assert_eq!(ContentType::Note.display_name(), "Notes");
+        assert_eq!(ContentType::Review.display_name(), "Reviews");
+
+        // Test url_prefix method
+        assert_eq!(ContentType::Post.url_prefix(), "posts");
+        assert_eq!(ContentType::Note.url_prefix(), "notes");
+        assert_eq!(ContentType::Review.url_prefix(), "reviews");
+
+        // Test directory_name method
+        assert_eq!(ContentType::Post.directory_name(), "posts");
+        assert_eq!(ContentType::Note.directory_name(), "notes");
+        assert_eq!(ContentType::Review.directory_name(), "reviews");
+
+        // Test from_str method
+        assert_eq!(ContentType::from_str("post"), Some(ContentType::Post));
+        assert_eq!(ContentType::from_str("note"), Some(ContentType::Note));
+        assert_eq!(ContentType::from_str("review"), Some(ContentType::Review));
+        assert_eq!(ContentType::from_str("invalid"), None);
+
+        // Test default
+        assert_eq!(ContentType::default(), ContentType::Post);
     }
 }
