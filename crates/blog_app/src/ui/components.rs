@@ -228,7 +228,6 @@ pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugStat
 
                 // Clear cache button
                 if ui.button("Clear cache").clicked() {
-                    log::debug!("Clear cache requested");
                     interacted = true;
                 }
             });

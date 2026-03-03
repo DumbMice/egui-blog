@@ -234,7 +234,7 @@ pub fn side_panel(
                         let clicked = components::post_preview(ui, post, is_selected);
 
                         if config.show_preview_in_list {
-                            // Try to show first paragraph, fall back to preview if no paragraph
+                            // Try to show first paragraph, show nothing if no paragraph
                             if let Some(paragraph) = post.first_paragraph() {
                                 ui.small(paragraph);
                             } else {

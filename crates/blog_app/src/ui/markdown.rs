@@ -1,12 +1,12 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
+use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use log;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{MathAssetManager, ui::table_renderer};
+use crate::{ui::table_renderer, MathAssetManager};
 
 /// Content that can appear within a paragraph
 #[derive(Clone)]
@@ -201,7 +201,6 @@ fn render_markdown_impl(
                         ui.add_space(spacing_after);
                     }
                     Tag::List(ordered) => {
-                        log::debug!("Start List, ordered: {ordered:?}");
                         // Lists
                         let mut list_items = Vec::new();
                         while let Some(event) = events.next() {
@@ -438,14 +437,7 @@ fn render_markdown_impl(
                         }
                     }
                     Tag::Table(alignments) => {
-                        log::info!("Found table with {} alignments", alignments.len());
                         let (headers, rows) = parse_table(&mut events, &alignments);
-                        log::info!(
-                            "Parsed table: {} headers (first: {:?}), {} rows",
-                            headers.len(),
-                            headers.first(),
-                            rows.len()
-                        );
                         table_renderer::render_table(
                             ui,
                             &alignments,
@@ -713,15 +705,12 @@ pub(crate) fn parse_table<'a>(
     events: &mut std::iter::Peekable<Parser<'a, 'a>>,
     _alignments: &[Alignment],
 ) -> (Vec<Vec<String>>, Vec<Vec<String>>) {
-    log::debug!("parse_table called");
-
     let mut headers = Vec::new();
     let mut rows = Vec::new();
     let mut current_row = Vec::new();
     let mut in_header = false;
 
     while let Some(event) = events.next() {
-        log::debug!("parse_table event: {event:?}");
         match event {
             Event::Start(Tag::TableHead) => {
                 in_header = true;
@@ -764,11 +753,6 @@ pub(crate) fn parse_table<'a>(
         }
     }
 
-    log::debug!(
-        "parse_table returning: headers={} rows={}",
-        headers.len(),
-        rows.len()
-    );
     (headers, rows)
 }
 
@@ -1194,7 +1178,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
+                                           // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;
