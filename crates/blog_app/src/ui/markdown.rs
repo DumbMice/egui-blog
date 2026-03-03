@@ -2,7 +2,6 @@
 
 use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
-use log;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;

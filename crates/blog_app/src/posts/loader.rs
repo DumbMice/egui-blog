@@ -18,6 +18,9 @@ pub struct Frontmatter {
     /// Optional tags/categories
     #[serde(default)]
     pub tags: Vec<String>,
+    /// Optional URL-friendly slug (auto-generated from title if not provided)
+    #[serde(default)]
+    pub slug: Option<String>,
 }
 
 /// Errors that can occur during post loading.
@@ -30,18 +33,18 @@ pub enum LoadError {
     Yaml(#[from] serde_yaml::Error),
 
     #[error("Invalid file format: {0}")]
-    #[expect(dead_code)]
+    #[cfg(test)]
     Format(String),
 
     #[error("Missing frontmatter delimiter")]
     MissingDelimiter,
 
     #[error("File not found: {0:?}")]
-    #[expect(dead_code)]
+    #[cfg(test)]
     FileNotFound(PathBuf),
 
     #[error("Directory not found: {0:?}")]
-    #[expect(dead_code)]
+    #[cfg(test)]
     DirectoryNotFound(PathBuf),
 }
 
@@ -80,6 +83,11 @@ pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadErro
     // Parse frontmatter
     let frontmatter: Frontmatter = serde_yaml::from_str(frontmatter_yaml)?;
 
+    // Generate slug from title if not provided in frontmatter
+    let slug = frontmatter
+        .slug
+        .unwrap_or_else(|| crate::posts::BlogPost::generate_slug(&frontmatter.title));
+
     // Create blog post with preprocessed content
     let manifest = crate::math::load_manifest();
     let processed_content =
@@ -88,6 +96,7 @@ pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadErro
     Ok(BlogPost {
         id,
         title: frontmatter.title,
+        slug,
         content: markdown_content.to_owned(),
         date: frontmatter.date,
         tags: frontmatter.tags,
@@ -133,9 +142,12 @@ pub fn load_embedded_posts() -> Vec<BlogPost> {
     let post_contents = embed_file_array!("../../posts/", pattern = "*.md");
 
     let mut posts = Vec::new();
+
     for (id, content) in post_contents.iter().enumerate() {
         match parse_post_content(content, id) {
-            Ok(post) => posts.push(post),
+            Ok(post) => {
+                posts.push(post);
+            }
             Err(err) => log::warn!("Failed to parse embedded post {id}: {err}"),
         }
     }
@@ -166,11 +178,9 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(
-            missing_delimiter
-                .to_string()
-                .contains("Missing frontmatter delimiter")
-        );
+        assert!(missing_delimiter
+            .to_string()
+            .contains("Missing frontmatter delimiter"));
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

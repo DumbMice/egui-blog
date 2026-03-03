@@ -7,6 +7,14 @@ use crate::math::MathAssetManager;
 use crate::posts::{PostManager, PostManagerState};
 
 /// State bundle for rendering the main content area
+/// Context for navigation in UI components
+pub struct NavigationContext<'a> {
+    /// Current URL route
+    pub current_route: &'a crate::routing::Route,
+    /// Callback for navigation requests
+    pub on_navigate: &'a mut dyn FnMut(crate::routing::Route),
+}
+
 pub struct MainContentState<'a> {
     /// Post manager containing all posts
     pub post_manager: &'a PostManager,
@@ -22,10 +30,13 @@ pub struct MainContentState<'a> {
     pub post_manager_state: &'a PostManagerState,
     /// Optional math asset manager for formula rendering
     pub math_asset_manager: Option<&'a mut MathAssetManager>,
+    /// Navigation context
+    pub navigation: NavigationContext<'a>,
 }
 
 impl<'a> MainContentState<'a> {
     /// Create a new state bundle
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         post_manager: &'a PostManager,
         selected_post_index: usize,
@@ -34,6 +45,7 @@ impl<'a> MainContentState<'a> {
         new_post_content: &'a mut String,
         post_manager_state: &'a PostManagerState,
         math_asset_manager: Option<&'a mut MathAssetManager>,
+        navigation: NavigationContext<'a>,
     ) -> Self {
         Self {
             post_manager,
@@ -43,6 +55,7 @@ impl<'a> MainContentState<'a> {
             new_post_content,
             post_manager_state,
             math_asset_manager,
+            navigation,
         }
     }
 }
@@ -146,6 +159,7 @@ pub fn side_panel(
     search_query: &str,
     selected_post_index: &mut usize,
     config: &mut LayoutConfig,
+    mut on_post_selected: impl FnMut(&str),
 ) -> bool {
     let mut selection_changed = false;
 
@@ -260,6 +274,8 @@ pub fn side_panel(
                         if clicked {
                             *selected_post_index = original_index;
                             selection_changed = true;
+                            // Update URL when post is selected
+                            on_post_selected(&post.slug);
                         }
                     });
                 }
@@ -290,6 +306,26 @@ fn main_content_internal_impl(
     let mut editing_cancelled = false;
     let mut navigation_index = None;
     let mut retry_requested = false;
+
+    // Handle 404 route
+    if matches!(
+        state.navigation.current_route,
+        crate::routing::Route::NotFound
+    ) {
+        ui.heading("404 - Page Not Found");
+        ui.separator();
+        ui.label("The requested page could not be found.");
+        ui.add_space(20.0);
+        if ui.button("🏠 Return to Home").clicked() {
+            (state.navigation.on_navigate)(crate::routing::Route::Home);
+        }
+        return (
+            post_saved,
+            editing_cancelled,
+            navigation_index,
+            retry_requested,
+        );
+    }
 
     match state.post_manager_state {
         PostManagerState::Loading => {

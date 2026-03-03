@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    Frontmatter, LoadError, load_embedded_posts, load_post_from_file, load_posts_from_dir,
-    parse_post_content,
+    load_embedded_posts, load_post_from_file, load_posts_from_dir, parse_post_content, Frontmatter,
+    LoadError,
 };
 pub use state::PostManagerState; // NEW
 
@@ -17,6 +17,8 @@ pub struct BlogPost {
     pub id: usize,
     /// Post title
     pub title: String,
+    /// URL-friendly identifier (slug)
+    pub slug: String,
     /// Post content (markdown format)
     pub content: String,
     /// Publication date
@@ -29,14 +31,22 @@ pub struct BlogPost {
 
 impl BlogPost {
     /// Create a new blog post.
-    pub fn new(id: usize, title: &str, content: &str, date: &str) -> Self {
+    pub fn new(id: usize, title: &str, slug: &str, content: &str, date: &str) -> Self {
         let manifest = crate::math::load_manifest();
         let processed_content =
             crate::ui::markdown::extract_and_replace_math_formulas(content, manifest);
 
+        // Ensure slug is URL-friendly
+        let slug = if slug.is_empty() {
+            Self::generate_slug(title)
+        } else {
+            slug.to_owned()
+        };
+
         Self {
             id,
             title: title.to_owned(),
+            slug,
             content: content.to_owned(),
             date: date.to_owned(),
             tags: Vec::new(),
@@ -50,14 +60,36 @@ impl BlogPost {
         self
     }
 
-    /// Get a preview of the content (first 100 chars).
-    pub fn preview(&self) -> String {
-        let preview = self.content.chars().take(100).collect::<String>();
-        if self.content.len() > 100 {
-            format!("{preview}...")
-        } else {
-            preview
+    /// Generate a URL-friendly slug from a title.
+    pub fn generate_slug(title: &str) -> String {
+        let mut slug = String::new();
+        let mut last_was_dash = false;
+
+        for c in title.chars() {
+            if c.is_alphanumeric() {
+                slug.push(c.to_ascii_lowercase());
+                last_was_dash = false;
+            } else if (c.is_whitespace() || c == '-' || c == '_')
+                && !last_was_dash
+                && !slug.is_empty()
+            {
+                slug.push('-');
+                last_was_dash = true;
+            }
+            // Skip other characters
         }
+
+        // Trim trailing dash
+        if slug.ends_with('-') {
+            slug.pop();
+        }
+
+        // Ensure slug is not empty
+        if slug.is_empty() {
+            slug = "post".to_owned();
+        }
+
+        slug
     }
 
     /// Get the first paragraph of the content as a description.
@@ -218,66 +250,6 @@ impl Default for PostManager {
 }
 
 impl PostManager {
-    /// Add example posts for demonstration.
-    pub fn add_example_posts(&mut self) {
-        self.add_post(BlogPost::new(
-            self.next_id,
-            "Welcome to My Blog",
-            "This is my first blog post using egui! I'm excited to build a blog with Rust and WebAssembly.
-
-## Features
-
-- **Fast**: Compiled to WebAssembly
-- **Simple**: No JavaScript framework
-- **Rust**: Safety and performance
-
-Stay tuned for more updates!",
-            "2026-02-10",
-        ).with_tags(&["welcome", "introduction"]));
-
-        self.add_post(BlogPost::new(
-            self.next_id,
-            "Learning egui",
-            "Today I learned about egui's immediate mode GUI. It's quite different from retained mode frameworks but very intuitive.
-
-### What I like:
-- Easy to get started
-- Great documentation
-- Cross-platform (native and web)
-
-### Code snippet:
-```rust
-fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-    egui::CentralPanel::default().show(ctx, |ui| {
-        ui.heading(\"My App\");
-        if ui.button(\"Click me\").clicked() {
-            // handle click
-        }
-    });
-}
-```",
-            "2026-02-11",
-        ).with_tags(&["tutorial", "egui", "learning"]));
-
-        self.add_post(
-            BlogPost::new(
-                self.next_id,
-                "Future Plans",
-                "I plan to add more features to this blog:
-
-1. Markdown rendering
-2. Code syntax highlighting
-3. Dark/light theme toggle
-4. Search functionality
-5. Comments section
-
-Let me know what you think!",
-                "2026-02-12",
-            )
-            .with_tags(&["planning", "features"]),
-        );
-    }
-
     /// Add a new post to the collection.
     pub fn add_post(&mut self, post: BlogPost) {
         self.posts.push(post.clone());
@@ -349,6 +321,16 @@ Let me know what you think!",
     /// Get current loading state
     pub fn state(&self) -> &PostManagerState {
         &self.state
+    }
+
+    /// Find a post by its slug (URL-friendly identifier).
+    pub fn find_post_by_slug(&self, slug: &str) -> Option<&BlogPost> {
+        self.posts.iter().find(|post| post.slug == slug)
+    }
+
+    /// Find the index of a post by its slug.
+    pub fn find_post_index_by_slug(&self, slug: &str) -> Option<usize> {
+        self.posts.iter().position(|post| post.slug == slug)
     }
 
     /// Reload posts from disk/embedded sources.

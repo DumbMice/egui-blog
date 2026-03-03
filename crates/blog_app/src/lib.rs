@@ -6,6 +6,7 @@ mod web;
 
 pub mod math;
 mod posts;
+mod routing;
 mod ui;
 
 #[cfg(debug_assertions)]
@@ -16,6 +17,7 @@ pub use posts::{PostManager, PostManagerState};
 use ui::{LayoutConfig, Theme};
 
 use crate::math::MathAssetManager;
+use crate::routing::{Route, Router};
 
 /// The main app state.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -46,6 +48,14 @@ pub struct BlogApp {
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
 
+    /// URL router
+    #[cfg_attr(feature = "serde", serde(skip))]
+    router: Router,
+    /// Pending URL update to push to browser history
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pending_url_update: Option<String>,
+
+
     /// Debug state (only available in debug builds)
     #[cfg(debug_assertions)]
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -59,16 +69,19 @@ impl Default for BlogApp {
 
         Self {
             post_manager,
-            post_manager_state, // NEW
+            post_manager_state,
             selected_post: 0,
             editing_new_post: false,
             new_post_title: String::new(),
             new_post_content: String::new(),
-            theme: Theme::CatppuccinLatte,
-            previous_theme: Theme::CatppuccinLatte,
+            theme: Theme::default(),
+            previous_theme: Theme::default(),
             search_query: String::new(),
             layout_config: LayoutConfig::default(),
             math_asset_manager: MathAssetManager::default(),
+            router: Router::new(),
+            pending_url_update: None,
+
             #[cfg(debug_assertions)]
             debug_state: crate::debug_windows::DebugState::default(),
         }
@@ -121,11 +134,86 @@ impl BlogApp {
         // Ensure valid selection
         self.ensure_valid_selection();
     }
+
+    /// Navigate to a new route and update browser URL.
+    pub fn navigate_to(&mut self, route: Route) {
+        let url = self.router.navigate_to(route);
+        self.pending_url_update = Some(url);
+        self.sync_state_to_route();
+    }
+
+    /// Sync app state to match the current route.
+    fn sync_state_to_route(&mut self) {
+        match self.router.current_route() {
+            Route::Post { slug } => {
+                if let Some(index) = self.post_manager.find_post_index_by_slug(slug) {
+                    self.selected_post = index;
+                    self.editing_new_post = false;
+                } else {
+                    // Post not found - show 404
+                    self.router.navigate_to(Route::NotFound);
+                }
+            }
+            Route::Search { query, tags: _ } => {
+                self.search_query = query.clone();
+                // TODO: Handle tags when tag system is implemented
+            }
+            Route::Tag { tag: _ } | Route::NotFound => {
+                // TODO: Handle tag filtering when tag system is implemented
+                // Show 404 message - handled in UI
+            }
+            Route::Home => {
+                // Reset to default state
+                if self.post_manager.count() > 0 {
+                    self.selected_post = 0;
+                }
+                self.editing_new_post = false;
+            }
+        }
+    }
+
+    /// Handle URL changes from the browser (web target only).
+    #[cfg(target_arch = "wasm32")]
+    fn handle_url_changes(&mut self, frame: &eframe::Frame) {
+        let hash = &frame.info().web_info.location.hash;
+        
+        // Update router from hash
+        if self.router.update_from_hash(hash) {
+            self.sync_state_to_route();
+        } else {
+            // Clear any pending update since we're already at this route
+            self.pending_url_update = None;
+        }
+    }
+
+    /// Update browser URL if needed (web target only).
+    #[cfg(target_arch = "wasm32")]
+    fn update_browser_url(&mut self) {
+        if let Some(hash) = self.pending_url_update.take() {
+            // For hash-based routing, we can just update window.location.hash
+            // This automatically adds to browser history
+            if let Some(window) = web_sys::window() {
+                let location = window.location();
+                if let Err(err) = location.set_hash(&hash) {
+                    log::warn!("Failed to update browser URL hash: {:?}", err);
+                }
+            }
+        }
+    }
+
+    /// Restore saved route if valid
+    #[cfg(feature = "persistence")]
+    fn restore_route(&mut self) {
+        // Router state is restored from serialization
+        // Need to sync app state to the restored route
+        self.sync_state_to_route();
+    }
 }
 
 impl eframe::App for BlogApp {
     #[cfg(feature = "persistence")]
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        // Router state is automatically serialized as part of BlogApp
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
@@ -138,6 +226,16 @@ impl eframe::App for BlogApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // Restore saved route once on first frame
+        #[cfg(feature = "persistence")]
+        if !self.router.is_initialized() {
+            self.restore_route();
+        }
+
+        // Handle URL changes from browser (web target only)
+        #[cfg(target_arch = "wasm32")]
+        self.handle_url_changes(_frame);
+
         // Update post manager state
         self.post_manager_state = self.post_manager.state().clone();
 
@@ -189,6 +287,7 @@ impl eframe::App for BlogApp {
 
         // Side panel
         let mut selection_changed = false;
+        let mut selected_slug = None;
         Panel::left("side_panel").show_inside(ui, |ui| {
             selection_changed = ui::layout::side_panel(
                 ui,
@@ -197,11 +296,17 @@ impl eframe::App for BlogApp {
                 &self.search_query,
                 &mut self.selected_post,
                 &mut self.layout_config,
+                |slug| {
+                    selected_slug = Some(slug.to_owned());
+                },
             );
         });
 
         if selection_changed {
             self.editing_new_post = false;
+            if let Some(slug) = selected_slug {
+                self.navigate_to(crate::routing::Route::Post { slug });
+            }
         }
 
         // Main content area with scrolling
@@ -209,8 +314,20 @@ impl eframe::App for BlogApp {
         let mut editing_cancelled = false;
         let mut navigation_index = None;
         let mut retry_requested = false;
+        let mut route_to_navigate = None;
+        
         CentralPanel::default().show_inside(ui, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
+                // Create closure first to avoid borrow conflicts
+                let mut navigate_callback = |route: crate::routing::Route| {
+                    route_to_navigate = Some(route);
+                };
+                
+                let navigation = ui::layout::NavigationContext {
+                    current_route: self.router.current_route(),
+                    on_navigate: &mut navigate_callback,
+                };
+                
                 let state = ui::layout::MainContentState::new(
                     &self.post_manager,
                     self.selected_post,
@@ -219,6 +336,7 @@ impl eframe::App for BlogApp {
                     &mut self.new_post_content,
                     &self.post_manager_state,
                     Some(&mut self.math_asset_manager),
+                    navigation,
                 );
                 let result = ui::layout::main_content(ui, state);
                 (
@@ -234,14 +352,22 @@ impl eframe::App for BlogApp {
             self.selected_post = new_index;
             self.editing_new_post = false;
         }
+        
+        if let Some(route) = route_to_navigate {
+            self.navigate_to(route);
+        }
 
         if post_saved {
-            // Create new post
+            // Create new post (demo feature - posts normally come from markdown files)
+            let slug = posts::BlogPost::generate_slug(&self.new_post_title);
+            // Use today's date as placeholder
+            let today = "2026-02-10"; // Simple placeholder
             let new_post = posts::BlogPost::new(
                 self.post_manager.count(),
                 &self.new_post_title,
+                &slug,
                 &self.new_post_content,
-                "2026-02-10",
+                today,
             );
             self.post_manager.add_post(new_post);
             self.selected_post = self.post_manager.count() - 1;
@@ -265,6 +391,10 @@ impl eframe::App for BlogApp {
         Panel::bottom("bottom_panel").show_inside(ui, |ui| {
             ui::layout::bottom_panel(ui);
         });
+
+        // Update browser URL if needed (web target only)
+        #[cfg(target_arch = "wasm32")]
+        self.update_browser_url();
     }
 }
 

@@ -8,8 +8,10 @@ use std::collections::BTreeMap;
 /// Only Catppuccin themes are supported for consistent aesthetics.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Default)]
 pub enum Theme {
     /// Catppuccin Latte theme (light)
+    #[default]
     CatppuccinLatte,
     /// Catppuccin Macchiato theme (dark)
     CatppuccinMacchiato,
