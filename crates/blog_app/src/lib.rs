@@ -364,6 +364,7 @@ impl eframe::App for BlogApp {
             let today = "2026-02-10"; // Simple placeholder
             let new_post = posts::BlogPost::new(
                 self.post_manager.count(),
+                posts::ContentType::Post, // Demo feature creates blog posts
                 &self.new_post_title,
                 &slug,
                 &self.new_post_content,

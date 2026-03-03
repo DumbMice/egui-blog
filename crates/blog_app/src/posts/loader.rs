@@ -21,6 +21,9 @@ pub struct Frontmatter {
     /// Optional URL-friendly slug (auto-generated from title if not provided)
     #[serde(default)]
     pub slug: Option<String>,
+    /// Optional content type (post, note, review)
+    #[serde(default)]
+    pub content_type: Option<String>,
 }
 
 /// Errors that can occur during post loading.
@@ -48,7 +51,7 @@ pub enum LoadError {
     DirectoryNotFound(PathBuf),
 }
 
-/// Load a blog post from a markdown file.
+/// Load a content item from a markdown file.
 ///
 /// File format:
 /// ```markdown
@@ -56,32 +59,34 @@ pub enum LoadError {
 /// title: "Post Title"
 /// date: "2026-02-10"
 /// tags: ["tag1", "tag2"]
+/// type: "post" # optional: "post", "note", or "review"
 /// ---
 ///
-/// Post content in markdown format...
+/// Content here...
 /// ```
-pub fn load_post_from_file(path: &Path, id: usize) -> Result<BlogPost, LoadError> {
-    let content = fs::read_to_string(path)?;
-    parse_post_content(&content, id)
-}
-
-/// Parse post content from a string.
-pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadError> {
-    // Split frontmatter from content
+pub fn parse_post_content(
+    content: &str,
+    id: usize,
+    default_content_type: crate::posts::ContentType,
+) -> Result<BlogPost, LoadError> {
+    // Split by frontmatter delimiter
     let parts: Vec<&str> = content.splitn(3, "---").collect();
-
     if parts.len() < 3 {
         return Err(LoadError::MissingDelimiter);
     }
 
-    // parts[0] should be empty or whitespace before first ---
-    // parts[1] is the YAML frontmatter
-    // parts[2] is the markdown content
     let frontmatter_yaml = parts[1].trim();
     let markdown_content = parts[2].trim();
 
     // Parse frontmatter
     let frontmatter: Frontmatter = serde_yaml::from_str(frontmatter_yaml)?;
+
+    // Determine content type from frontmatter or use default
+    let content_type = if let Some(type_str) = &frontmatter.content_type {
+        crate::posts::ContentType::from_str(type_str).unwrap_or(default_content_type)
+    } else {
+        default_content_type
+    };
 
     // Generate slug from title if not provided in frontmatter
     let slug = frontmatter
@@ -95,6 +100,7 @@ pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadErro
 
     Ok(BlogPost {
         id,
+        content_type,
         title: frontmatter.title,
         slug,
         content: markdown_content.to_owned(),
@@ -104,9 +110,22 @@ pub fn parse_post_content(content: &str, id: usize) -> Result<BlogPost, LoadErro
     })
 }
 
+/// Load a post from a file.
+pub fn load_post_from_file(
+    path: &Path,
+    id: usize,
+    default_content_type: crate::posts::ContentType,
+) -> Result<BlogPost, LoadError> {
+    let content = fs::read_to_string(path)?;
+    parse_post_content(&content, id, default_content_type)
+}
+
 /// Load all posts from a directory.
 #[expect(unused)]
-pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
+pub fn load_posts_from_dir(
+    dir: &Path,
+    default_content_type: crate::posts::ContentType,
+) -> Result<Vec<BlogPost>, LoadError> {
     let mut posts = Vec::new();
 
     if !dir.exists() {
@@ -125,7 +144,7 @@ pub fn load_posts_from_dir(dir: &Path) -> Result<Vec<BlogPost>, LoadError> {
     entries.sort();
 
     for (idx, path) in entries.iter().enumerate() {
-        match load_post_from_file(path, idx) {
+        match load_post_from_file(path, idx, default_content_type) {
             Ok(post) => posts.push(post),
             Err(err) => log::warn!("Failed to load {}: {}", path.display(), err),
         }
@@ -144,7 +163,7 @@ pub fn load_embedded_posts() -> Vec<BlogPost> {
     let mut posts = Vec::new();
 
     for (id, content) in post_contents.iter().enumerate() {
-        match parse_post_content(content, id) {
+        match parse_post_content(content, id, crate::posts::ContentType::Post) {
             Ok(post) => {
                 posts.push(post);
             }

@@ -10,11 +10,70 @@ pub use loader::{
 };
 pub use state::PostManagerState; // NEW
 
-/// A blog post.
+/// Type of content
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub enum ContentType {
+    /// Public blog posts
+    Post,
+    /// Private notes
+    Note,
+    /// Research reviews
+    Review,
+}
+
+impl ContentType {
+    /// Get the display name for this content type
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Post => "Posts",
+            Self::Note => "Notes",
+            Self::Review => "Reviews",
+        }
+    }
+
+    /// Get the URL path prefix for this content type
+    pub fn url_prefix(&self) -> &'static str {
+        match self {
+            Self::Post => "posts",
+            Self::Note => "notes",
+            Self::Review => "reviews",
+        }
+    }
+
+    /// Get the directory name for this content type
+    pub fn directory_name(&self) -> &'static str {
+        match self {
+            Self::Post => "posts",
+            Self::Note => "notes",
+            Self::Review => "reviews",
+        }
+    }
+
+    /// Parse content type from string
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "post" | "posts" => Some(Self::Post),
+            "note" | "notes" => Some(Self::Note),
+            "review" | "reviews" => Some(Self::Review),
+            _ => None,
+        }
+    }
+}
+
+impl Default for ContentType {
+    fn default() -> Self {
+        Self::Post
+    }
+}
+
+/// A content item (post, note, or review).
 #[derive(Clone, Debug)]
 pub struct BlogPost {
     /// Unique identifier
     pub id: usize,
+    /// Content type
+    pub content_type: ContentType,
     /// Post title
     pub title: String,
     /// URL-friendly identifier (slug)
@@ -30,8 +89,15 @@ pub struct BlogPost {
 }
 
 impl BlogPost {
-    /// Create a new blog post.
-    pub fn new(id: usize, title: &str, slug: &str, content: &str, date: &str) -> Self {
+    /// Create a new content item.
+    pub fn new(
+        id: usize,
+        content_type: ContentType,
+        title: &str,
+        slug: &str,
+        content: &str,
+        date: &str,
+    ) -> Self {
         let manifest = crate::math::load_manifest();
         let processed_content =
             crate::ui::markdown::extract_and_replace_math_formulas(content, manifest);
@@ -45,6 +111,7 @@ impl BlogPost {
 
         Self {
             id,
+            content_type,
             title: title.to_owned(),
             slug,
             content: content.to_owned(),
