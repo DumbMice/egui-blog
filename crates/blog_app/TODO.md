@@ -234,7 +234,20 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Power user features for efficient navigation. Vim mode always enabled.
 
-## Priority 12: Collapsible & Resizable Side Panel
+## Priority 12: Fix Blockquote Rendering and Math Alignment
+- [ ] Fix blockquote rendering issues (duplicate code, border implementation)
+- [ ] Fix inline math vertical alignment for short formulas
+- [ ] Use Typst configuration with `top-edge: "bounds"` and `bottom-edge: "bounds"` for centered formulas
+- [ ] Add baseline marker in Typst to mark formula's baseline position
+- [ ] Extract baseline marker position from SVG and use it for alignment
+- [ ] Remove marker from SVG after extraction
+- [ ] Implement centered baseline alignment in rendering code
+- [ ] Don't need to handle display math (it looks normal)
+- [ ] No hard-coded values in math rendering - use text metrics
+
+**Note**: Fix visual issues with blockquotes and math formula alignment to match GitHub's rendering.
+
+## Priority 13: Collapsible & Resizable Side Panel
 - [ ] Add toggle button on left panel or top-left of content
 - [ ] Persist panel state across sessions
 - [ ] Keep current resizable behavior
@@ -244,7 +257,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Quick UX improvement for more screen space when needed.
 
-## Priority 13: Complete Label/Tag System
+## Priority 14: Complete Label/Tag System
 - [ ] Make labels interactive (click to search)
 - [ ] Assign colors from Catppuccin palette
 - [ ] Implement tag autocomplete in search bar
@@ -256,7 +269,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Complex but powerful feature for content discovery. See [TAG_SYSTEM.md](TAG_SYSTEM.md) for detailed specification.
 
-## Priority 14: Advanced Typography (Future Enhancement)
+## Priority 15: Advanced Typography (Future Enhancement)
 - [ ] Add support for real bold fonts (font weight changes, not just color)
 - [ ] Research egui font loading and font family support
 - [ ] Implement proper font weight variations (light, regular, bold, etc.)
@@ -267,7 +280,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Currently `.strong()` only changes text color due to egui limitations. Real bold fonts would require proper font loading and font family support.
 
-## Priority 15: Dynamic Content Loading (Low Priority)
+## Priority 16: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture
@@ -359,11 +372,12 @@ cargo blog-wasm     # Build WASM library only
 
 ### Other Minor Issues
 - **Formula size consistency**: Some formulas appear slightly larger/smaller than others
-- **SVG baseline alignment**: Could improve vertical positioning of formula glyphs
+- **SVG baseline alignment**: Could improve vertical positioning of formula glyphs (see Priority 11)
 - **Performance optimization**: Formula caching could be more intelligent
 - **Accessibility**: Screen reader support for math formulas
 - **Strong text contrast**: ✅ FIXED (2026-03-02) - Now uses high-contrast colors (Sapphire/Peach) for visibility
-- **Real bold fonts**: Currently `.strong()` only changes color, not font weight (see Priority 14)
+- **Real bold fonts**: Currently `.strong()` only changes color, not font weight (see Priority 15)
+- **Blockquote rendering**: Issues with duplicate code and border implementation (see Priority 11)
 
 ### Performance Optimizations ✅ COMPLETED 2026-03-01
 - **Math formula lookup optimization**: `find_hash` now uses O(1) reverse index lookup instead of O(n) linear search

@@ -1,11 +1,53 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
+use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{MathAssetManager, ui::table_renderer};
+use crate::{ui::table_renderer, MathAssetManager};
+
+/// GitHub-inspired spacing constants for consistent markdown rendering
+/// Based on GitHub's markdown CSS: <https://github.com/sindresorhus/github-markdown-css>
+mod spacing {
+    /// Base font size in pixels (GitHub: 16px)
+    pub const BASE_FONT_SIZE: f32 = 16.0;
+
+    /// Line height multiplier (GitHub: 1.5)
+    pub const LINE_HEIGHT: f32 = 1.5;
+
+    /// Line height in pixels (16px * 1.5 = 24px)
+    pub const LINE_HEIGHT_PX: f32 = BASE_FONT_SIZE * LINE_HEIGHT;
+
+    /// Paragraph bottom margin (GitHub: 10px)
+    pub const PARAGRAPH_BOTTOM: f32 = 10.0;
+
+    /// Heading top margin for h1 (GitHub: 0.67em of 32px ≈ 21px)
+    pub const HEADING_TOP_H1: f32 = 21.0;
+
+    /// Heading top margin for h2-h6 (GitHub: 24px)
+    pub const HEADING_TOP_H2_H6: f32 = 24.0;
+
+    /// Heading bottom margin for h1 (GitHub: 0.67em of 32px ≈ 21px)
+    pub const HEADING_BOTTOM_H1: f32 = 21.0;
+
+    /// Heading bottom margin for h2-h6 (GitHub: 16px)
+    pub const HEADING_BOTTOM_H2_H6: f32 = 16.0;
+
+    /// List item spacing (GitHub: 0.25em of 24px line height = 6px)
+    pub const LIST_ITEM_SPACING: f32 = LINE_HEIGHT_PX * 0.25;
+
+    /// Blockquote bottom margin (GitHub: 16px)
+    pub const BLOCKQUOTE_BOTTOM: f32 = 16.0;
+
+    /// Code block bottom margin (GitHub: 16px)
+    pub const CODE_BLOCK_BOTTOM: f32 = 16.0;
+
+    /// Horizontal rule spacing (GitHub: 24px top and bottom)
+    pub const HORIZONTAL_RULE_SPACING: f32 = 24.0;
+}
+
+use spacing::*;
 
 /// Content that can appear within a paragraph
 #[derive(Clone)]
@@ -129,6 +171,25 @@ fn render_markdown_impl(
         pulldown_cmark::Parser::new_ext(&protected_text, pulldown_cmark::Options::ENABLE_TABLES)
             .peekable();
 
+    // Set vertical spacing to 0 so we have full control over spacing
+    // This prevents default egui spacing from adding to our GitHub-inspired spacing
+    ui.spacing_mut().item_spacing.y = 0.0;
+
+    // State for margin collapsing
+    let mut previous_bottom_margin = 0.0;
+
+    // Helper to calculate collapsed spacing
+    fn calculate_collapsed_spacing(previous_bottom: f32, current_top: f32) -> f32 {
+        // CSS margin collapsing: take the maximum of adjacent margins
+        let collapsed = previous_bottom.max(current_top);
+        // We need to add only the difference from what was already accounted for
+        if collapsed > previous_bottom {
+            collapsed - previous_bottom
+        } else {
+            0.0
+        }
+    }
+
     // State for accumulating paragraph content
     let mut in_paragraph = false;
     let mut paragraph_content = Vec::new();
@@ -138,6 +199,13 @@ fn render_markdown_impl(
             Event::Start(tag) => {
                 match tag {
                     Tag::Paragraph => {
+                        // Apply margin collapsing for paragraph start
+                        let spacing_to_add =
+                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                        if spacing_to_add > 0.0 {
+                            ui.add_space(spacing_to_add);
+                        }
+
                         in_paragraph = true;
                         paragraph_content.clear();
                     }
@@ -151,16 +219,22 @@ fn render_markdown_impl(
                             }
                         }
 
-                        // Add spacing before heading (GitHub pattern: 24px for most headings)
-                        let spacing_before = match level {
-                            HeadingLevel::H1 => 21.0, // 0.67em of 32px ≈ 21px
+                        // Calculate top margin for heading
+                        let top_margin = match level {
+                            HeadingLevel::H1 => HEADING_TOP_H1,
                             HeadingLevel::H2
                             | HeadingLevel::H3
                             | HeadingLevel::H4
                             | HeadingLevel::H5
-                            | HeadingLevel::H6 => 24.0, // GitHub: 24px for h2-h6
+                            | HeadingLevel::H6 => HEADING_TOP_H2_H6,
                         };
-                        ui.add_space(spacing_before);
+
+                        // Apply margin collapsing
+                        let spacing_to_add =
+                            calculate_collapsed_spacing(previous_bottom_margin, top_margin);
+                        if spacing_to_add > 0.0 {
+                            ui.add_space(spacing_to_add);
+                        }
 
                         let rich_text = match level {
                             HeadingLevel::H1 => RichText::new(heading_text).heading(), // Uses TextStyle::Heading (32px)
@@ -187,19 +261,27 @@ fn render_markdown_impl(
                             _ => {}
                         }
 
-                        // Add spacing after heading (GitHub pattern: 16px for most headings)
-                        // Note: For h1/h2, this spacing comes after the separator
-                        let spacing_after = match level {
-                            HeadingLevel::H1 => 21.0, // 0.67em of 32px ≈ 21px
+                        // Calculate bottom margin for heading
+                        let bottom_margin = match level {
+                            HeadingLevel::H1 => HEADING_BOTTOM_H1,
                             HeadingLevel::H2
                             | HeadingLevel::H3
                             | HeadingLevel::H4
                             | HeadingLevel::H5
-                            | HeadingLevel::H6 => 16.0, // GitHub: 16px for h2-h6
+                            | HeadingLevel::H6 => HEADING_BOTTOM_H2_H6,
                         };
-                        ui.add_space(spacing_after);
+
+                        // Update previous bottom margin for next element
+                        previous_bottom_margin = bottom_margin;
                     }
                     Tag::List(ordered) => {
+                        // Apply margin collapsing for list start
+                        let spacing_to_add =
+                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                        if spacing_to_add > 0.0 {
+                            ui.add_space(spacing_to_add);
+                        }
+
                         // Lists
                         let mut list_items = Vec::new();
                         while let Some(event) = events.next() {
@@ -245,13 +327,27 @@ fn render_markdown_impl(
                                 ui.add_space(one_indent / 3.0);
                                 ui.label(item);
                             });
+
+                            // Add spacing between list items (GitHub: 0.25em = 6px)
+                            if i < list_items.len() - 1 {
+                                ui.add_space(LIST_ITEM_SPACING);
+                            }
                         }
-                        ui.add_space(4.0);
+
+                        // Update bottom margin for list (same as paragraph)
+                        previous_bottom_margin = PARAGRAPH_BOTTOM;
                     }
                     Tag::Item => {
                         // Already handled in List
                     }
                     Tag::CodeBlock(kind) => {
+                        // Apply margin collapsing for code block start
+                        let spacing_to_add =
+                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                        if spacing_to_add > 0.0 {
+                            ui.add_space(spacing_to_add);
+                        }
+
                         // Code blocks
                         let mut code_text = String::new();
                         for event in events.by_ref() {
@@ -262,8 +358,6 @@ fn render_markdown_impl(
                                 _ => {} // Skip other events
                             }
                         }
-
-                        ui.add_space(4.0);
 
                         // Display language label if present
                         let language = match kind {
@@ -322,7 +416,8 @@ fn render_markdown_impl(
                             where_to_put_background,
                             Shape::rect_filled(rect, 1.0, code_bg_color),
                         );
-                        ui.add_space(4.0);
+                        // Update bottom margin for code block
+                        previous_bottom_margin = CODE_BLOCK_BOTTOM;
                     }
                     Tag::Strong => {
                         // Bold text
@@ -398,6 +493,13 @@ fn render_markdown_impl(
                         }
                     }
                     Tag::BlockQuote => {
+                        // Apply margin collapsing for blockquote start
+                        let spacing_to_add =
+                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                        if spacing_to_add > 0.0 {
+                            ui.add_space(spacing_to_add);
+                        }
+
                         // Block quotes
                         let mut quote_text = String::new();
                         for event in events.by_ref() {
@@ -408,8 +510,6 @@ fn render_markdown_impl(
                                 _ => {} // Skip other events
                             }
                         }
-
-                        ui.add_space(4.0);
                         let row_height = ui.text_style_height(&TextStyle::Body);
                         let one_indent = row_height / 2.0;
 
@@ -425,7 +525,8 @@ fn render_markdown_impl(
 
                         // Render quote text with weak color
                         ui.label(RichText::new(quote_text).color(ui.visuals().weak_text_color()));
-                        ui.add_space(4.0);
+                        // Update bottom margin for blockquote
+                        previous_bottom_margin = BLOCKQUOTE_BOTTOM;
                     }
                     Tag::FootnoteDefinition(_) => {
                         // Skip footnotes for now
@@ -436,6 +537,13 @@ fn render_markdown_impl(
                         }
                     }
                     Tag::Table(alignments) => {
+                        // Apply margin collapsing for table start
+                        let spacing_to_add =
+                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                        if spacing_to_add > 0.0 {
+                            ui.add_space(spacing_to_add);
+                        }
+
                         let (headers, rows) = parse_table(&mut events, &alignments);
                         table_renderer::render_table(
                             ui,
@@ -444,6 +552,9 @@ fn render_markdown_impl(
                             &rows,
                             &TableConfig::default(),
                         );
+
+                        // Update bottom margin for table (same as paragraph)
+                        previous_bottom_margin = PARAGRAPH_BOTTOM;
                     }
                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
                         // Skip table elements that appear outside a table (should not happen)
@@ -489,7 +600,8 @@ fn render_markdown_impl(
                                 render_paragraph_content(ui, content);
                             }
                         });
-                        ui.add_space(4.0); // Add spacing after paragraph
+                        // Update bottom margin for paragraph
+                        previous_bottom_margin = PARAGRAPH_BOTTOM;
                         paragraph_content.clear();
                     }
                     in_paragraph = false;
@@ -508,6 +620,12 @@ fn render_markdown_impl(
                     );
                 } else {
                     // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
+                    // Apply margin collapsing for standalone text
+                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                    if spacing_to_add > 0.0 {
+                        ui.add_space(spacing_to_add);
+                    }
+
                     // Check for math placeholders in the text (format: (hash.typ))
                     let mut remaining = &text[..];
                     let _ = 0;
@@ -636,6 +754,9 @@ fn render_markdown_impl(
                     if !remaining.is_empty() {
                         render_text_with_latex(ui, remaining, &mut math_asset_manager);
                     }
+
+                    // Update bottom margin for standalone text (same as paragraph)
+                    previous_bottom_margin = PARAGRAPH_BOTTOM;
                 }
             }
             Event::Code(code) => {
@@ -643,7 +764,16 @@ fn render_markdown_impl(
                 if in_paragraph {
                     paragraph_content.push(ParagraphContent::InlineCode(code.to_string()));
                 } else {
+                    // Apply margin collapsing for standalone inline code
+                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                    if spacing_to_add > 0.0 {
+                        ui.add_space(spacing_to_add);
+                    }
+
                     ui.label(RichText::new(&*code).code());
+
+                    // Update bottom margin for standalone inline code (same as paragraph)
+                    previous_bottom_margin = PARAGRAPH_BOTTOM;
                 }
             }
             Event::Html(_) | Event::FootnoteReference(_) => {
@@ -665,7 +795,16 @@ fn render_markdown_impl(
                     // We'll add a special marker that we can handle during rendering
                     paragraph_content.push(ParagraphContent::Text("\n".to_owned()));
                 } else {
+                    // Apply margin collapsing for standalone hard break
+                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                    if spacing_to_add > 0.0 {
+                        ui.add_space(spacing_to_add);
+                    }
+
                     ui.add_space(4.0);
+
+                    // Update bottom margin for standalone hard break (same as paragraph)
+                    previous_bottom_margin = PARAGRAPH_BOTTOM;
                 }
             }
             Event::Rule => {
@@ -678,13 +817,24 @@ fn render_markdown_impl(
                                 render_paragraph_content(ui, content);
                             }
                         });
-                        ui.add_space(4.0);
+                        // Update bottom margin for paragraph
+                        previous_bottom_margin = PARAGRAPH_BOTTOM;
                         paragraph_content.clear();
                     }
                     in_paragraph = false;
                 }
+
+                // Apply margin collapsing for horizontal rule
+                let spacing_to_add =
+                    calculate_collapsed_spacing(previous_bottom_margin, HORIZONTAL_RULE_SPACING);
+                if spacing_to_add > 0.0 {
+                    ui.add_space(spacing_to_add);
+                }
+
                 ui.separator();
-                ui.add_space(8.0);
+
+                // Update bottom margin for horizontal rule
+                previous_bottom_margin = HORIZONTAL_RULE_SPACING;
             }
             Event::TaskListMarker(checked) => {
                 // Task list marker
@@ -692,7 +842,16 @@ fn render_markdown_impl(
                 if in_paragraph {
                     paragraph_content.push(ParagraphContent::Text(marker.to_owned()));
                 } else {
+                    // Apply margin collapsing for standalone task list marker
+                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
+                    if spacing_to_add > 0.0 {
+                        ui.add_space(spacing_to_add);
+                    }
+
                     ui.label(marker);
+
+                    // Update bottom margin for standalone task list marker (same as paragraph)
+                    previous_bottom_margin = PARAGRAPH_BOTTOM;
                 }
             }
         }
@@ -1177,7 +1336,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
+                                           // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;
