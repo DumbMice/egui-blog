@@ -224,7 +224,27 @@ cargo blog-wasm     # Build WASM library only
 - **Zoom-aware**: Percentage-based margins adjust with zoom level
 - **Backward compatible**: All existing functionality preserved
 
-## Priority 11: Complete Label/Tag System
+## Priority 11: Keyboard Shortcuts & Vim Navigation
+- [ ] Basic navigation (arrow keys, Home/End)
+- [ ] Vim navigation (j/k for up/down, gg/G for top/bottom)
+- [ ] `/` for page content search (not post search)
+- [ ] Alt+D to focus browser address bar
+- [ ] Always-on vim mode (not toggleable)
+- [ ] Non-configurable shortcuts (hardcoded)
+
+**Note**: Power user features for efficient navigation. Vim mode always enabled.
+
+## Priority 12: Collapsible & Resizable Side Panel
+- [ ] Add toggle button on left panel or top-left of content
+- [ ] Persist panel state across sessions
+- [ ] Keep current resizable behavior
+- [ ] Auto-hide on small screens
+- [ ] No special keyboard shortcut for toggling (for now)
+- [ ] Adjust layout when panel is collapsed
+
+**Note**: Quick UX improvement for more screen space when needed.
+
+## Priority 13: Complete Label/Tag System
 - [ ] Make labels interactive (click to search)
 - [ ] Assign colors from Catppuccin palette
 - [ ] Implement tag autocomplete in search bar
@@ -235,26 +255,6 @@ cargo blog-wasm     # Build WASM library only
 - [ ] Tag filtering in post lists
 
 **Note**: Complex but powerful feature for content discovery. See [TAG_SYSTEM.md](TAG_SYSTEM.md) for detailed specification.
-
-## Priority 12: Keyboard Shortcuts & Vim Navigation
-- [ ] Basic navigation (arrow keys, Home/End)
-- [ ] Vim navigation (j/k for up/down, gg/G for top/bottom)
-- [ ] `/` for page content search (not post search)
-- [ ] Alt+D to focus browser address bar
-- [ ] Always-on vim mode (not toggleable)
-- [ ] Non-configurable shortcuts (hardcoded)
-
-**Note**: Power user features for efficient navigation. Vim mode always enabled.
-
-## Priority 13: Collapsible & Resizable Side Panel
-- [ ] Add toggle button on left panel or top-left of content
-- [ ] Persist panel state across sessions
-- [ ] Keep current resizable behavior
-- [ ] Auto-hide on small screens
-- [ ] No special keyboard shortcut for toggling (for now)
-- [ ] Adjust layout when panel is collapsed
-
-**Note**: Quick UX improvement for more screen space when needed.
 
 ## Priority 14: Advanced Typography (Future Enhancement)
 - [ ] Add support for real bold fonts (font weight changes, not just color)
