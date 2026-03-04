@@ -192,7 +192,7 @@ $ {formula} $"#
             format!(
                 r#"#set page(width: auto, height: auto, margin: 0pt)
 #set text(size: 16pt, fill: white)
-#show math.equation: set text(top-edge: "bounds", bottom-edge: "bounds")
+#show math.equation: set text(top-edge: "ascender", bottom-edge: "bounds")
 
 ${formula}$"#
             )
