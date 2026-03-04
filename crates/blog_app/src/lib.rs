@@ -14,7 +14,7 @@ mod debug_windows;
 
 use egui::{CentralPanel, Panel, ScrollArea};
 pub use posts::{PostManager, PostManagerState};
-use ui::{LayoutConfig, Theme};
+use ui::{LayoutConfig, ResponsiveConfig, Theme};
 
 use crate::math::MathAssetManager;
 use crate::routing::{Route, Router};
@@ -46,6 +46,8 @@ pub struct BlogApp {
     selected_content_type: Option<crate::posts::ContentType>,
     /// Layout configuration
     layout_config: LayoutConfig,
+    /// Responsive layout configuration
+    responsive_config: ResponsiveConfig,
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
@@ -80,6 +82,7 @@ impl Default for BlogApp {
             search_query: String::new(),
             selected_content_type: None, // Show all content types by default
             layout_config: LayoutConfig::default(),
+            responsive_config: ResponsiveConfig::default(),
             math_asset_manager: MathAssetManager::default(),
             router: Router::new(),
             pending_url_update: None,
@@ -342,33 +345,36 @@ impl eframe::App for BlogApp {
 
         CentralPanel::default().show_inside(ui, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
-                // Create closure first to avoid borrow conflicts
-                let mut navigate_callback = |route: crate::routing::Route| {
-                    route_to_navigate = Some(route);
-                };
+                // Use responsive container for optimal reading width
+                ui::responsive::responsive_container(ui, &self.responsive_config, |ui| {
+                    // Create closure first to avoid borrow conflicts
+                    let mut navigate_callback = |route: crate::routing::Route| {
+                        route_to_navigate = Some(route);
+                    };
 
-                let navigation = ui::layout::NavigationContext {
-                    current_route: self.router.current_route(),
-                    on_navigate: &mut navigate_callback,
-                };
+                    let navigation = ui::layout::NavigationContext {
+                        current_route: self.router.current_route(),
+                        on_navigate: &mut navigate_callback,
+                    };
 
-                let state = ui::layout::MainContentState::new(
-                    &self.post_manager,
-                    self.selected_post,
-                    self.editing_new_post,
-                    &mut self.new_post_title,
-                    &mut self.new_post_content,
-                    &self.post_manager_state,
-                    Some(&mut self.math_asset_manager),
-                    navigation,
-                );
-                let result = ui::layout::main_content(ui, state);
-                (
-                    post_saved,
-                    editing_cancelled,
-                    navigation_index,
-                    retry_requested,
-                ) = result;
+                    let state = ui::layout::MainContentState::new(
+                        &self.post_manager,
+                        self.selected_post,
+                        self.editing_new_post,
+                        &mut self.new_post_title,
+                        &mut self.new_post_content,
+                        &self.post_manager_state,
+                        Some(&mut self.math_asset_manager),
+                        navigation,
+                    );
+                    let result = ui::layout::main_content(ui, state);
+                    (
+                        post_saved,
+                        editing_cancelled,
+                        navigation_index,
+                        retry_requested,
+                    ) = result
+                });
             });
         });
 
