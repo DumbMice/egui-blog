@@ -373,7 +373,7 @@ impl eframe::App for BlogApp {
                         editing_cancelled,
                         navigation_index,
                         retry_requested,
-                    ) = result
+                    ) = result;
                 });
             });
         });

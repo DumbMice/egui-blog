@@ -29,6 +29,7 @@ impl Router {
     }
 
     /// Create a router from a URL hash.
+    #[expect(dead_code)]
     pub fn from_hash(hash: &str) -> Self {
         let route = Route::from_hash(hash);
         let query_params = Self::extract_query_params(hash);
@@ -79,6 +80,7 @@ impl Router {
     }
 
     /// Create a route to search with query.
+    #[expect(dead_code)]
     pub fn route_to_search(query: &str) -> Route {
         Route::Search {
             query: query.to_owned(),
@@ -87,6 +89,7 @@ impl Router {
     }
 
     /// Create a route to tag page.
+    #[expect(dead_code)]
     pub fn route_to_tag(tag: &str) -> Route {
         Route::Tag {
             tag: tag.to_owned(),
@@ -94,11 +97,13 @@ impl Router {
     }
 
     /// Create a route to home.
+    #[expect(dead_code)]
     pub fn route_home() -> Route {
         Route::Home
     }
 
     /// Update from URL hash (for browser navigation).
+    #[expect(dead_code)]
     pub fn update_from_hash(&mut self, hash: &str) -> bool {
         let new_route = Route::from_hash(hash);
         let route_changed = self.current_route != new_route;
@@ -113,21 +118,25 @@ impl Router {
     }
 
     /// Get query parameter value.
+    #[expect(dead_code)]
     pub fn get_query_param(&self, key: &str) -> Option<&String> {
         self.query_params.get(key)
     }
 
     /// Set query parameter (doesn't update URL until navigation).
+    #[expect(dead_code)]
     pub fn set_query_param(&mut self, key: String, value: String) {
         self.query_params.insert(key, value);
     }
 
     /// Get all query parameters.
+    #[expect(dead_code)]
     pub fn query_params(&self) -> &HashMap<String, String> {
         &self.query_params
     }
 
     /// Generate URL with current query parameters.
+    #[expect(dead_code)]
     pub fn current_url(&self) -> String {
         let base_url = self.current_route.to_hash();
 
