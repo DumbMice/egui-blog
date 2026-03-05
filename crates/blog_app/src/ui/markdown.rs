@@ -13,14 +13,6 @@ mod spacing {
     /// Base font size in pixels (GitHub: 16px)
     pub const BASE_FONT_SIZE: f32 = 16.0;
 
-    /// Line height multiplier (GitHub: 1.5)
-    #[expect(dead_code)]
-    pub const LINE_HEIGHT: f32 = 1.5;
-
-    /// Line height in pixels (16px * 1.5 = 24px)
-    #[expect(dead_code)]
-    pub const LINE_HEIGHT_PX: f32 = BASE_FONT_SIZE * LINE_HEIGHT;
-
     /// Paragraph bottom margin (GitHub: 10px, but using 16px for better visual separation)
     pub const PARAGRAPH_BOTTOM: f32 = 16.0;
 
@@ -181,7 +173,7 @@ fn render_markdown_impl(
     }
 
     // Helper function for margin collapsing at element start
-    fn add_top_margin_with_collapsing(ui: &mut Ui, previous_bottom: &mut f32, top_margin: f32) {
+    fn add_top_margin_with_collapsing(ui: &mut Ui, previous_bottom: &f32, top_margin: f32) {
         let spacing_to_add = top_margin.max(*previous_bottom) - *previous_bottom;
         if spacing_to_add > 0.0 {
             ui.add_space(spacing_to_add);
@@ -217,7 +209,7 @@ fn render_markdown_impl(
                         let top_margin = HEADING_TOP;
 
                         // Apply margin collapsing for heading top margin
-                        add_top_margin_with_collapsing(ui, &mut previous_bottom_margin, top_margin);
+                        add_top_margin_with_collapsing(ui, &previous_bottom_margin, top_margin);
 
                         let rich_text = match level {
                             HeadingLevel::H1 => RichText::new(heading_text).heading(), // Uses TextStyle::Heading (32px)
@@ -775,7 +767,7 @@ fn render_markdown_impl(
                 // Apply margin collapsing for horizontal rule top margin
                 add_top_margin_with_collapsing(
                     ui,
-                    &mut previous_bottom_margin,
+                    &previous_bottom_margin,
                     HORIZONTAL_RULE_SPACING,
                 );
 
