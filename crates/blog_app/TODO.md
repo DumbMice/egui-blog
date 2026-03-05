@@ -241,7 +241,32 @@ cargo blog-wasm     # Build WASM library only
 - Focus state persistence across sessions
 - Find-in-content functionality with dialog
 
-## Priority 12: Fix Blockquote Rendering and Math Alignment
+## Priority 12: Animated Focus Indicators ✅ COMPLETED 2026-03-05
+- [x] Replace ugly blue border with animated focus indicator
+- [x] Flash-only animation (no pulse/breathing effects)
+- [x] Very short duration (100ms default) - just enough to see focus change
+- [x] No persistent tint - panel returns to normal after flash
+- [x] Uses Catppuccin blue color from theme (widgets.active.bg_fill)
+- [x] Simple border flash without background tint or glow effects
+- [x] Debug-configurable parameters (intensity, duration, thickness)
+- [x] Animation triggers automatically when focus changes between panels
+
+**Note**: Clean, minimal flash effect that:
+- Shows focus change with quick blue border flash
+- Doesn't distract with very short duration
+- Follows Catppuccin style guide using theme colors
+- Returns to normal after flash (no persistent visual effects)
+- Configurable via debug window for tuning
+
+### Implementation Details:
+1. **Animation Module**: Created `src/animation/` with `config.rs`, `state.rs`, `renderer.rs`, `mod.rs`
+2. **Flash-only State Machine**: `AnimationPhase` with only `Idle` and `Flash` variants
+3. **Theme Integration**: Uses `ui.visuals().widgets.active.bg_fill` (Catppuccin blue)
+4. **Focus Detection**: Tracks previous focused panel to trigger animation on change
+5. **Debug Configuration**: Window with sliders for intensity, duration, border thickness
+6. **UI Integration**: Updated `side_panel()` and `main_content()` to use animation rendering
+
+## Priority 13: Fix Blockquote Rendering and Math Alignment
 - [ ] Fix blockquote rendering issues (duplicate code, border implementation)
 - [ ] Fix inline math vertical alignment for short formulas
 - [ ] Use Typst configuration with `top-edge: "bounds"` and `bottom-edge: "bounds"` for centered formulas
@@ -254,7 +279,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Fix visual issues with blockquotes and math formula alignment to match GitHub's rendering.
 
-## Priority 13: Collapsible & Resizable Side Panel
+## Priority 14: Collapsible & Resizable Side Panel
 - [ ] Add toggle button on left panel or top-left of content
 - [ ] Persist panel state across sessions
 - [ ] Keep current resizable behavior
@@ -264,7 +289,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Quick UX improvement for more screen space when needed.
 
-## Priority 14: Complete Label/Tag System
+## Priority 15: Complete Label/Tag System
 - [ ] Make labels interactive (click to search)
 - [ ] Assign colors from Catppuccin palette
 - [ ] Implement tag autocomplete in search bar
@@ -276,7 +301,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Complex but powerful feature for content discovery. See [TAG_SYSTEM.md](TAG_SYSTEM.md) for detailed specification.
 
-## Priority 15: Advanced Typography (Future Enhancement)
+## Priority 16: Advanced Typography (Future Enhancement)
 - [ ] Add support for real bold fonts (font weight changes, not just color)
 - [ ] Research egui font loading and font family support
 - [ ] Implement proper font weight variations (light, regular, bold, etc.)
@@ -287,7 +312,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Currently `.strong()` only changes text color due to egui limitations. Real bold fonts would require proper font loading and font family support.
 
-## Priority 16: Dynamic Content Loading (Low Priority)
+## Priority 17: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture
@@ -357,6 +382,16 @@ cargo blog-wasm     # Build WASM library only
 - Router state saved across browser refreshes using serde serialization
 - 8 routing-specific tests added, all existing tests pass
 
+✅ **Animated Focus Indicators (2026-03-05)**
+- Replaced static blue border with animated flash indicator
+- Flash-only animation (100ms duration) shows focus change clearly
+- Uses Catppuccin blue color from theme (widgets.active.bg_fill)
+- No persistent tint - panel returns to normal after flash
+- Debug-configurable parameters (intensity, duration, thickness)
+- Animation triggers automatically when focus changes between panels
+- Follows Catppuccin style guide for focus states
+- All clippy warnings fixed, code compiles cleanly
+
 ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support
 - `6ace4f51` - Clean up blog_app crate warnings and unused code
@@ -366,6 +401,7 @@ cargo blog-wasm     # Build WASM library only
 - `a0b6c22e` - Fix Catppuccin style guide compliance and strong text visibility
 - `54a14fe3` - Improve theme toggle to single button
 - `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
+- `e3c3e42a7` - WIP: Simplified focus animation system - flash-only with Catppuccin blue (Priority 12)
 - *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
