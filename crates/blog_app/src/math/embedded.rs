@@ -26,6 +26,13 @@ pub struct FormulaMetadata {
     /// Whether this SVG has been processed for theme adaptation (true)
     #[serde(default = "default_theme_processed")]
     pub theme_processed: bool,
+    /// Baseline position from top of SVG (in SVG units)
+    /// Only meaningful for inline math (`is_display` = false)
+    #[serde(default)]
+    pub baseline_from_top: Option<f32>,
+    /// SVG height for reference (in SVG units)
+    #[serde(default)]
+    pub svg_height: Option<f32>,
 }
 
 fn default_theme_processed() -> bool {

@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Context as _, Result, anyhow};
+use anyhow::{anyhow, Context as _, Result};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -53,6 +53,13 @@ struct FormulaMetadata {
     /// Whether this SVG has been processed for theme adaptation (true)
     #[serde(default = "default_theme_processed")]
     theme_processed: bool,
+    /// Baseline position from top of SVG (in SVG units)
+    /// Only meaningful for inline math (`is_display` = false)
+    #[serde(default)]
+    baseline_from_top: Option<f32>,
+    /// SVG height for reference (in SVG units)
+    #[serde(default)]
+    svg_height: Option<f32>,
 }
 
 fn default_theme_processed() -> bool {
@@ -164,8 +171,89 @@ fn hash_formula(formula: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-/// Create SVG using Typst CLI if available, otherwise use placeholder
-fn create_typst_svg(formula: &str, is_display: bool) -> Result<String> {
+/// Parse SVG height from viewBox or width/height attributes
+fn parse_svg_height(svg_content: &str) -> Result<f32> {
+    // Try to parse viewBox first (most reliable)
+    if let Some(viewbox_start) = svg_content.find("viewBox=\"") {
+        let viewbox_content_start = viewbox_start + "viewBox=\"".len();
+        let viewbox_content_end = svg_content[viewbox_content_start..]
+            .find('"')
+            .context("Failed to find closing quote for viewBox")?;
+        let viewbox_str =
+            &svg_content[viewbox_content_start..viewbox_content_start + viewbox_content_end];
+
+        let parts: Vec<&str> = viewbox_str.split_whitespace().collect();
+        if parts.len() >= 4 {
+            let height = parts[3]
+                .parse::<f32>()
+                .context("Failed to parse viewBox height")?;
+            return Ok(height);
+        }
+    }
+
+    // Fall back to height attribute
+    if let Some(height_start) = svg_content.find("height=\"") {
+        let height_content_start = height_start + "height=\"".len();
+        let height_content_end = svg_content[height_content_start..]
+            .find('"')
+            .context("Failed to find closing quote for height")?;
+        let height_str =
+            &svg_content[height_content_start..height_content_start + height_content_end];
+
+        // Parse number, removing units like pt, px, etc.
+        let number_str = height_str
+            .replace("pt", "")
+            .replace("px", "")
+            .replace("em", "")
+            .replace("rem", "")
+            .replace("in", "")
+            .replace("cm", "")
+            .replace("mm", "");
+
+        let height = number_str
+            .parse::<f32>()
+            .context("Failed to parse height attribute")?;
+        return Ok(height);
+    }
+
+    Err(anyhow!(
+        "Could not extract SVG height - no viewBox or height attribute found"
+    ))
+}
+
+/// Create Typst content with specific edge configuration
+fn create_typst_content(
+    formula: &str,
+    is_display: bool,
+    top_edge: &str,
+    bottom_edge: &str,
+) -> String {
+    if is_display {
+        format!(
+            r#"#set page(width: auto, height: auto, margin: 0pt)
+#set text(size: 16pt, fill: white)
+#show math.equation: set text(top-edge: "{top_edge}", bottom-edge: "{bottom_edge}")
+
+$ {formula} $"#
+        )
+    } else {
+        format!(
+            r#"#set page(width: auto, height: auto, margin: 0pt)
+#set text(size: 16pt, fill: white)
+#show math.equation: set text(top-edge: "{top_edge}", bottom-edge: "{bottom_edge}")
+
+${formula}$"#
+        )
+    }
+}
+
+/// Create SVG using Typst CLI with specific edge configuration
+fn create_typst_svg_with_config(
+    formula: &str,
+    is_display: bool,
+    top_edge: &str,
+    bottom_edge: &str,
+) -> Result<String> {
     // Try to use Typst CLI if available
     if Command::new("typst").arg("--version").output().is_ok() {
         // Create a temporary Typst file
@@ -177,26 +265,8 @@ fn create_typst_svg(formula: &str, is_display: bool) -> Result<String> {
             .path()
             .join(format!("formula_{}.svg", hash_formula(formula)));
 
-        // Create Typst content
-        let typst_content = if is_display {
-            format!(
-                r#"#set page(width: auto, height: auto, margin: 0pt)
-#set text(size: 16pt, fill: white)
-#show math.equation: set text(top-edge: "bounds", bottom-edge: "bounds")
-
-$ {formula} $"#
-            )
-        } else {
-            // For inline math, we need more vertical margin to accommodate fractions
-            // and other elements that extend beyond the normal text bounds
-            format!(
-                r#"#set page(width: auto, height: auto, margin: 0pt)
-#set text(size: 16pt, fill: white)
-#show math.equation: set text(top-edge: "bounds", bottom-edge: "bounds")
-
-${formula}$"#
-            )
-        };
+        // Create Typst content with specified edge configuration
+        let typst_content = create_typst_content(formula, is_display, top_edge, bottom_edge);
 
         fs::write(&typst_file, typst_content).context("Failed to write temporary Typst file")?;
 
@@ -231,6 +301,57 @@ ${formula}$"#
     } else {
         Err(anyhow!("Typst CLI not found"))
     }
+}
+
+/// Extract baseline position by generating two SVGs and measuring heights
+fn extract_baseline_position(formula: &str, is_display: bool) -> Result<(f32, f32)> {
+    if is_display {
+        // Display math doesn't need baseline alignment
+        return Ok((0.0, 0.0));
+    }
+
+    // Generate top SVG: bounds to baseline
+    let top_svg = create_typst_svg_with_config(
+        formula, false, // Always inline for baseline measurement
+        "bounds", "baseline",
+    )?;
+
+    // Generate bottom SVG: baseline to bounds
+    let bottom_svg = create_typst_svg_with_config(
+        formula, false, // Always inline for baseline measurement
+        "baseline", "bounds",
+    )?;
+
+    // Parse SVG heights
+    let top_height = parse_svg_height(&top_svg)?;
+    let bottom_height = parse_svg_height(&bottom_svg)?;
+
+    // Calculate baseline position
+    // baseline_from_top = top_height
+    // total_height = top_height + bottom_height
+    Ok((top_height, top_height + bottom_height))
+}
+
+/// Create SVG using Typst CLI if available, otherwise use placeholder
+/// Returns (svg_content, `baseline_from_top`, `svg_height`)
+fn create_typst_svg(formula: &str, is_display: bool) -> Result<(String, Option<f32>, Option<f32>)> {
+    // Extract baseline position for inline math
+    let (baseline_from_top, svg_height) = if !is_display {
+        match extract_baseline_position(formula, false) {
+            Ok((baseline, height)) => (Some(baseline), Some(height)),
+            Err(e) => {
+                println!("cargo:warning=Failed to extract baseline for formula '{formula}': {e}");
+                (None, None)
+            }
+        }
+    } else {
+        (None, None)
+    };
+
+    // Generate the actual SVG for rendering (bounds-to-bounds)
+    let svg_content = create_typst_svg_with_config(formula, is_display, "bounds", "bounds")?;
+
+    Ok((svg_content, baseline_from_top, svg_height))
 }
 
 /// Process SVG to make it theme-aware with transparent background
@@ -436,6 +557,7 @@ fn main() -> Result<()> {
     let mut placeholder_count = 0;
     let mut error_count = 0;
     let mut processed_count = 0;
+    let mut baseline_extracted_count = 0;
     let mut skipped_count = 0;
 
     // Process each unique formula
@@ -463,7 +585,7 @@ fn main() -> Result<()> {
         if needs_rendering {
             // Create SVG using Typst or placeholder
             match create_typst_svg(&formula, is_display) {
-                Ok(svg_content) => {
+                Ok((svg_content, baseline_from_top, svg_height)) => {
                     rendered_count += 1;
 
                     // Process SVG for theme adaptation
@@ -477,7 +599,7 @@ fn main() -> Result<()> {
                     fs::write(&svg_path, &processed_svg)
                         .with_context(|| format!("Failed to write SVG: {}", svg_path.display()))?;
 
-                    // Update manifest
+                    // Update manifest with baseline data
                     manifest.formulas.insert(
                         hash.clone(),
                         FormulaMetadata {
@@ -488,6 +610,8 @@ fn main() -> Result<()> {
                             hash: hash.clone(),
                             is_placeholder: false,
                             theme_processed: !svg_needs_processing(&svg_content),
+                            baseline_from_top,
+                            svg_height,
                         },
                     );
                 }
@@ -505,7 +629,7 @@ fn main() -> Result<()> {
                         format!("Failed to write placeholder SVG: {}", svg_path.display())
                     })?;
 
-                    // Update manifest with placeholder info
+                    // Update manifest with placeholder info (no baseline data for placeholders)
                     manifest.formulas.insert(
                         hash.clone(),
                         FormulaMetadata {
@@ -516,12 +640,40 @@ fn main() -> Result<()> {
                             hash: hash.clone(),
                             is_placeholder: true,
                             theme_processed: true,
+                            baseline_from_top: None,
+                            svg_height: None,
                         },
                     );
                 }
             }
         } else {
             skipped_count += 1;
+
+            // Check if we need to extract baseline data for existing formulas
+            let needs_baseline_data = if let Some(metadata) = manifest.formulas.get(&hash) {
+                metadata.baseline_from_top.is_none()
+                    && !metadata.is_display
+                    && !metadata.is_placeholder
+            } else {
+                false
+            };
+
+            // Extract baseline data if missing for inline math
+            if needs_baseline_data {
+                match extract_baseline_position(&formula, false) {
+                    Ok((baseline, height)) => {
+                        if let Some(metadata) = manifest.formulas.get_mut(&hash) {
+                            metadata.baseline_from_top = Some(baseline);
+                            metadata.svg_height = Some(height);
+                            baseline_extracted_count += 1;
+                            println!("cargo:warning=Extracted baseline data for existing formula: {formula}");
+                        }
+                    }
+                    Err(e) => {
+                        println!("cargo:warning=Failed to extract baseline for existing formula '{formula}': {e}");
+                    }
+                }
+            }
 
             // Process existing SVG for theme if needed
             if needs_theme_processing {
@@ -596,6 +748,12 @@ fn main() -> Result<()> {
     if processed_count > 0 {
         println!(
             "cargo:warning=  • Processed {processed_count} existing SVGs for theme adaptation"
+        );
+    }
+
+    if baseline_extracted_count > 0 {
+        println!(
+            "cargo:warning=  • Extracted baseline data for {baseline_extracted_count} existing formulas"
         );
     }
 

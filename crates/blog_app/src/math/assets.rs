@@ -53,6 +53,48 @@ impl MathAssetManager {
         Self::get_svg_size(&hash)
     }
 
+    /// Get baseline position for a formula (SVG units from top)
+    /// Returns None for display math or if baseline data is not available
+    pub fn get_baseline_position(&self, formula: &str, is_display: bool) -> Option<f32> {
+        if is_display {
+            return None; // Display math doesn't need baseline alignment
+        }
+
+        let hash = self.manifest.find_hash(formula, false)?;
+        let metadata = self.manifest.get_metadata(hash)?;
+        metadata.baseline_from_top
+    }
+
+    /// Get SVG size with baseline data for a formula
+    /// Returns (size, `baseline_from_top`) where `baseline_from_top` is None for display math
+    pub fn get_svg_size_with_baseline(
+        &self,
+        formula: &str,
+        is_display: bool,
+    ) -> Option<(egui::Vec2, Option<f32>)> {
+        let hash = self.manifest.find_hash(formula, is_display)?.to_owned();
+        let metadata = self.manifest.get_metadata(&hash)?;
+
+        let size = Self::get_svg_size(&hash)?;
+        let baseline = if is_display {
+            None
+        } else {
+            metadata.baseline_from_top
+        };
+
+        Some((size, baseline))
+    }
+
+    /// Get baseline position for a formula hash
+    pub fn get_baseline_position_for_hash(&self, hash: &str) -> Option<f32> {
+        let metadata = self.manifest.get_metadata(hash)?;
+        if metadata.is_display {
+            None
+        } else {
+            metadata.baseline_from_top
+        }
+    }
+
     /// Extract size from SVG bytes
     fn extract_svg_size(svg_bytes: &[u8]) -> Option<egui::Vec2> {
         let svg_str = std::str::from_utf8(svg_bytes).ok()?;

@@ -1,6 +1,6 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Hyperlink, ImageSource, RichText, Sense, Shape, TextStyle, Ui};
+use egui::{vec2, Hyperlink, ImageSource, Rect, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
@@ -37,6 +37,132 @@ mod spacing {
 
 use spacing::*;
 
+/// Debug flag for baseline visualization
+const DEBUG_BASELINE: bool = true;
+
+/// Ascent ratio for baseline estimation (76% = 0.76)
+/// This is the estimated fraction of row height where text baseline is located
+/// Adjust this based on visual alignment testing
+/// 0.76 provides perfect baseline alignment based on visual testing
+const ASCENT_RATIO: f32 = 0.76;
+
+/// Render an image with baseline alignment
+fn render_baseline_aligned_image(
+    ui: &mut Ui,
+    image_source: ImageSource<'static>,
+    image_size: egui::Vec2,
+    baseline_from_top: f32,
+) {
+    // Get text metrics (estimated)
+    // Use configurable ascent ratio for baseline estimation
+    let text_height = ui.text_style_height(&TextStyle::Body);
+    let estimated_ascent = text_height * ASCENT_RATIO;
+
+    // Calculate offset accounting for vertical centering in horizontal_wrapped
+    // Both text and image widgets are centered vertically in the row
+    // text_baseline_y = center_y - (text_height/2) + ascent
+    // svg_baseline_y = center_y - (image_height/2) + svg_baseline_from_top
+    // offset_y = text_baseline_y - svg_baseline_y
+    let text_baseline_offset = estimated_ascent - (text_height / 2.0);
+    let image_baseline_offset = baseline_from_top - (image_size.y / 2.0);
+    let offset_y = text_baseline_offset - image_baseline_offset;
+
+    // Allocate space for image
+    let (rect, _) = ui.allocate_exact_size(image_size, Sense::hover());
+
+    // Create image with tint
+    let image = egui::Image::new(image_source)
+        .fit_to_exact_size(image_size)
+        .tint(ui.visuals().text_color())
+        .corner_radius(0.0);
+
+    // Draw image with offset
+    let translated_rect = rect.translate(egui::Vec2::new(0.0, offset_y));
+    image.paint_at(ui, translated_rect);
+
+    // DEBUG: Draw baselines and visualization
+    if DEBUG_BASELINE {
+        let row_center_y = rect.center().y;
+        let text_baseline_y = row_center_y + text_baseline_offset;
+        let svg_baseline_y = row_center_y + image_baseline_offset + offset_y;
+
+        // 1. Text baseline (red) - estimated text baseline position
+        ui.painter().line_segment(
+            [
+                egui::Pos2::new(rect.left() - 10.0, text_baseline_y),
+                egui::Pos2::new(rect.right() + 10.0, text_baseline_y),
+            ],
+            (1.0, egui::Color32::RED),
+        );
+
+        // 2. SVG baseline (green) - where SVG baseline actually is
+        ui.painter().line_segment(
+            [
+                egui::Pos2::new(rect.left() - 5.0, svg_baseline_y),
+                egui::Pos2::new(rect.right() + 5.0, svg_baseline_y),
+            ],
+            (1.0, egui::Color32::GREEN),
+        );
+
+        // 3. Image bounds (blue) - allocated space before offset
+        ui.painter().rect_stroke(
+            rect,
+            0.0,
+            egui::Stroke::new(1.0, egui::Color32::BLUE),
+            egui::StrokeKind::Outside,
+        );
+
+        // 4. Actual text baseline (yellow) - where text baseline should be (accounting for centering)
+        ui.painter().line_segment(
+            [
+                egui::Pos2::new(rect.left() - 15.0, text_baseline_y),
+                egui::Pos2::new(rect.right() + 15.0, text_baseline_y),
+            ],
+            (1.5, egui::Color32::YELLOW),
+        );
+
+        // 5. Row center line (magenta) - where widgets are centered vertically
+        ui.painter().line_segment(
+            [
+                egui::Pos2::new(rect.left() - 20.0, row_center_y),
+                egui::Pos2::new(rect.right() + 20.0, row_center_y),
+            ],
+            (1.0, egui::Color32::from_rgb(255, 0, 255)), // Magenta
+        );
+
+        // 6. Text widget bounds (cyan) - estimated text widget area
+        let text_widget_height = text_height;
+        let text_widget_rect = Rect::from_center_size(
+            egui::Pos2::new(rect.center().x, row_center_y),
+            egui::Vec2::new(rect.width(), text_widget_height),
+        );
+        ui.painter().rect_stroke(
+            text_widget_rect,
+            0.0,
+            egui::Stroke::new(1.0, egui::Color32::CYAN),
+            egui::StrokeKind::Outside,
+        );
+
+        // 7. Numeric overlay for debugging
+        let debug_text = format!(
+            "offset: {:.2}\nascent: {:.2} ({}%)\ntext_h: {:.2}\nimg_h: {:.2}\nsvg_base: {:.2}",
+            offset_y,
+            estimated_ascent,
+            (ASCENT_RATIO * 100.0) as i32,
+            text_height,
+            image_size.y,
+            baseline_from_top
+        );
+        ui.painter().text(
+            rect.left_bottom() + egui::Vec2::new(0.0, 5.0),
+            egui::Align2::LEFT_TOP,
+            debug_text,
+            egui::FontId::monospace(10.0),
+            egui::Color32::WHITE,
+        );
+    }
+}
+
 /// Content that can appear within a paragraph
 #[derive(Clone)]
 enum ParagraphContent {
@@ -45,6 +171,7 @@ enum ParagraphContent {
         image_source: ImageSource<'static>,
         size: egui::Vec2,
         is_display: bool,
+        baseline_from_top: Option<f32>,
     },
     MathCode {
         content: String,
@@ -905,11 +1032,11 @@ fn render_text_with_math_and_assets(
                 math_content.trim(), // Trim whitespace
                 is_display_math,
             ) {
-                // Get the SVG's intrinsic size
-                let svg_size =
-                    asset_manager.get_svg_size_for_formula(math_content.trim(), is_display_math);
+                // Get the SVG's intrinsic size and baseline data
+                let svg_size_with_baseline =
+                    asset_manager.get_svg_size_with_baseline(math_content.trim(), is_display_math);
 
-                if let Some(size) = svg_size {
+                if let Some((size, baseline_from_top)) = svg_size_with_baseline {
                     if is_display_math {
                         // Display math: center with spacing
                         ui.add_space(8.0);
@@ -926,14 +1053,20 @@ fn render_text_with_math_and_assets(
                         });
                         ui.add_space(8.0);
                     } else {
-                        // Inline math: render at SVG's intrinsic size
-                        // Create image with crisp rendering using SVG's intrinsic size
-                        let image = egui::Image::new(image_source)
-                            .tint(ui.visuals().text_color()) // Theme-aware tinting
-                            .fit_to_exact_size(size)
-                            .corner_radius(0.0); // No rounding for crisp edges
+                        // Inline math: use baseline alignment if available
+                        if let Some(baseline) = baseline_from_top {
+                            // Use baseline-aligned rendering
+                            render_baseline_aligned_image(ui, image_source, size, baseline);
+                        } else {
+                            // Fallback: render at SVG's intrinsic size
+                            // Create image with crisp rendering using SVG's intrinsic size
+                            let image = egui::Image::new(image_source)
+                                .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                .fit_to_exact_size(size)
+                                .corner_radius(0.0); // No rounding for crisp edges
 
-                        ui.add(image);
+                            ui.add(image);
+                        }
                     }
                 } else {
                     // Fallback: use reasonable default size if SVG size not available
@@ -1056,6 +1189,7 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
             image_source,
             size,
             is_display,
+            baseline_from_top,
         } => {
             if *is_display {
                 // Display math: center with spacing
@@ -1070,14 +1204,20 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
                 });
                 ui.add_space(8.0);
             } else {
-                // Inline math: render inline with adjusted spacing
-                // Reduce the image size slightly to account for SVG padding
-                let adjusted_size = *size * 0.9; // Reduce by 10% to account for padding
-                let image = egui::Image::new(image_source.clone())
-                    .tint(ui.visuals().text_color())
-                    .fit_to_exact_size(adjusted_size)
-                    .corner_radius(0.0);
-                ui.add(image);
+                // Inline math: use baseline alignment if available
+                if let Some(baseline) = baseline_from_top {
+                    // Use baseline-aligned rendering
+                    render_baseline_aligned_image(ui, image_source.clone(), *size, *baseline);
+                } else {
+                    // Fallback: render inline with adjusted spacing (current behavior)
+                    // Reduce the image size slightly to account for SVG padding
+                    let adjusted_size = *size * 0.9; // Reduce by 10% to account for padding
+                    let image = egui::Image::new(image_source.clone())
+                        .tint(ui.visuals().text_color())
+                        .fit_to_exact_size(adjusted_size)
+                        .corner_radius(0.0);
+                    ui.add(image);
+                }
             }
         }
         ParagraphContent::MathCode {
@@ -1168,6 +1308,7 @@ fn accumulate_text_content(
                                     image_source,
                                     size,
                                     is_display: metadata.is_display,
+                                    baseline_from_top: metadata.baseline_from_top,
                                 });
                             } else {
                                 // Fallback: use code rendering
