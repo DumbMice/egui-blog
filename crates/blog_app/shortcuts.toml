@@ -1,0 +1,183 @@
+# Keyboard Shortcuts Configuration
+# Required file - no shortcuts work without this file
+version = "1.0"
+vim_mode_enabled = true
+sequence_timeout_ms = 1000
+save_focus_state = true
+default_focused_panel = "LeftPanel"
+
+# Shortcut definitions
+[[shortcuts]]
+name = "focus_left_panel"
+description = "Focus left panel (post list)"
+contexts = ["Global", "LeftPanel", "RightPanel", "Search", "Editor", "FindMode"]
+keys = [
+    { modifiers = ["Control"], key = "h" },
+    { modifiers = ["Control"], key = "ArrowLeft" }
+]
+action = { type = "FocusPanel", panel = "LeftPanel" }
+
+[[shortcuts]]
+name = "focus_right_panel"
+description = "Focus right panel (content)"
+contexts = ["Global", "LeftPanel", "RightPanel", "Search", "Editor", "FindMode"]
+keys = [
+    { modifiers = ["Control"], key = "." },
+    { modifiers = ["Control"], key = "ArrowRight" }
+]
+action = { type = "FocusPanel", panel = "RightPanel" }
+
+[[shortcuts]]
+name = "next_post"
+description = "Select next post"
+contexts = ["LeftPanel"]
+keys = [
+    { modifiers = [], key = "ArrowDown" },
+    { modifiers = [], key = "j" }
+]
+action = { type = "NavigatePost", direction = "Next" }
+
+[[shortcuts]]
+name = "previous_post"
+description = "Select previous post"
+contexts = ["LeftPanel"]
+keys = [
+    { modifiers = [], key = "ArrowUp" },
+    { modifiers = [], key = "k" }
+]
+action = { type = "NavigatePost", direction = "Previous" }
+
+[[shortcuts]]
+name = "first_post"
+description = "Navigate to first post"
+contexts = ["LeftPanel", "RightPanel"]
+keys = [
+    { modifiers = [], key = "Home" },
+    { modifiers = [], sequence = ["g", "g"] }
+]
+action = { type = "NavigatePost", direction = "First" }
+
+[[shortcuts]]
+name = "last_post"
+description = "Navigate to last post"
+contexts = ["LeftPanel", "RightPanel"]
+keys = [
+    { modifiers = [], key = "End" },
+    { modifiers = ["Shift"], key = "g" }
+]
+action = { type = "NavigatePost", direction = "Last" }
+
+[[shortcuts]]
+name = "switch_tab_left"
+description = "Switch to previous content tab"
+contexts = ["LeftPanel"]
+keys = [
+    { modifiers = [], key = "ArrowLeft" },
+    { modifiers = [], key = "h" }
+]
+action = { type = "SwitchTab", direction = "Previous" }
+
+[[shortcuts]]
+name = "switch_tab_right"
+description = "Switch to next content tab"
+contexts = ["LeftPanel"]
+keys = [
+    { modifiers = [], key = "ArrowRight" },
+    { modifiers = [], key = "l" }
+]
+action = { type = "SwitchTab", direction = "Next" }
+
+[[shortcuts]]
+name = "scroll_down"
+description = "Scroll down small step"
+contexts = ["RightPanel"]
+keys = [
+    { modifiers = [], key = "j" },
+    { modifiers = [], key = "ArrowDown" }
+]
+action = { type = "Scroll", direction = "Down", amount = "Small" }
+
+[[shortcuts]]
+name = "scroll_up"
+description = "Scroll up small step"
+contexts = ["RightPanel"]
+keys = [
+    { modifiers = [], key = "k" },
+    { modifiers = [], key = "ArrowUp" }
+]
+action = { type = "Scroll", direction = "Up", amount = "Small" }
+
+[[shortcuts]]
+name = "scroll_half_page_down"
+description = "Scroll down half page"
+contexts = ["RightPanel"]
+keys = [
+    { modifiers = ["Control"], key = "d" },
+    { modifiers = ["Control"], key = "j" }
+]
+action = { type = "Scroll", direction = "Down", amount = "HalfPage" }
+
+[[shortcuts]]
+name = "scroll_half_page_up"
+description = "Scroll up half page"
+contexts = ["RightPanel"]
+keys = [
+    { modifiers = ["Control"], key = "u" },
+    { modifiers = ["Control"], key = "k" }
+]
+action = { type = "Scroll", direction = "Up", amount = "HalfPage" }
+
+[[shortcuts]]
+name = "focus_search"
+description = "Focus search bar"
+contexts = ["Global", "LeftPanel"]
+keys = [
+    { modifiers = ["Control"], key = "k" },
+    { modifiers = [], key = "/" }
+]
+action = { type = "FocusSearch" }
+
+[[shortcuts]]
+name = "find_in_content"
+description = "Find text in current post"
+contexts = ["RightPanel"]
+keys = [
+    { modifiers = ["Control"], key = "f" },
+    { modifiers = [], key = "/" }
+]
+action = { type = "FindInContent" }
+
+[[shortcuts]]
+name = "next_match"
+description = "Next find match"
+contexts = ["FindMode"]
+keys = [{ modifiers = [], key = "n" }]
+action = { type = "FindNext" }
+
+[[shortcuts]]
+name = "previous_match"
+description = "Previous find match"
+contexts = ["FindMode"]
+keys = [{ modifiers = ["Shift"], key = "n" }]
+action = { type = "FindPrevious" }
+
+[[shortcuts]]
+name = "toggle_theme"
+description = "Toggle between light and dark themes"
+contexts = ["Global"]
+keys = [{ modifiers = ["Control"], key = "t" }]
+action = { type = "ToggleTheme" }
+
+[[shortcuts]]
+name = "show_help"
+description = "Show keyboard shortcuts help"
+contexts = ["Global"]
+keys = [{ modifiers = [], key = "?" }]
+action = { type = "ShowHelp" }
+
+[[shortcuts]]
+name = "browser_address"
+description = "Focus browser address bar (web only)"
+contexts = ["Global"]
+keys = [{ modifiers = ["Alt"], key = "d" }]
+action = { type = "BrowserAddress" }
