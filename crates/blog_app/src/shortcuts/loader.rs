@@ -40,7 +40,7 @@ pub fn find_shortcuts_toml() -> Result<PathBuf, ShortcutConfigError> {
         // Move up one directory
         if !current_dir.pop() {
             return Err(ShortcutConfigError::NotFound(
-                "shortcuts.toml not found and no Cargo.toml to determine project root".to_string(),
+                "shortcuts.toml not found and no Cargo.toml to determine project root".to_owned(),
             ));
         }
     }
@@ -57,7 +57,7 @@ fn create_default_config(path: &Path) -> Result<PathBuf, ShortcutConfigError> {
 /// Generate default TOML config content
 fn generate_default_toml() -> String {
     let config = ShortcutConfig {
-        version: "1.0".to_string(),
+        version: "1.0".to_owned(),
         vim_mode_enabled: true,
         sequence_timeout_ms: 1000,
         save_focus_state: true,
@@ -68,7 +68,7 @@ fn generate_default_toml() -> String {
 
     // Convert to TOML
     toml::to_string_pretty(&config).unwrap_or_else(|e| {
-        log::error!("Failed to generate default TOML: {}", e);
+        log::error!("Failed to generate default TOML: {e}");
         fallback_default_toml()
     })
 }
@@ -241,10 +241,16 @@ contexts = ["Global"]
 keys = [{ modifiers = ["Alt"], key = "d" }]
 action = { type = "BrowserAddress" }
 "#
-    .to_string()
+    .to_owned()
 }
 
 /// Load shortcuts configuration from file
+///
+/// # Errors
+/// Returns `ShortcutConfigError` if:
+/// - The shortcuts.toml file cannot be found
+/// - The file cannot be read
+/// - The TOML content is invalid
 pub fn load_shortcuts_config() -> Result<ShortcutConfig, ShortcutConfigError> {
     let config_path = find_shortcuts_toml()?;
 
@@ -258,7 +264,9 @@ pub fn load_shortcuts_config() -> Result<ShortcutConfig, ShortcutConfigError> {
     validate_config(&config)?;
 
     // Ensure all contexts are enabled by default
-    use crate::shortcuts::config::ShortcutContext::*;
+    use crate::shortcuts::config::ShortcutContext::{
+        Editor, FindMode, Global, LeftPanel, RightPanel, Search,
+    };
     let all_contexts = [Global, LeftPanel, RightPanel, Search, Editor, FindMode];
     for context in all_contexts {
         config.contexts_enabled.entry(context).or_insert(true);
@@ -281,7 +289,7 @@ fn validate_config(config: &ShortcutConfig) -> Result<(), ShortcutConfigError> {
     // Check sequence timeout
     if config.sequence_timeout_ms == 0 {
         return Err(ShortcutConfigError::Invalid(
-            "sequence_timeout_ms must be greater than 0".to_string(),
+            "sequence_timeout_ms must be greater than 0".to_owned(),
         ));
     }
 

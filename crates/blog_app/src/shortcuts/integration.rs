@@ -1,11 +1,11 @@
-//! Integration helpers for BlogApp.
+//! Integration helpers for `BlogApp`.
 
 use crate::shortcuts::{
     ActionExecutor, ContextProvider, FocusedPanel, HelpOverlay, PostNavigation, ScrollAmount,
     ScrollDirection, ShortcutConfig, ShortcutContext, ShortcutManager, TabDirection,
 };
 
-/// Integration helper for BlogApp
+/// Integration helper for `BlogApp`
 pub struct ShortcutIntegration {
     /// Shortcut manager
     pub manager: ShortcutManager,
@@ -26,6 +26,9 @@ impl ShortcutIntegration {
     }
 
     /// Initialize shortcuts (load config)
+    ///
+    /// # Errors
+    /// Returns an error string if shortcut configuration fails to load
     pub fn initialize(&mut self) -> Result<(), String> {
         if self.initialized {
             return Ok(());
@@ -38,7 +41,7 @@ impl ShortcutIntegration {
                 Ok(())
             }
             Err(err) => {
-                log::error!("Failed to initialize shortcuts: {}", err);
+                log::error!("Failed to initialize shortcuts: {err}");
                 Err(err)
             }
         }
@@ -60,11 +63,10 @@ impl ShortcutIntegration {
         let handled = self.manager.handle_input(ctx, app);
 
         // Draw help overlay if needed
-        if self.help_overlay.is_visible() {
-            if let Some(config) = self.manager.config() {
+        if self.help_overlay.is_visible()
+            && let Some(config) = self.manager.config() {
                 self.help_overlay.draw(ctx, config);
             }
-        }
 
         handled
     }
@@ -106,6 +108,12 @@ pub struct TestIntegration {
     pub actions_log: Vec<String>,
 }
 
+impl Default for TestIntegration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TestIntegration {
     pub fn new() -> Self {
         Self {
@@ -140,71 +148,71 @@ impl ContextProvider for TestIntegration {
 impl ActionExecutor for TestIntegration {
     fn execute_action(&mut self, action: &crate::shortcuts::config::ShortcutAction) -> bool {
         self.actions_log
-            .push(format!("execute_action: {:?}", action));
+            .push(format!("execute_action: {action:?}"));
         true
     }
 
     fn navigate_post(&mut self, navigation: PostNavigation) -> bool {
         self.actions_log
-            .push(format!("navigate_post: {:?}", navigation));
+            .push(format!("navigate_post: {navigation:?}"));
         true
     }
 
     fn switch_tab(&mut self, direction: TabDirection) -> bool {
         self.actions_log
-            .push(format!("switch_tab: {:?}", direction));
+            .push(format!("switch_tab: {direction:?}"));
         true
     }
 
     fn scroll(&mut self, direction: ScrollDirection, amount: ScrollAmount) -> bool {
         self.actions_log
-            .push(format!("scroll: {:?} {:?}", direction, amount));
+            .push(format!("scroll: {direction:?} {amount:?}"));
         true
     }
 
     fn focus_panel(&mut self, panel: FocusedPanel) -> bool {
-        self.actions_log.push(format!("focus_panel: {:?}", panel));
+        self.actions_log.push(format!("focus_panel: {panel:?}"));
         true
     }
 
     fn focus_search(&mut self) -> bool {
-        self.actions_log.push("focus_search".to_string());
+        self.actions_log.push("focus_search".to_owned());
         true
     }
 
     fn find_in_content(&mut self) -> bool {
-        self.actions_log.push("find_in_content".to_string());
+        self.actions_log.push("find_in_content".to_owned());
         true
     }
 
     fn find_next(&mut self) -> bool {
-        self.actions_log.push("find_next".to_string());
+        self.actions_log.push("find_next".to_owned());
         true
     }
 
     fn find_previous(&mut self) -> bool {
-        self.actions_log.push("find_previous".to_string());
+        self.actions_log.push("find_previous".to_owned());
         true
     }
 
     fn toggle_theme(&mut self) -> bool {
-        self.actions_log.push("toggle_theme".to_string());
+        self.actions_log.push("toggle_theme".to_owned());
         true
     }
 
     fn show_help(&mut self) -> bool {
-        self.actions_log.push("show_help".to_string());
+        self.actions_log.push("show_help".to_owned());
         self.integration.show_help();
         true
     }
 
     fn browser_address(&mut self) -> bool {
-        self.actions_log.push("browser_address".to_string());
+        self.actions_log.push("browser_address".to_owned());
         true
     }
 
     fn execute_custom(&mut self, action: &str) -> bool {
-        self.actions_log.push(format!("execute_custom: {}", action));
+        self.actions_log.push(format!("execute_custom: {action}"));
         true
     }
 }

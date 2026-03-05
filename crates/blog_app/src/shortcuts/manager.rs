@@ -33,6 +33,9 @@ impl ShortcutManager {
     }
 
     /// Load configuration (tries file first, falls back to embedded)
+    ///
+    /// # Errors
+    /// Returns an error string if configuration loading fails
     pub fn load_config(&mut self) -> Result<(), String> {
         // Try to load from file first (for native targets with custom config)
         #[cfg(not(target_arch = "wasm32"))]
@@ -54,8 +57,7 @@ impl ShortcutManager {
                 Err(err) => {
                     // File loading failed, log but continue to try embedded
                     log::warn!(
-                        "Failed to load shortcuts from file: {}, falling back to embedded",
-                        err
+                        "Failed to load shortcuts from file: {err}, falling back to embedded"
                     );
                 }
             }
@@ -73,7 +75,7 @@ impl ShortcutManager {
         match toml::from_str(SHORTCUTS_TOML) {
             Ok(config) => {
                 self.config = Some(config);
-                if let Some(ref config) = self.config {
+                if let Some(config) = &self.config {
                     self.sequence_handler = KeySequenceHandler::new(config.sequence_timeout_ms);
                     self.enabled = true;
                     self.last_error = None;
@@ -85,7 +87,7 @@ impl ShortcutManager {
                 Ok(())
             }
             Err(err) => {
-                let err_msg = format!("Failed to parse embedded shortcuts.toml: {}", err);
+                let err_msg = format!("Failed to parse embedded shortcuts.toml: {err}");
                 self.last_error = Some(err_msg.clone());
                 self.enabled = false;
                 Err(err_msg)
@@ -114,9 +116,8 @@ impl ShortcutManager {
 
         // Get config and shortcuts before mutable operations
         let (shortcuts, contexts_enabled, active_context) = {
-            let config = match &self.config {
-                Some(config) => config,
-                None => return false,
+            let Some(config) = &self.config else {
+                return false;
             };
 
             // Extract what we need
@@ -138,7 +139,7 @@ impl ShortcutManager {
             }
 
             // Check if context is enabled
-            if let Some(false) = contexts_enabled.get(&active_context) {
+            if matches!(contexts_enabled.get(&active_context), Some(false)) {
                 continue;
             }
 
@@ -150,14 +151,14 @@ impl ShortcutManager {
                         shortcut.name,
                         key_seq
                     );
-                    return self.execute_shortcut(app, shortcut);
+                    return Self::execute_shortcut(app, shortcut);
                 }
             }
 
             // Check alternate keys
             for key_seq in &shortcut.alternate_keys {
                 if self.check_sequence(ctx, key_seq) {
-                    return self.execute_shortcut(app, shortcut);
+                    return Self::execute_shortcut(app, shortcut);
                 }
             }
         }
@@ -175,7 +176,6 @@ impl ShortcutManager {
 
     /// Execute a shortcut action
     fn execute_shortcut<A: ActionExecutor>(
-        &self,
         app: &mut A,
         shortcut: &crate::shortcuts::config::ShortcutDefinition,
     ) -> bool {

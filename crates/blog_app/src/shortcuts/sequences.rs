@@ -1,6 +1,6 @@
 //! Vim-style key sequence handling.
 
-use egui::{Context, Event, Key, KeyboardShortcut};
+use egui::{Context, Event, KeyboardShortcut};
 use std::collections::VecDeque;
 
 /// Handles Vim-style key sequences with timeout
@@ -31,12 +31,11 @@ impl KeySequenceHandler {
         let current_time = ctx.input(|i| i.time);
 
         // Clear buffer if timeout expired
-        if let Some(last_time) = self.last_key_time {
-            if current_time - last_time > self.timeout_seconds {
+        if let Some(last_time) = self.last_key_time
+            && current_time - last_time > self.timeout_seconds {
                 self.buffer.clear();
                 self.last_key_time = None;
             }
-        }
 
         // Process key press events
         for event in ctx.input(|i| i.raw.events.clone()) {
@@ -79,7 +78,7 @@ impl KeySequenceHandler {
             .rev()
             .take(sequence.len())
             .rev()
-            .cloned()
+            .copied()
             .collect();
 
         if recent == sequence {
@@ -93,17 +92,20 @@ impl KeySequenceHandler {
     }
 
     /// Clear the sequence buffer
+    #[expect(dead_code)]
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.last_key_time = None;
     }
 
     /// Get the current sequence buffer (for debugging)
+    #[expect(dead_code)]
     pub fn buffer(&self) -> &VecDeque<KeyboardShortcut> {
         &self.buffer
     }
 
     /// Set the timeout duration
+    #[expect(dead_code)]
     pub fn set_timeout_ms(&mut self, timeout_ms: u64) {
         self.timeout_seconds = timeout_ms as f64 / 1000.0;
     }

@@ -45,10 +45,12 @@ pub trait ActionExecutor {
 }
 
 /// Default implementation for testing
+#[cfg(test)]
 pub struct TestExecutor {
     pub actions_log: Vec<String>,
 }
 
+#[cfg(test)]
 impl TestExecutor {
     pub fn new() -> Self {
         Self {
@@ -57,9 +59,10 @@ impl TestExecutor {
     }
 }
 
+#[cfg(test)]
 impl ActionExecutor for TestExecutor {
     fn execute_action(&mut self, action: &ShortcutAction) -> bool {
-        self.actions_log.push(format!("{:?}", action));
+        self.actions_log.push(format!("{action:?}"));
         true
     }
 
@@ -128,11 +131,13 @@ impl ActionExecutor for TestExecutor {
 }
 
 /// Helper to execute actions with logging
+#[cfg(test)]
 pub struct LoggingExecutor<T: ActionExecutor> {
     inner: T,
     log: Vec<String>,
 }
 
+#[cfg(test)]
 impl<T: ActionExecutor> LoggingExecutor<T> {
     pub fn new(inner: T) -> Self {
         Self {
@@ -146,6 +151,7 @@ impl<T: ActionExecutor> LoggingExecutor<T> {
     }
 }
 
+#[cfg(test)]
 impl<T: ActionExecutor> ActionExecutor for LoggingExecutor<T> {
     fn execute_action(&mut self, action: &ShortcutAction) -> bool {
         self.log.push(format!("Executing: {:?}", action));

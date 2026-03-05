@@ -123,11 +123,7 @@ pub fn top_panel(
         // Post counter
         ui.label(format!(
             "Posts: {}/{}",
-            if post_manager.count() > 0 {
-                selected_post + 1
-            } else {
-                0
-            },
+            if post_manager.count() > 0 { selected_post + 1 } else { 0 },
             post_manager.count()
         ));
 
@@ -156,14 +152,35 @@ pub fn top_panel(
 pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
-    post_manager_state: &PostManagerState, // NEW
+    post_manager_state: &PostManagerState,
     search_query: &str,
     selected_content_type: &mut Option<crate::posts::ContentType>,
     selected_post_index: &mut usize,
     config: &mut LayoutConfig,
     mut on_selection: impl FnMut(Option<&crate::posts::BlogPost>),
-) -> bool {
+    is_focused: bool,
+    panel_rect: egui::Rect,
+    scroll_offset: &mut f32,
+    request_auto_scroll: &mut bool,
+) -> (bool, bool) {
     let mut selection_changed = false;
+    let mut panel_clicked = false;
+
+    // Save the initial rect for click detection (not used for clicks anymore)
+    let _initial_rect = ui.available_rect_before_wrap();
+    
+    // Use the provided panel_rect for click detection (full panel area)
+    let click_rect = panel_rect;
+
+    // Draw focus indicator if panel is focused
+    if is_focused {
+        ui.painter().rect_stroke(
+            click_rect,
+            0.0,
+            egui::Stroke::new(2.0, ui.visuals().widgets.active.fg_stroke.color),
+            egui::StrokeKind::Outside,
+        );
+    }
 
     // Handle loading/error states before entering the UI closure
     match post_manager_state {
@@ -173,7 +190,7 @@ pub fn side_panel(
                 ui.separator();
                 super::components::loading_spinner(ui, "Loading posts...");
             });
-            return selection_changed;
+            return (selection_changed, panel_clicked);
         }
         PostManagerState::Error(_) => {
             ui.vertical(|ui| {
@@ -182,20 +199,20 @@ pub fn side_panel(
                 ui.label("Failed to load posts");
                 ui.small("See main content for error details");
             });
-            return selection_changed;
+            return (selection_changed, panel_clicked);
         }
         PostManagerState::Empty => {
             ui.vertical(|ui| {
                 ui.heading("Blog Posts");
                 ui.separator();
-                ui.label("No posts found");
+                super::components::empty_state(ui, false);
             });
-            return selection_changed;
+            return (selection_changed, panel_clicked);
         }
         PostManagerState::Loaded => {
             // Continue with normal logic
         }
-    }
+        }
 
     ui.vertical(|ui| {
         ui.horizontal(|ui| {
@@ -262,6 +279,7 @@ pub fn side_panel(
                         *selected_post_index = index;
                         selection_changed = true;
                         on_selection(Some(first_post));
+                        *request_auto_scroll = true;
                     }
                 }
             }
@@ -288,7 +306,9 @@ pub fn side_panel(
                 ui.label("Try a different search term");
             }
         } else {
-            egui::ScrollArea::vertical().show(ui, |ui| {
+            let scroll_response = egui::ScrollArea::vertical()
+                .scroll_offset(egui::vec2(0.0, *scroll_offset))
+                .show(ui, |ui| {
                 for (idx, post) in posts_to_show.iter().enumerate() {
                     // Find the original index in the post manager
                     let original_index = post_manager
@@ -298,8 +318,15 @@ pub fn side_panel(
                         .unwrap_or(idx);
 
                     let is_selected = original_index == *selected_post_index;
+                    
+                    // Handle auto-scroll if this is the selected post and auto-scroll is requested
+                    if is_selected && *request_auto_scroll {
+                        // Scroll to this item
+                        ui.scroll_to_cursor(Some(egui::Align::Center));
+                        *request_auto_scroll = false;
+                    }
 
-                    ui.vertical(|ui| {
+                    let post_response = ui.vertical(|ui| {
                         let clicked = components::post_preview(ui, post, is_selected);
 
                         if config.show_preview_in_list {
@@ -331,36 +358,112 @@ pub fn side_panel(
                             selection_changed = true;
                             // Update URL when post is selected
                             on_selection(Some(post));
+                            // Request auto-scroll to the clicked post
+                            *request_auto_scroll = true;
                         }
                     });
+                    
+                    // Handle auto-scroll if this is the selected post and auto-scroll is requested
+                    if is_selected && *request_auto_scroll {
+                        // Check if the post is already visible in the scroll area
+                        let clip_rect = ui.clip_rect();
+                        let post_rect = post_response.response.rect;
+                        
+                        // Only scroll if the post is not fully visible
+                        if !clip_rect.contains_rect(post_rect) {
+                            // Scroll to this item's rect
+                            // Using None for alignment means "make it visible somewhere" (less jumping than Center)
+                            ui.scroll_to_rect(post_rect, None);
+                        }
+                        *request_auto_scroll = false;
+                    }
                 }
             });
+            
+            // Update scroll offset from scroll area response
+            *scroll_offset = scroll_response.state.offset.y;
         }
     });
 
-    selection_changed
+    // Check for clicks on the panel at the end (after all widgets are drawn)
+    // This ensures we detect clicks even on widgets
+    let pointer = ui.ctx().input(|i| i.pointer.clone());
+    
+    // Try multiple ways to detect clicks/presses
+    let detected_click = 
+        // Method 1: Check for primary click at interact position
+        if let Some(click_pos) = pointer.interact_pos()
+            && click_rect.contains(click_pos) && pointer.primary_clicked()
+        {
+            log::debug!("Side panel clicked via interact_pos");
+            true
+        }
+        // Method 2: Check for primary press origin (where mouse was pressed down)
+        else if let Some(press_origin) = pointer.press_origin()
+            && click_rect.contains(press_origin) && pointer.primary_down()
+        {
+            log::debug!("Side panel pressed via press_origin");
+            true
+        }
+        // Method 3: Check latest position if primary is down
+        else if let Some(latest_pos) = pointer.latest_pos()
+            && click_rect.contains(latest_pos) && pointer.primary_down()
+        {
+            log::debug!("Side panel pressed via latest_pos");
+            true
+        }
+        else {
+            false
+        };
+    
+    if detected_click {
+        panel_clicked = true;
+    }
+    
+    (selection_changed, panel_clicked)
 }
 
 /// Main content area showing a post or editor with math support.
-pub fn main_content(ui: &mut Ui, state: MainContentState<'_>) -> (bool, bool, Option<usize>, bool) {
-    main_content_internal(ui, state)
+pub fn main_content(ui: &mut Ui, state: MainContentState<'_>, is_focused: bool, panel_rect: egui::Rect) -> (bool, bool, Option<usize>, bool, bool) {
+    main_content_internal(ui, state, is_focused, panel_rect)
 }
 
 fn main_content_internal(
     ui: &mut Ui,
     state: MainContentState<'_>,
-) -> (bool, bool, Option<usize>, bool) {
-    main_content_internal_impl(ui, state)
+    is_focused: bool,
+    panel_rect: egui::Rect,
+) -> (bool, bool, Option<usize>, bool, bool) {
+    main_content_internal_impl(ui, state, is_focused, panel_rect)
 }
 
 fn main_content_internal_impl(
     ui: &mut Ui,
     state: MainContentState<'_>,
-) -> (bool, bool, Option<usize>, bool) {
+    is_focused: bool,
+    panel_rect: egui::Rect,
+) -> (bool, bool, Option<usize>, bool, bool) {
     let mut post_saved = false;
     let mut editing_cancelled = false;
     let mut navigation_index = None;
     let mut retry_requested = false;
+    let mut panel_clicked = false;
+
+    // Save the initial rect for debugging
+    let initial_rect = ui.available_rect_before_wrap();
+    log::debug!("Main content initial rect: {:?} (min: {:?}, max: {:?}, size: {:?}), panel_rect: {:?} (min: {:?}, max: {:?}, size: {:?})", 
+        initial_rect, initial_rect.min, initial_rect.max, initial_rect.size(),
+        panel_rect, panel_rect.min, panel_rect.max, panel_rect.size());
+
+    // Draw focus indicator if panel is focused
+    if is_focused {
+        ui.painter().rect_stroke(
+            panel_rect,
+            0.0,
+            egui::Stroke::new(2.0, ui.visuals().widgets.active.fg_stroke.color),
+            egui::StrokeKind::Outside,
+        );
+    }
 
     // Handle 404 route
     if matches!(
@@ -379,6 +482,7 @@ fn main_content_internal_impl(
             editing_cancelled,
             navigation_index,
             retry_requested,
+            panel_clicked,
         );
     }
 
@@ -467,12 +571,26 @@ fn main_content_internal_impl(
             }
         }
     }
+    
+    // Check for clicks on the panel at the end (after all widgets are drawn)
+    // This ensures we detect clicks even on widgets
+    let pointer = ui.ctx().input(|i| i.pointer.clone());
+    
+    // Simple approach: check if primary was clicked and the click position is in our rect
+    if pointer.primary_clicked()
+        && let Some(click_pos) = pointer.interact_pos()
+        && panel_rect.contains(click_pos)
+    {
+        log::debug!("Main content clicked!");
+        panel_clicked = true;
+    }
 
     (
         post_saved,
         editing_cancelled,
         navigation_index,
         retry_requested,
+        panel_clicked,
     )
 }
 
@@ -491,15 +609,15 @@ mod tests {
     use crate::posts::PostManagerState;
 
     #[test]
-    fn test_main_content_returns_four_values() {
-        // Test that main_content returns 4 values (including retry_requested)
+    fn test_main_content_returns_five_values() {
+        // Test that main_content returns 5 values (including retry_requested and panel_clicked)
         // Now that we've updated the function, this test should pass
 
         // Create a mock to represent what the function should return
-        let expected_return: (bool, bool, Option<usize>, bool) = (false, false, None, false);
+        let expected_return: (bool, bool, Option<usize>, bool, bool) = (false, false, None, false, false);
 
-        // Destructure to verify we can handle 4 values
-        let (_post_saved, _editing_cancelled, _navigation_index, _retry_requested) =
+        // Destructure to verify we can handle 5 values
+        let (_post_saved, _editing_cancelled, _navigation_index, _retry_requested, _panel_clicked) =
             expected_return;
 
         // The function now returns 4 values, so this test should pass

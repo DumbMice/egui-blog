@@ -224,15 +224,22 @@ cargo blog-wasm     # Build WASM library only
 - **Zoom-aware**: Percentage-based margins adjust with zoom level
 - **Backward compatible**: All existing functionality preserved
 
-## Priority 11: Keyboard Shortcuts & Vim Navigation
-- [ ] Basic navigation (arrow keys, Home/End)
-- [ ] Vim navigation (j/k for up/down, gg/G for top/bottom)
-- [ ] `/` for page content search (not post search)
-- [ ] Alt+D to focus browser address bar
-- [ ] Always-on vim mode (not toggleable)
-- [ ] Non-configurable shortcuts (hardcoded)
+## Priority 11: Keyboard Shortcuts & Vim Navigation ✅ COMPLETED 2026-03-05
+- [x] Basic navigation (arrow keys, Home/End) - via configurable shortcuts
+- [x] Vim navigation (j/k for up/down, gg/G for top/bottom) - via configurable shortcuts
+- [x] `/` for page content search (not post search) - Ctrl+F or `/` for find in content
+- [x] Alt+D to focus browser address bar (web only) - via configurable shortcuts
+- [x] Always-on vim mode (not toggleable) - vim_mode_enabled = true in config
+- [x] Configurable via TOML file (shortcuts.toml) - more flexible than hardcoded
 
-**Note**: Power user features for efficient navigation. Vim mode always enabled.
+**Note**: Modular keyboard shortcut system with:
+- Panel-based navigation (Ctrl+H/L to switch between left/right panels)
+- Vim-style shortcuts (j/k for scrolling, gg/G for navigation, h/l for tab switching)
+- Configurable via TOML file (required, no defaults)
+- Always-on vim mode
+- Help overlay with `?` shortcut
+- Focus state persistence across sessions
+- Find-in-content functionality with dialog
 
 ## Priority 12: Fix Blockquote Rendering and Math Alignment
 - [ ] Fix blockquote rendering issues (duplicate code, border implementation)

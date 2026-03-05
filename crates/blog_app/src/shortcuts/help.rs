@@ -126,14 +126,13 @@ impl HelpOverlay {
                     // Shortcut rows
                     for shortcut in &config.shortcuts {
                         // Apply filter
-                        if let Some(filter) = self.filter_context {
-                            if !shortcut.contexts.contains(&filter) {
+                        if let Some(filter) = self.filter_context
+                            && !shortcut.contexts.contains(&filter) {
                                 continue;
                             }
-                        }
 
                         // Format keys
-                        let keys_text = self.format_keys(&shortcut.keys);
+                        let keys_text = Self::format_keys(&shortcut.keys);
 
                         // Format contexts
                         let contexts_text = shortcut
@@ -164,7 +163,7 @@ impl HelpOverlay {
     }
 
     /// Format key sequences for display
-    fn format_keys(&self, keys: &[crate::shortcuts::config::KeySequence]) -> String {
+    fn format_keys(keys: &[crate::shortcuts::config::KeySequence]) -> String {
         use crate::shortcuts::config::KeySequence;
 
         let mut parts = Vec::new();
@@ -193,13 +192,13 @@ fn format_shortcut(shortcut: &egui::KeyboardShortcut) -> String {
 
     // Modifiers
     if shortcut.modifiers.ctrl || shortcut.modifiers.command {
-        parts.push("Ctrl".to_string());
+        parts.push("Ctrl".to_owned());
     }
     if shortcut.modifiers.shift {
-        parts.push("Shift".to_string());
+        parts.push("Shift".to_owned());
     }
     if shortcut.modifiers.alt {
-        parts.push("Alt".to_string());
+        parts.push("Alt".to_owned());
     }
 
     // Key
@@ -282,11 +281,12 @@ fn format_shortcut(shortcut: &egui::KeyboardShortcut) -> String {
         Key::Questionmark => "?",
         _ => {
             // Fallback for unknown keys
+            log::warn!("Unknown key in format_keys: {:?}", shortcut.logical_key);
             "?"
         }
     };
 
-    parts.push(key_str.to_string());
+    parts.push(key_str.to_owned());
     parts.join("+")
 }
 
