@@ -14,28 +14,24 @@ mod spacing {
     pub const BASE_FONT_SIZE: f32 = 16.0;
 
     /// Line height multiplier (GitHub: 1.5)
+    #[expect(dead_code)]
     pub const LINE_HEIGHT: f32 = 1.5;
 
     /// Line height in pixels (16px * 1.5 = 24px)
+    #[expect(dead_code)]
     pub const LINE_HEIGHT_PX: f32 = BASE_FONT_SIZE * LINE_HEIGHT;
 
-    /// Paragraph bottom margin (GitHub: 10px)
-    pub const PARAGRAPH_BOTTOM: f32 = 10.0;
+    /// Paragraph bottom margin (GitHub: 10px, but using 16px for better visual separation)
+    pub const PARAGRAPH_BOTTOM: f32 = 16.0;
 
-    /// Heading top margin for h1 (GitHub: 0.67em of 32px ≈ 21px)
-    pub const HEADING_TOP_H1: f32 = 21.0;
+    /// Heading top margin for all headings (GitHub: 24px, but using 16px for better spacing)
+    pub const HEADING_TOP: f32 = 16.0;
 
-    /// Heading top margin for h2-h6 (GitHub: 24px)
-    pub const HEADING_TOP_H2_H6: f32 = 24.0;
+    /// Heading bottom margin for all headings (GitHub: 16px)
+    pub const HEADING_BOTTOM: f32 = 16.0;
 
-    /// Heading bottom margin for h1 (GitHub: 0.67em of 32px ≈ 21px)
-    pub const HEADING_BOTTOM_H1: f32 = 21.0;
-
-    /// Heading bottom margin for h2-h6 (GitHub: 16px)
-    pub const HEADING_BOTTOM_H2_H6: f32 = 16.0;
-
-    /// List item spacing (GitHub: 0.25em of 24px line height = 6px)
-    pub const LIST_ITEM_SPACING: f32 = LINE_HEIGHT_PX * 0.25;
+    /// List item spacing (GitHub: 0.25em of 16px = 4px)
+    pub const LIST_ITEM_SPACING: f32 = BASE_FONT_SIZE * 0.25;
 
     /// Blockquote bottom margin (GitHub: 16px)
     pub const BLOCKQUOTE_BOTTOM: f32 = 16.0;
@@ -175,19 +171,22 @@ fn render_markdown_impl(
     // This prevents default egui spacing from adding to our GitHub-inspired spacing
     ui.spacing_mut().item_spacing.y = 0.0;
 
-    // State for margin collapsing
+    // Simplified margin collapsing: track previous element's bottom margin
     let mut previous_bottom_margin = 0.0;
 
-    // Helper to calculate collapsed spacing
-    fn calculate_collapsed_spacing(previous_bottom: f32, current_top: f32) -> f32 {
-        // CSS margin collapsing: take the maximum of adjacent margins
-        let collapsed = previous_bottom.max(current_top);
-        // We need to add only the difference from what was already accounted for
-        if collapsed > previous_bottom {
-            collapsed - previous_bottom
-        } else {
-            0.0
+    // Helper function to add bottom margin and track it
+    fn add_bottom_margin(ui: &mut Ui, previous_bottom: &mut f32, margin: f32) {
+        ui.add_space(margin);
+        *previous_bottom = margin;
+    }
+
+    // Helper function for margin collapsing at element start
+    fn add_top_margin_with_collapsing(ui: &mut Ui, previous_bottom: &mut f32, top_margin: f32) {
+        let spacing_to_add = top_margin.max(*previous_bottom) - *previous_bottom;
+        if spacing_to_add > 0.0 {
+            ui.add_space(spacing_to_add);
         }
+        // Don't reset previous_bottom here - it will be updated when element adds its bottom margin
     }
 
     // State for accumulating paragraph content
@@ -199,13 +198,8 @@ fn render_markdown_impl(
             Event::Start(tag) => {
                 match tag {
                     Tag::Paragraph => {
-                        // Apply margin collapsing for paragraph start
-                        let spacing_to_add =
-                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                        if spacing_to_add > 0.0 {
-                            ui.add_space(spacing_to_add);
-                        }
-
+                        // Paragraphs don't have top margin in GitHub's CSS
+                        // Spacing comes from previous element's bottom margin
                         in_paragraph = true;
                         paragraph_content.clear();
                     }
@@ -219,22 +213,11 @@ fn render_markdown_impl(
                             }
                         }
 
-                        // Calculate top margin for heading
-                        let top_margin = match level {
-                            HeadingLevel::H1 => HEADING_TOP_H1,
-                            HeadingLevel::H2
-                            | HeadingLevel::H3
-                            | HeadingLevel::H4
-                            | HeadingLevel::H5
-                            | HeadingLevel::H6 => HEADING_TOP_H2_H6,
-                        };
+                        // All headings have the same top margin in GitHub's CSS
+                        let top_margin = HEADING_TOP;
 
-                        // Apply margin collapsing
-                        let spacing_to_add =
-                            calculate_collapsed_spacing(previous_bottom_margin, top_margin);
-                        if spacing_to_add > 0.0 {
-                            ui.add_space(spacing_to_add);
-                        }
+                        // Apply margin collapsing for heading top margin
+                        add_top_margin_with_collapsing(ui, &mut previous_bottom_margin, top_margin);
 
                         let rich_text = match level {
                             HeadingLevel::H1 => RichText::new(heading_text).heading(), // Uses TextStyle::Heading (32px)
@@ -261,26 +244,15 @@ fn render_markdown_impl(
                             _ => {}
                         }
 
-                        // Calculate bottom margin for heading
-                        let bottom_margin = match level {
-                            HeadingLevel::H1 => HEADING_BOTTOM_H1,
-                            HeadingLevel::H2
-                            | HeadingLevel::H3
-                            | HeadingLevel::H4
-                            | HeadingLevel::H5
-                            | HeadingLevel::H6 => HEADING_BOTTOM_H2_H6,
-                        };
+                        // All headings have the same bottom margin in GitHub's CSS
+                        let bottom_margin = HEADING_BOTTOM;
 
-                        // Update previous bottom margin for next element
-                        previous_bottom_margin = bottom_margin;
+                        // Add heading bottom margin and track it
+                        add_bottom_margin(ui, &mut previous_bottom_margin, bottom_margin);
                     }
                     Tag::List(ordered) => {
-                        // Apply margin collapsing for list start
-                        let spacing_to_add =
-                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                        if spacing_to_add > 0.0 {
-                            ui.add_space(spacing_to_add);
-                        }
+                        // Lists don't have top margin in GitHub's CSS
+                        // Spacing comes from previous element's bottom margin
 
                         // Lists
                         let mut list_items = Vec::new();
@@ -328,25 +300,21 @@ fn render_markdown_impl(
                                 ui.label(item);
                             });
 
-                            // Add spacing between list items (GitHub: 0.25em = 6px)
+                            // Add spacing between list items (GitHub: 0.25em = 4px)
                             if i < list_items.len() - 1 {
                                 ui.add_space(LIST_ITEM_SPACING);
                             }
                         }
 
-                        // Update bottom margin for list (same as paragraph)
-                        previous_bottom_margin = PARAGRAPH_BOTTOM;
+                        // Add list bottom margin (same as paragraph) and track it
+                        add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                     }
                     Tag::Item => {
                         // Already handled in List
                     }
                     Tag::CodeBlock(kind) => {
-                        // Apply margin collapsing for code block start
-                        let spacing_to_add =
-                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                        if spacing_to_add > 0.0 {
-                            ui.add_space(spacing_to_add);
-                        }
+                        // Code blocks don't have top margin in GitHub's CSS
+                        // Spacing comes from previous element's bottom margin
 
                         // Code blocks
                         let mut code_text = String::new();
@@ -416,8 +384,8 @@ fn render_markdown_impl(
                             where_to_put_background,
                             Shape::rect_filled(rect, 1.0, code_bg_color),
                         );
-                        // Update bottom margin for code block
-                        previous_bottom_margin = CODE_BLOCK_BOTTOM;
+                        // Add code block bottom margin and track it
+                        add_bottom_margin(ui, &mut previous_bottom_margin, CODE_BLOCK_BOTTOM);
                     }
                     Tag::Strong => {
                         // Bold text
@@ -493,12 +461,8 @@ fn render_markdown_impl(
                         }
                     }
                     Tag::BlockQuote => {
-                        // Apply margin collapsing for blockquote start
-                        let spacing_to_add =
-                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                        if spacing_to_add > 0.0 {
-                            ui.add_space(spacing_to_add);
-                        }
+                        // Blockquotes don't have top margin in GitHub's CSS
+                        // Spacing comes from previous element's bottom margin
 
                         // Block quotes
                         let mut quote_text = String::new();
@@ -525,8 +489,8 @@ fn render_markdown_impl(
 
                         // Render quote text with weak color
                         ui.label(RichText::new(quote_text).color(ui.visuals().weak_text_color()));
-                        // Update bottom margin for blockquote
-                        previous_bottom_margin = BLOCKQUOTE_BOTTOM;
+                        // Add blockquote bottom margin and track it
+                        add_bottom_margin(ui, &mut previous_bottom_margin, BLOCKQUOTE_BOTTOM);
                     }
                     Tag::FootnoteDefinition(_) => {
                         // Skip footnotes for now
@@ -537,12 +501,8 @@ fn render_markdown_impl(
                         }
                     }
                     Tag::Table(alignments) => {
-                        // Apply margin collapsing for table start
-                        let spacing_to_add =
-                            calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                        if spacing_to_add > 0.0 {
-                            ui.add_space(spacing_to_add);
-                        }
+                        // Tables don't have top margin in GitHub's CSS
+                        // Spacing comes from previous element's bottom margin
 
                         let (headers, rows) = parse_table(&mut events, &alignments);
                         table_renderer::render_table(
@@ -553,8 +513,8 @@ fn render_markdown_impl(
                             &TableConfig::default(),
                         );
 
-                        // Update bottom margin for table (same as paragraph)
-                        previous_bottom_margin = PARAGRAPH_BOTTOM;
+                        // Add table bottom margin (same as paragraph) and track it
+                        add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                     }
                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
                         // Skip table elements that appear outside a table (should not happen)
@@ -600,8 +560,8 @@ fn render_markdown_impl(
                                 render_paragraph_content(ui, content);
                             }
                         });
-                        // Update bottom margin for paragraph
-                        previous_bottom_margin = PARAGRAPH_BOTTOM;
+                        // Add paragraph bottom margin and track it
+                        add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                         paragraph_content.clear();
                     }
                     in_paragraph = false;
@@ -620,11 +580,7 @@ fn render_markdown_impl(
                     );
                 } else {
                     // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
-                    // Apply margin collapsing for standalone text
-                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                    if spacing_to_add > 0.0 {
-                        ui.add_space(spacing_to_add);
-                    }
+                    // No spacing for standalone text
 
                     // Check for math placeholders in the text (format: (hash.typ))
                     let mut remaining = &text[..];
@@ -755,8 +711,8 @@ fn render_markdown_impl(
                         render_text_with_latex(ui, remaining, &mut math_asset_manager);
                     }
 
-                    // Update bottom margin for standalone text (same as paragraph)
-                    previous_bottom_margin = PARAGRAPH_BOTTOM;
+                    // Add bottom margin for standalone text (same as paragraph)
+                    add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                 }
             }
             Event::Code(code) => {
@@ -764,16 +720,12 @@ fn render_markdown_impl(
                 if in_paragraph {
                     paragraph_content.push(ParagraphContent::InlineCode(code.to_string()));
                 } else {
-                    // Apply margin collapsing for standalone inline code
-                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                    if spacing_to_add > 0.0 {
-                        ui.add_space(spacing_to_add);
-                    }
+                    // No spacing before standalone inline code
 
                     ui.label(RichText::new(&*code).code());
 
-                    // Update bottom margin for standalone inline code (same as paragraph)
-                    previous_bottom_margin = PARAGRAPH_BOTTOM;
+                    // Add bottom margin for standalone inline code (same as paragraph)
+                    add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                 }
             }
             Event::Html(_) | Event::FootnoteReference(_) => {
@@ -795,16 +747,12 @@ fn render_markdown_impl(
                     // We'll add a special marker that we can handle during rendering
                     paragraph_content.push(ParagraphContent::Text("\n".to_owned()));
                 } else {
-                    // Apply margin collapsing for standalone hard break
-                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                    if spacing_to_add > 0.0 {
-                        ui.add_space(spacing_to_add);
-                    }
+                    // No spacing before standalone hard break
 
                     ui.add_space(4.0);
 
-                    // Update bottom margin for standalone hard break (same as paragraph)
-                    previous_bottom_margin = PARAGRAPH_BOTTOM;
+                    // Add bottom margin for standalone hard break (same as paragraph)
+                    add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                 }
             }
             Event::Rule => {
@@ -817,24 +765,24 @@ fn render_markdown_impl(
                                 render_paragraph_content(ui, content);
                             }
                         });
-                        // Update bottom margin for paragraph
-                        previous_bottom_margin = PARAGRAPH_BOTTOM;
+                        // Add paragraph bottom spacing
+                        add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                         paragraph_content.clear();
                     }
                     in_paragraph = false;
                 }
 
-                // Apply margin collapsing for horizontal rule
-                let spacing_to_add =
-                    calculate_collapsed_spacing(previous_bottom_margin, HORIZONTAL_RULE_SPACING);
-                if spacing_to_add > 0.0 {
-                    ui.add_space(spacing_to_add);
-                }
+                // Apply margin collapsing for horizontal rule top margin
+                add_top_margin_with_collapsing(
+                    ui,
+                    &mut previous_bottom_margin,
+                    HORIZONTAL_RULE_SPACING,
+                );
 
                 ui.separator();
 
-                // Update bottom margin for horizontal rule
-                previous_bottom_margin = HORIZONTAL_RULE_SPACING;
+                // Add horizontal rule bottom margin and track it
+                add_bottom_margin(ui, &mut previous_bottom_margin, HORIZONTAL_RULE_SPACING);
             }
             Event::TaskListMarker(checked) => {
                 // Task list marker
@@ -842,16 +790,12 @@ fn render_markdown_impl(
                 if in_paragraph {
                     paragraph_content.push(ParagraphContent::Text(marker.to_owned()));
                 } else {
-                    // Apply margin collapsing for standalone task list marker
-                    let spacing_to_add = calculate_collapsed_spacing(previous_bottom_margin, 0.0);
-                    if spacing_to_add > 0.0 {
-                        ui.add_space(spacing_to_add);
-                    }
+                    // No spacing before standalone task list marker
 
                     ui.label(marker);
 
-                    // Update bottom margin for standalone task list marker (same as paragraph)
-                    previous_bottom_margin = PARAGRAPH_BOTTOM;
+                    // Add bottom margin for standalone task list marker (same as paragraph)
+                    add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
                 }
             }
         }
