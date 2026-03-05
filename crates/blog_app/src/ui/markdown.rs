@@ -38,7 +38,8 @@ mod spacing {
 use spacing::*;
 
 /// Debug flag for baseline visualization
-const DEBUG_BASELINE: bool = true;
+/// Set to true to enable debug lines and numeric overlay
+const DEBUG_BASELINE: bool = false;
 
 /// Ascent ratio for baseline estimation (76% = 0.76)
 /// This is the estimated fraction of row height where text baseline is located
