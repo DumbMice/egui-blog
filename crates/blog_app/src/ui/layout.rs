@@ -3,6 +3,7 @@
 use egui::Ui;
 
 use super::components::{self, Theme};
+use crate::animation::FocusRenderer;
 use crate::math::MathAssetManager;
 use crate::posts::{PostManager, PostManagerState};
 
@@ -162,6 +163,9 @@ pub fn side_panel(
     panel_rect: egui::Rect,
     scroll_offset: &mut f32,
     request_auto_scroll: &mut bool,
+    // Animation parameters
+    animation_state: &crate::animation::FocusAnimationState,
+    animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool) {
     let mut selection_changed = false;
     let mut panel_clicked = false;
@@ -172,13 +176,18 @@ pub fn side_panel(
     // Use the provided panel_rect for click detection (full panel area)
     let click_rect = panel_rect;
 
-    // Draw focus indicator if panel is focused
+    // Draw animated focus indicator if panel is focused
     if is_focused {
-        ui.painter().rect_stroke(
-            click_rect,
-            0.0,
-            egui::Stroke::new(2.0, ui.visuals().widgets.active.fg_stroke.color),
-            egui::StrokeKind::Outside,
+        let current_time = ui.ctx().input(|i| i.time);
+        
+        FocusRenderer::draw_focus_indicator(
+            ui.painter(),
+            panel_rect,
+            is_focused,
+            animation_state,
+            animation_config,
+            current_time,
+            ui,
         );
     }
 
@@ -424,8 +433,16 @@ pub fn side_panel(
 }
 
 /// Main content area showing a post or editor with math support.
-pub fn main_content(ui: &mut Ui, state: MainContentState<'_>, is_focused: bool, panel_rect: egui::Rect) -> (bool, bool, Option<usize>, bool, bool) {
-    main_content_internal(ui, state, is_focused, panel_rect)
+pub fn main_content(
+    ui: &mut Ui, 
+    state: MainContentState<'_>, 
+    is_focused: bool, 
+    panel_rect: egui::Rect,
+    // Animation parameters
+    animation_state: &crate::animation::FocusAnimationState,
+    animation_config: &crate::animation::FocusAnimationConfig,
+) -> (bool, bool, Option<usize>, bool, bool) {
+    main_content_internal(ui, state, is_focused, panel_rect, animation_state, animation_config)
 }
 
 fn main_content_internal(
@@ -433,8 +450,10 @@ fn main_content_internal(
     state: MainContentState<'_>,
     is_focused: bool,
     panel_rect: egui::Rect,
+    animation_state: &crate::animation::FocusAnimationState,
+    animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
-    main_content_internal_impl(ui, state, is_focused, panel_rect)
+    main_content_internal_impl(ui, state, is_focused, panel_rect, animation_state, animation_config)
 }
 
 fn main_content_internal_impl(
@@ -442,6 +461,8 @@ fn main_content_internal_impl(
     state: MainContentState<'_>,
     is_focused: bool,
     panel_rect: egui::Rect,
+    animation_state: &crate::animation::FocusAnimationState,
+    animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
     let mut post_saved = false;
     let mut editing_cancelled = false;
@@ -455,13 +476,18 @@ fn main_content_internal_impl(
         initial_rect, initial_rect.min, initial_rect.max, initial_rect.size(),
         panel_rect, panel_rect.min, panel_rect.max, panel_rect.size());
 
-    // Draw focus indicator if panel is focused
+    // Draw animated focus indicator if panel is focused
     if is_focused {
-        ui.painter().rect_stroke(
+        let current_time = ui.ctx().input(|i| i.time);
+        
+        crate::animation::FocusRenderer::draw_focus_indicator(
+            ui.painter(),
             panel_rect,
-            0.0,
-            egui::Stroke::new(2.0, ui.visuals().widgets.active.fg_stroke.color),
-            egui::StrokeKind::Outside,
+            is_focused,
+            animation_state,
+            animation_config,
+            current_time,
+            ui,
         );
     }
 

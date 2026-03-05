@@ -15,6 +15,10 @@ pub struct DebugState {
     pub frame_time_history: egui::util::History<f32>,
     /// Last frame time for delta calculation
     pub last_frame_time: Option<f64>,
+    /// Show animation configuration window
+    pub show_animation_config: bool,
+    /// Animation configuration parameters
+    pub animation_config: crate::animation::FocusAnimationConfig,
 }
 
 #[cfg(debug_assertions)]
@@ -27,6 +31,8 @@ impl Default for DebugState {
             show_frame_rate: false,
             frame_time_history: egui::util::History::new(2..100, 1.0), // Keep up to 1 second of history
             last_frame_time: None,
+            show_animation_config: false,
+            animation_config: crate::animation::FocusAnimationConfig::default(),
         }
     }
 }
@@ -347,5 +353,84 @@ pub fn show_font_book_window(ui: &egui::Ui, debug_state: &mut DebugState) {
             ui.label("Note: Click any character to copy it to clipboard");
             ui.label("If you see squares (□), the character is not available in this font");
             ui.label("Black arrows ⬇ and ⬆ are used for sorting buttons in the blog");
+        });
+}
+
+/// Show animation configuration window for tuning focus animation parameters
+pub fn show_animation_config_window(ui: &egui::Ui, debug_state: &mut DebugState) {
+    egui::Window::new("Focus Animation Configuration")
+        .default_size([500.0, 400.0])
+        .open(&mut debug_state.show_animation_config)
+        .show(ui.ctx(), |ui| {
+            ui.heading("Focus Animation Configuration");
+            ui.separator();
+
+            ui.label("Adjust flash parameters for panel focus visualization.");
+            ui.label("Once optimal parameters are found, they will be compiled as defaults.");
+            ui.separator();
+
+            // Intensity control
+            ui.horizontal(|ui| {
+                ui.label("Intensity:");
+                ui.add(
+                    egui::Slider::new(&mut debug_state.animation_config.intensity, 0.1..=1.0)
+                        .step_by(0.05)
+                        .suffix("x"),
+                );
+                ui.label(format!("{:.2}", debug_state.animation_config.intensity));
+            });
+            ui.label("Overall strength of the flash effect");
+            ui.separator();
+
+            // Flash duration control
+            ui.horizontal(|ui| {
+                ui.label("Flash Duration:");
+                ui.add(
+                    egui::Slider::new(
+                        &mut debug_state.animation_config.flash_duration_ms,
+                        50..=300,
+                    )
+                    .step_by(10.0)
+                    .suffix("ms"),
+                );
+                ui.label(format!(
+                    "{} ms",
+                    debug_state.animation_config.flash_duration_ms
+                ));
+            });
+            ui.label("Duration of the flash when focus changes (shorter = less distracting)");
+            ui.separator();
+
+            // Border thickness control (need to check if this field exists)
+            // Note: We need to check if border_thickness field exists in the config
+            ui.horizontal(|ui| {
+                ui.label("Border Thickness:");
+                ui.add(
+                    egui::Slider::new(
+                        &mut debug_state.animation_config.border_thickness,
+                        1.0..=6.0,
+                    )
+                    .step_by(0.5)
+                    .suffix("px"),
+                );
+                ui.label(format!(
+                    "{:.1} px",
+                    debug_state.animation_config.border_thickness
+                ));
+            });
+            ui.label("Thickness of the flash border");
+            ui.separator();
+
+            // Reset to defaults button
+            if ui.button("Reset to Defaults").clicked() {
+                debug_state.animation_config = crate::animation::FocusAnimationConfig::default();
+            }
+
+            ui.separator();
+            ui.label("Flash Animation:");
+            ui.label("• Quick blue flash when focus changes between panels");
+            ui.label("• Uses Catppuccin blue color from current theme");
+            ui.label("• Very short duration (100ms default) - just enough to see");
+            ui.label("• No persistent tint - panel returns to normal after flash");
         });
 }

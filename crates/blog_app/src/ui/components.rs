@@ -228,6 +228,14 @@ pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugStat
 
                 ui.separator();
 
+                // Animation configuration button - toggle display
+                if ui.button("Toggle animation config").clicked() {
+                    debug_state.show_animation_config = !debug_state.show_animation_config;
+                    interacted = true;
+                }
+
+                ui.separator();
+
                 // Clear cache button
                 if ui.button("Clear cache").clicked() {
                     interacted = true;

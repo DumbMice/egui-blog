@@ -9,6 +9,7 @@ mod posts;
 mod routing;
 mod ui;
 pub mod shortcuts;
+mod animation;
 
 #[cfg(debug_assertions)]
 mod debug_windows;
@@ -81,6 +82,12 @@ pub struct BlogApp {
     shortcut_integration: crate::shortcuts::ShortcutIntegration,
     /// Currently focused panel
     focused_panel: crate::shortcuts::FocusedPanel,
+    /// Previous focused panel (for detecting focus changes)
+    #[cfg_attr(feature = "serde", serde(skip))]
+    previous_focused_panel: crate::shortcuts::FocusedPanel,
+    /// Animation state for panel focus visualization
+    #[cfg_attr(feature = "serde", serde(skip))]
+    focus_animation: crate::animation::FocusAnimationState,
     /// Scroll offset for content area
     /// Scroll offset for main content panel (persisted)
     scroll_offset: f32,
@@ -125,6 +132,8 @@ impl Default for BlogApp {
 
             shortcut_integration: crate::shortcuts::ShortcutIntegration::new(),
             focused_panel: crate::shortcuts::FocusedPanel::LeftPanel,
+            previous_focused_panel: crate::shortcuts::FocusedPanel::LeftPanel,
+            focus_animation: crate::animation::FocusAnimationState::new(),
             scroll_offset: 0.0,
             side_panel_scroll_offset: 0.0,
             request_side_panel_auto_scroll: false,
@@ -346,6 +355,24 @@ impl eframe::App for BlogApp {
         // Apply current theme
         self.theme.apply(ui.ctx());
 
+        // Update focus animation state
+        let current_time = ui.ctx().input(|i| i.time);
+        
+        // Check if focus changed since last frame
+        if self.focused_panel != self.previous_focused_panel {
+            log::debug!("Focus changed from {:?} to {:?}, triggering animation", 
+                self.previous_focused_panel, self.focused_panel);
+            
+            // Trigger animation for focus change
+            self.focus_animation.on_focus_change(self.focused_panel, current_time);
+            
+            // Update previous focused panel
+            self.previous_focused_panel = self.focused_panel;
+        }
+        
+        // Update animation state every frame
+        self.focus_animation.update(current_time, &self.debug_state.animation_config);
+
         // Top panel
         let mut top_panel_changed = false;
         Panel::top("top_panel").show_inside(ui, |ui| {
@@ -381,6 +408,11 @@ impl eframe::App for BlogApp {
             if self.debug_state.show_frame_rate {
                 crate::debug_windows::show_frame_rate_window(ui, &mut self.debug_state);
             }
+
+            // Show animation configuration window if enabled
+            if self.debug_state.show_animation_config {
+                crate::debug_windows::show_animation_config_window(ui, &mut self.debug_state);
+            }
         }
 
         // Side panel
@@ -405,6 +437,9 @@ impl eframe::App for BlogApp {
                 panel_rect,
                 &mut self.side_panel_scroll_offset,
                 &mut self.request_side_panel_auto_scroll,
+                // Animation parameters
+                &self.focus_animation,
+                &self.debug_state.animation_config,
             );
             selection_changed = changed;
             
@@ -485,6 +520,9 @@ impl eframe::App for BlogApp {
                         state,
                         self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
                         panel_rect,
+                        // Animation parameters
+                        &self.focus_animation,
+                        &self.debug_state.animation_config,
                     );
                     (
                         post_saved,
