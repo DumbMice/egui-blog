@@ -651,16 +651,16 @@ fn render_markdown_impl(
                             // Create the blockquote layout
                             ui.horizontal(|ui| {
                                 // We'll paint the border after we know the total height
-                                // First, allocate space for the border (will expand vertically)
+                                // First, allocate a placeholder for the border
                                 let border_id = ui.id().with("blockquote_border");
-                                let border_response = ui.allocate_response(
+                                let border_placeholder = ui.allocate_response(
                                     vec2(border_width, 0.0), // 0 height initially
                                     Sense::hover(),
                                 );
 
-                                // Store the border position
+                                // Store the placeholder rect (we'll update its height later)
                                 ui.data_mut(|data| {
-                                    data.insert_temp(border_id, border_response.rect.min);
+                                    data.insert_temp(border_id, border_placeholder.rect);
                                 });
 
                                 // Add padding between border and text
@@ -677,19 +677,23 @@ fn render_markdown_impl(
                                     ui.add_space(vertical_padding);
                                 });
 
-                                // Now we know the total height, paint the border
+                                // Now we know the total height, update and paint the border
                                 let total_height = ui.min_rect().height();
-                                let border_min =
-                                    ui.data_mut(|data| data.get_temp::<egui::Pos2>(border_id));
+                                if let Some(border_rect) =
+                                    ui.data_mut(|data| data.get_temp::<Rect>(border_id))
+                                {
+                                    // Update the border rect to match the total height
+                                    // Keep the same X position and width, update Y and height
+                                    let mut updated_rect = border_rect.clone();
+                                    updated_rect.set_height(total_height);
 
-                                if let Some(border_min) = border_min {
-                                    let border_rect = Rect::from_min_size(
-                                        border_min,
-                                        vec2(border_width, total_height),
-                                    );
+                                    // Center the border vertically with the content
+                                    // The placeholder was allocated at the top, but we want it centered
+                                    let content_top = ui.min_rect().top();
+                                    updated_rect.set_top(content_top);
 
                                     ui.painter().rect_filled(
-                                        border_rect,
+                                        updated_rect,
                                         0.0,
                                         ui.visuals().weak_text_color(),
                                     );
