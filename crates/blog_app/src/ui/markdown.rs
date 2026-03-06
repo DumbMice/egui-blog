@@ -47,11 +47,16 @@ const DEBUG_BASELINE: bool = false;
 /// 0.76 provides perfect baseline alignment based on visual testing
 const ASCENT_RATIO: f32 = 0.76;
 
+/// Maximum height factor for inline images relative to text height
+/// If an image is taller than this factor × `text_height`, it will be scaled down
+/// This prevents tall images from disrupting line spacing and text alignment
+const MAX_HEIGHT_FACTOR: f32 = 1.0;
+
 /// Render an image with baseline alignment
 fn render_baseline_aligned_image(
     ui: &mut Ui,
     image_source: ImageSource<'static>,
-    image_size: egui::Vec2,
+    mut image_size: egui::Vec2,
     baseline_from_top: f32,
 ) {
     // Get text metrics (estimated)
@@ -66,7 +71,36 @@ fn render_baseline_aligned_image(
     // offset_y = text_baseline_y - svg_baseline_y
     let text_baseline_offset = estimated_ascent - (text_height / 2.0);
     let image_baseline_offset = baseline_from_top - (image_size.y / 2.0);
-    let offset_y = text_baseline_offset - image_baseline_offset;
+    let mut offset_y = text_baseline_offset - image_baseline_offset;
+
+    // Handle tall SVGs: if image is too tall, discard baseline offset
+    // This prevents tall images from disrupting line spacing
+    let max_height = text_height * MAX_HEIGHT_FACTOR;
+    let mut scaled = false;
+    let mut offset_discarded = false;
+
+    if image_size.y > max_height {
+        // Image is too tall - discard baseline offset
+        offset_y = 0.0;
+        offset_discarded = true;
+
+        // If still too tall after discarding offset, scale image proportionally
+        // Note: image_size.y hasn't changed yet, so we check original size
+        let original_height = image_size.y;
+        if original_height > max_height {
+            let scale_factor = max_height / original_height;
+            let scaled_size = image_size * scale_factor;
+
+            // Recalculate with scaled size
+            let scaled_image_baseline_offset =
+                baseline_from_top * scale_factor - (scaled_size.y / 2.0);
+            offset_y = text_baseline_offset - scaled_image_baseline_offset;
+
+            // Use scaled size for allocation
+            image_size = scaled_size;
+            scaled = true;
+        }
+    }
 
     // Allocate space for image
     let (rect, _) = ui.allocate_exact_size(image_size, Sense::hover());
@@ -145,14 +179,23 @@ fn render_baseline_aligned_image(
         );
 
         // 7. Numeric overlay for debugging
+        let scaling_info = if scaled {
+            format!("SCALED (max: {max_height:.1})")
+        } else if offset_discarded {
+            "OFFSET DISCARDED".to_owned()
+        } else {
+            String::new()
+        };
+
         let debug_text = format!(
-            "offset: {:.2}\nascent: {:.2} ({}%)\ntext_h: {:.2}\nimg_h: {:.2}\nsvg_base: {:.2}",
+            "offset: {:.2}\nascent: {:.2} ({}%)\ntext_h: {:.2}\nimg_h: {:.2}\nsvg_base: {:.2}\n{}",
             offset_y,
             estimated_ascent,
             (ASCENT_RATIO * 100.0) as i32,
             text_height,
             image_size.y,
-            baseline_from_top
+            baseline_from_top,
+            scaling_info
         );
         ui.painter().text(
             rect.left_bottom() + egui::Vec2::new(0.0, 5.0),

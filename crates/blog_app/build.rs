@@ -333,7 +333,7 @@ fn extract_baseline_position(formula: &str, is_display: bool) -> Result<(f32, f3
 }
 
 /// Create SVG using Typst CLI if available, otherwise use placeholder
-/// Returns (svg_content, `baseline_from_top`, `svg_height`)
+/// Returns (`svg_content`, `baseline_from_top`, `svg_height`)
 fn create_typst_svg(formula: &str, is_display: bool) -> Result<(String, Option<f32>, Option<f32>)> {
     // Extract baseline position for inline math
     let (baseline_from_top, svg_height) = if !is_display {

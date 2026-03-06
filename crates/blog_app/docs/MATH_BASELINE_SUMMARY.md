@@ -18,16 +18,22 @@
 ### 3. Rendering Logic (markdown.rs)
 - **Updated Data Structures**: `ParagraphContent::MathImage` now includes `baseline_from_top`
 - **Baseline-Aligned Rendering**: `render_baseline_aligned_image()` function
+- **Tall SVG Handling**: Automatically discards baseline offset and scales images taller than 1.5× text height
 - **Dual Rendering Paths**: Updated both paragraph accumulation and direct rendering
 - **Fallback Support**: Maintains current behavior when baseline data unavailable
 
 ### 4. Debug Visualization
-- **Debug Flag**: `DEBUG_BASELINE = true` (will be set to false after stabilization)
+- **Debug Flag**: `DEBUG_BASELINE = false` (was true during development)
 - **Visual Guides**:
-  - Red line: Estimated text baseline (75% of row height)
+  - Red line: Estimated text baseline (76% of row height)
   - Green line: SVG baseline position
   - Blue box: Image bounds
+  - Yellow line: Actual text baseline
+  - Magenta line: Row center line
+  - Cyan box: Text widget bounds
+  - Numeric overlay: Offset, ascent, heights, scaling info
 - **Automatic Alignment**: SVG baseline aligned with text baseline
+- **Scaling Indicators**: Shows "SCALED" or "OFFSET DISCARDED" for tall SVGs
 
 ### 5. Testing
 - **Test Post**: `test_math_alignment.md` with comprehensive test cases
@@ -43,9 +49,20 @@
 
 ### Rendering Algorithm
 ```rust
-// Estimate text baseline (75% of font height)
-let row_height = ui.text_style_height(&TextStyle::Body);
-let estimated_baseline_from_top = row_height * 0.75;
+// Estimate text baseline (76% of font height - calibrated)
+let text_height = ui.text_style_height(&TextStyle::Body);
+let estimated_ascent = text_height * 0.76;
+
+// Handle tall SVGs (height > 1.0× text_height)
+let max_height = text_height * 1.0;
+if image_size.y > max_height {
+    offset_y = 0.0; // Discard baseline offset
+    if image_size.y > max_height {
+        // Scale image proportionally
+        let scale_factor = max_height / image_size.y;
+        image_size *= scale_factor;
+    }
+}
 
 // Calculate offset to align SVG baseline with text baseline
 let offset_y = estimated_baseline_from_top - svg_baseline_from_top;
@@ -106,6 +123,7 @@ Baseline-Aligned Rendering → Visual Output
 - [x] Baseline data extracted and stored in manifest
 - [x] Asset manager provides baseline data
 - [x] Rendering uses baseline alignment
+- [x] Tall SVG handling implemented (discard offset + scaling)
 - [x] Debug visualization available
 - [x] Comprehensive test post created
 - [x] Code compiles without errors

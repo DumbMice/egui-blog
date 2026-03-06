@@ -54,8 +54,16 @@ Empty formula (should not render): $$ (empty)
 
 Formula with spaces: $  x + y  $ (spaces should be trimmed)
 
+### Tall SVG Handling
+Tall formulas like $sum_{i=1}^n i$ should not disrupt line spacing. If an SVG is taller than the text height, baseline offset is discarded and the image may be scaled down.
+
+Test with tall summation: $sum_{i=1}^{100} i^2$
+
+Test with integral: $int_0^{2pi} sin(x) dx$
+
 ## Expected Behavior
 1. Inline math should align with text baseline (red line in debug mode)
 2. SVG baseline (green line) should align with text baseline
-3. Display math should remain centered
-4. Formulas should render crisply with proper spacing
+3. Tall SVGs should not disrupt line spacing (offset discarded/scaled)
+4. Display math should remain centered
+5. Formulas should render crisply with proper spacing
