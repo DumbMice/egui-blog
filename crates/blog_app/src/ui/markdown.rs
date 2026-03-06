@@ -1,6 +1,6 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, Rect, RichText, Sense, Shape, TextStyle, Ui};
+use egui::{vec2, Hyperlink, ImageSource, Rect, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
@@ -648,20 +648,20 @@ fn render_markdown_impl(
                             let horizontal_padding = row_height; // One row height of padding
                             let vertical_padding = row_height * 0.5; // Half row height vertical padding
 
-                            // Create a horizontal layout with border
+                            // Create the blockquote layout
                             ui.horizontal(|ui| {
-                                // Draw left border
-                                let (border_response, border_painter) = ui.allocate_painter(
-                                    egui::vec2(border_width, ui.available_height()),
+                                // We'll paint the border after we know the total height
+                                // First, allocate space for the border (will expand vertically)
+                                let border_id = ui.id().with("blockquote_border");
+                                let border_response = ui.allocate_response(
+                                    vec2(border_width, 0.0), // 0 height initially
                                     Sense::hover(),
                                 );
 
-                                // Fill border with weak text color
-                                border_painter.rect_filled(
-                                    border_response.rect,
-                                    0.0,
-                                    ui.visuals().weak_text_color(),
-                                );
+                                // Store the border position
+                                ui.data_mut(|data| {
+                                    data.insert_temp(border_id, border_response.rect.min);
+                                });
 
                                 // Add padding between border and text
                                 ui.add_space(horizontal_padding - border_width);
@@ -676,6 +676,24 @@ fn render_markdown_impl(
                                     );
                                     ui.add_space(vertical_padding);
                                 });
+
+                                // Now we know the total height, paint the border
+                                let total_height = ui.min_rect().height();
+                                let border_min =
+                                    ui.data_mut(|data| data.get_temp::<egui::Pos2>(border_id));
+
+                                if let Some(border_min) = border_min {
+                                    let border_rect = Rect::from_min_size(
+                                        border_min,
+                                        vec2(border_width, total_height),
+                                    );
+
+                                    ui.painter().rect_filled(
+                                        border_rect,
+                                        0.0,
+                                        ui.visuals().weak_text_color(),
+                                    );
+                                }
                             });
                         }
 
