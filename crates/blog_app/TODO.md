@@ -275,10 +275,11 @@ cargo blog-wasm     # Build WASM library only
 - [x] Implement baseline-aligned rendering with accurate offset calculation
 - [x] Account for horizontal_wrapped vertical centering in offset formula
 - [x] Calibrated ascent ratio to 0.76 for perfect visual alignment
-- [x] Enhanced debug visualization (7 colors) for verification
-- [x] Set DEBUG_BASELINE = false after successful calibration
+ - [x] Enhanced debug visualization (7 colors) for verification
+ - [x] Set DEBUG_BASELINE = false after successful calibration
+ - [x] Implement tall SVG handling (discard offset + scaling for height > text height)
 
-**Note**: Math formula baseline alignment is now perfect! Uses Typst's baseline extraction with two-pass rendering to get baseline position, then aligns SVG baseline with text baseline accounting for layout centering.
+**Note**: Math formula baseline alignment is now perfect! Uses Typst's baseline extraction with two-pass rendering to get baseline position, then aligns SVG baseline with text baseline accounting for layout centering. Tall SVGs automatically have baseline offset discarded and are scaled if needed to prevent line spacing disruption.
 
 ## Priority 14: Collapsible & Resizable Side Panel
 - [ ] Add toggle button on left panel or top-left of content
@@ -402,9 +403,10 @@ cargo blog-wasm     # Build WASM library only
 - `a0b6c22e` - Fix Catppuccin style guide compliance and strong text visibility
 - `54a14fe3` - Improve theme toggle to single button
 - `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
-- `e3c3e42a7` - WIP: Simplified focus animation system - flash-only with Catppuccin blue (Priority 12)
-- `569ec6f63` - WIP: Implement baseline alignment for math formulas (Priority 13)
-- *Add checkpoint after each priority completion*
+ - `e3c3e42a7` - WIP: Simplified focus animation system - flash-only with Catppuccin blue (Priority 12)
+ - `569ec6f63` - WIP: Implement baseline alignment for math formulas (Priority 13)
+ - `25eec7e04` - WIP: Implement tall SVG fix for math formulas
+ - *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
 
@@ -418,6 +420,7 @@ cargo blog-wasm     # Build WASM library only
 ### Other Minor Issues
 - **Formula size consistency**: Some formulas appear slightly larger/smaller than others
 - **SVG baseline alignment**: ✅ FIXED (2026-03-05) - Perfect baseline alignment with 0.76 ascent ratio
+- **Tall SVG handling**: ✅ FIXED (2026-03-06) - Baseline offset discarded and scaling for SVGs taller than text height
 - **Performance optimization**: Formula caching could be more intelligent
 - **Accessibility**: Screen reader support for math formulas
 - **Strong text contrast**: ✅ FIXED (2026-03-02) - Now uses high-contrast colors (Sapphire/Peach) for visibility
