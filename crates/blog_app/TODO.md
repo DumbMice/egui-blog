@@ -402,10 +402,11 @@ cargo blog-wasm     # Build WASM library only
 - `66d90429` - Performance optimizations: manifest caching, reverse index, markdown cache
 - `a0b6c22e` - Fix Catppuccin style guide compliance and strong text visibility
 - `54a14fe3` - Improve theme toggle to single button
-- `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
+ - `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
  - `e3c3e42a7` - WIP: Simplified focus animation system - flash-only with Catppuccin blue (Priority 12)
  - `569ec6f63` - WIP: Implement baseline alignment for math formulas (Priority 13)
  - `25eec7e04` - WIP: Implement tall SVG fix for math formulas
+ - `1aeb1b58c` - WIP: Fix blockquote rendering issues
  - *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
