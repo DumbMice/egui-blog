@@ -684,6 +684,7 @@ fn render_markdown_impl(
                                 {
                                     // Update the border rect to match the total height
                                     // Keep the same X position and width, update Y and height
+                                    #[allow(clippy::clone_on_copy)]
                                     let mut updated_rect = border_rect.clone();
                                     updated_rect.set_height(total_height);
 
