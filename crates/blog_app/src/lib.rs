@@ -9,7 +9,7 @@ mod posts;
 mod routing;
 mod ui;
 pub mod shortcuts;
-mod animation;
+pub mod animation;
 
 #[cfg(debug_assertions)]
 mod debug_windows;
