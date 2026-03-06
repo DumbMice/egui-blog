@@ -266,8 +266,10 @@ cargo blog-wasm     # Build WASM library only
 5. **Debug Configuration**: Window with sliders for intensity, duration, border thickness
 6. **UI Integration**: Updated `side_panel()` and `main_content()` to use animation rendering
 
-## Priority 13: Fix Blockquote Rendering and Math Alignment ✅ COMPLETED 2026-03-05
+## Priority 13: Fix Blockquote Rendering and Math Alignment ✅ COMPLETED 2026-03-06
 - [x] Fix blockquote rendering issues (duplicate code, border implementation)
+- [x] Fix blockquote vertical alignment (border was higher than text)
+- [x] Fix blockquote multi-line scaling (border now scales with text height)
 - [x] Fix inline math vertical alignment for short formulas
 - [x] Use Typst configuration with `top-edge: "bounds"` and `bottom-edge: "baseline"` for baseline extraction
 - [x] Extract baseline position from SVG using two-pass Typst rendering
@@ -275,11 +277,14 @@ cargo blog-wasm     # Build WASM library only
 - [x] Implement baseline-aligned rendering with accurate offset calculation
 - [x] Account for horizontal_wrapped vertical centering in offset formula
 - [x] Calibrated ascent ratio to 0.76 for perfect visual alignment
- - [x] Enhanced debug visualization (7 colors) for verification
- - [x] Set DEBUG_BASELINE = false after successful calibration
- - [x] Implement tall SVG handling (discard offset + scaling for height > text height)
+- [x] Enhanced debug visualization (7 colors) for verification
+- [x] Set DEBUG_BASELINE = false after successful calibration
+- [x] Implement tall SVG handling (discard offset + scaling for height > text height)
+- [x] Fix all clippy warnings (removed `#[allow(clippy::clone_on_copy)]`)
+- [x] Create comprehensive test post with various blockquote examples
+- [x] Update documentation and commit history
 
-**Note**: Math formula baseline alignment is now perfect! Uses Typst's baseline extraction with two-pass rendering to get baseline position, then aligns SVG baseline with text baseline accounting for layout centering. Tall SVGs automatically have baseline offset discarded and are scaled if needed to prevent line spacing disruption.
+**Note**: Math formula baseline alignment is now perfect! Uses Typst's baseline extraction with two-pass rendering to get baseline position, then aligns SVG baseline with text baseline accounting for layout centering. Tall SVGs automatically have baseline offset discarded and are scaled if needed to prevent line spacing disruption. Blockquote rendering now uses GitHub-style 4px solid border with proper padding (one row height horizontal, half row height vertical) and scales correctly with multi-line content.
 
 ## Priority 14: Collapsible & Resizable Side Panel
 - [ ] Add toggle button on left panel or top-left of content
@@ -394,6 +399,15 @@ cargo blog-wasm     # Build WASM library only
 - Follows Catppuccin style guide for focus states
 - All clippy warnings fixed, code compiles cleanly
 
+✅ **Blockquote Rendering & Math Alignment (2026-03-06)**
+- Fixed blockquote vertical alignment (border now aligns with text)
+- Fixed blockquote multi-line scaling (border scales with text height)
+- Fixed all clippy warnings (removed `#[allow(clippy::clone_on_copy)]`)
+- Created comprehensive test post with various blockquote examples
+- Perfect math formula baseline alignment with 0.76 ascent ratio
+- Tall SVG handling prevents line spacing disruption
+- GitHub-style 4px solid border with proper padding (row height horizontal, half row height vertical)
+
 ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support
 - `6ace4f51` - Clean up blog_app crate warnings and unused code
@@ -427,7 +441,7 @@ cargo blog-wasm     # Build WASM library only
 - **Accessibility**: Screen reader support for math formulas
 - **Strong text contrast**: ✅ FIXED (2026-03-02) - Now uses high-contrast colors (Sapphire/Peach) for visibility
 - **Real bold fonts**: Currently `.strong()` only changes color, not font weight (see Priority 15)
-- **Blockquote rendering**: ✅ FIXED (2026-03-06) - Now uses GitHub-style 4px solid border with proper padding
+- **Blockquote rendering**: ✅ FIXED (2026-03-06) - Now uses GitHub-style 4px solid border with proper padding and correct vertical alignment
 
 ### Performance Optimizations ✅ COMPLETED 2026-03-01
 - **Math formula lookup optimization**: `find_hash` now uses O(1) reverse index lookup instead of O(n) linear search

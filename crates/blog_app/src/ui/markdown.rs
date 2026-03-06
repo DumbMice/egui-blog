@@ -1,6 +1,6 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Hyperlink, ImageSource, Rect, RichText, Sense, Shape, TextStyle, Ui};
+use egui::{vec2, Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
@@ -658,9 +658,9 @@ fn render_markdown_impl(
                                     Sense::hover(),
                                 );
 
-                                // Store the placeholder rect (we'll update its height later)
+                                // Store the border position (we'll recreate the rect with correct height later)
                                 ui.data_mut(|data| {
-                                    data.insert_temp(border_id, border_placeholder.rect);
+                                    data.insert_temp(border_id, border_placeholder.rect.min);
                                 });
 
                                 // Add padding between border and text
@@ -679,22 +679,22 @@ fn render_markdown_impl(
 
                                 // Now we know the total height, update and paint the border
                                 let total_height = ui.min_rect().height();
-                                if let Some(border_rect) =
-                                    ui.data_mut(|data| data.get_temp::<Rect>(border_id))
+                                if let Some(border_pos) =
+                                    ui.data_mut(|data| data.get_temp::<Pos2>(border_id))
                                 {
-                                    // Update the border rect to match the total height
-                                    // Keep the same X position and width, update Y and height
-                                    #[allow(clippy::clone_on_copy)]
-                                    let mut updated_rect = border_rect.clone();
-                                    updated_rect.set_height(total_height);
+                                    // Create the border rect using the stored position and calculated height
+                                    let mut border_rect = Rect::from_min_size(
+                                        border_pos,
+                                        vec2(border_width, total_height),
+                                    );
 
                                     // Center the border vertically with the content
                                     // The placeholder was allocated at the top, but we want it centered
                                     let content_top = ui.min_rect().top();
-                                    updated_rect.set_top(content_top);
+                                    border_rect.set_top(content_top);
 
                                     ui.painter().rect_filled(
-                                        updated_rect,
+                                        border_rect,
                                         0.0,
                                         ui.visuals().weak_text_color(),
                                     );
