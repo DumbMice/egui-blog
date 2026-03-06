@@ -1,6 +1,6 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Hyperlink, ImageSource, Rect, RichText, Sense, Shape, TextStyle, Ui};
+use egui::{Hyperlink, ImageSource, Rect, RichText, Sense, Shape, TextStyle, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
@@ -627,31 +627,58 @@ fn render_markdown_impl(
                         // Blockquotes don't have top margin in GitHub's CSS
                         // Spacing comes from previous element's bottom margin
 
-                        // Block quotes
+                        // Collect all text from the blockquote (simple approach for now)
                         let mut quote_text = String::new();
                         for event in events.by_ref() {
                             match event {
                                 Event::End(Tag::BlockQuote) => break,
                                 Event::Text(text) => quote_text.push_str(&text),
                                 Event::SoftBreak | Event::HardBreak => quote_text.push('\n'),
-                                _ => {} // Skip other events
+                                _ => {} // Skip other events for now
                             }
                         }
-                        let row_height = ui.text_style_height(&TextStyle::Body);
-                        let one_indent = row_height / 2.0;
 
-                        // Draw vertical line for quote (EasyMark style)
-                        let rect = ui
-                            .allocate_exact_size(vec2(2.0 * one_indent, row_height), Sense::hover())
-                            .0;
-                        let rect = rect.expand2(ui.style().spacing.item_spacing * 0.5);
-                        ui.painter().line_segment(
-                            [rect.center_top(), rect.center_bottom()],
-                            (1.0, ui.visuals().weak_text_color()),
-                        );
+                        // Trim trailing whitespace
+                        let quote_text = quote_text.trim_end();
 
-                        // Render quote text with weak color
-                        ui.label(RichText::new(quote_text).color(ui.visuals().weak_text_color()));
+                        if !quote_text.is_empty() {
+                            // Calculate dimensions for blockquote
+                            let row_height = ui.text_style_height(&TextStyle::Body);
+                            let border_width = 4.0; // GitHub-style 4px solid border
+                            let horizontal_padding = row_height; // One row height of padding
+                            let vertical_padding = row_height * 0.5; // Half row height vertical padding
+
+                            // Create a horizontal layout with border
+                            ui.horizontal(|ui| {
+                                // Draw left border
+                                let (border_response, border_painter) = ui.allocate_painter(
+                                    egui::vec2(border_width, ui.available_height()),
+                                    Sense::hover(),
+                                );
+
+                                // Fill border with weak text color
+                                border_painter.rect_filled(
+                                    border_response.rect,
+                                    0.0,
+                                    ui.visuals().weak_text_color(),
+                                );
+
+                                // Add padding between border and text
+                                ui.add_space(horizontal_padding - border_width);
+
+                                // Render quote text with proper padding and color
+                                ui.vertical(|ui| {
+                                    ui.add_space(vertical_padding);
+                                    ui.label(
+                                        RichText::new(quote_text)
+                                            .color(ui.visuals().weak_text_color())
+                                            .text_style(TextStyle::Body),
+                                    );
+                                    ui.add_space(vertical_padding);
+                                });
+                            });
+                        }
+
                         // Add blockquote bottom margin and track it
                         add_bottom_margin(ui, &mut previous_bottom_margin, BLOCKQUOTE_BOTTOM);
                     }

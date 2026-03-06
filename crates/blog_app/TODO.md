@@ -425,7 +425,7 @@ cargo blog-wasm     # Build WASM library only
 - **Accessibility**: Screen reader support for math formulas
 - **Strong text contrast**: ✅ FIXED (2026-03-02) - Now uses high-contrast colors (Sapphire/Peach) for visibility
 - **Real bold fonts**: Currently `.strong()` only changes color, not font weight (see Priority 15)
-- **Blockquote rendering**: Issues with duplicate code and border implementation (see Priority 13)
+- **Blockquote rendering**: ✅ FIXED (2026-03-06) - Now uses GitHub-style 4px solid border with proper padding
 
 ### Performance Optimizations ✅ COMPLETED 2026-03-01
 - **Math formula lookup optimization**: `find_hash` now uses O(1) reverse index lookup instead of O(n) linear search
