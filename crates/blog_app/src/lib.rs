@@ -371,7 +371,17 @@ impl eframe::App for BlogApp {
         }
         
         // Update animation state every frame
-        self.focus_animation.update(current_time, &self.debug_state.animation_config);
+        let animation_config = {
+            #[cfg(debug_assertions)]
+            {
+                self.debug_state.animation_config.clone()
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                crate::animation::FocusAnimationConfig::default()
+            }
+        };
+        self.focus_animation.update(current_time, &animation_config);
 
         // Top panel
         let mut top_panel_changed = false;
@@ -439,7 +449,7 @@ impl eframe::App for BlogApp {
                 &mut self.request_side_panel_auto_scroll,
                 // Animation parameters
                 &self.focus_animation,
-                &self.debug_state.animation_config,
+                &animation_config,
             );
             selection_changed = changed;
             
@@ -522,7 +532,7 @@ impl eframe::App for BlogApp {
                         panel_rect,
                         // Animation parameters
                         &self.focus_animation,
-                        &self.debug_state.animation_config,
+                        &animation_config,
                     );
                     (
                         post_saved,
