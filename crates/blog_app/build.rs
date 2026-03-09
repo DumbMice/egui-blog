@@ -230,7 +230,8 @@ fn create_typst_content(
 ) -> String {
     if is_display {
         format!(
-            r#"#set page(width: auto, height: auto, margin: 0pt)
+            r#"#import "@preview/physica:0.9.8": *
+#set page(width: auto, height: auto, margin: 0pt)
 #set text(size: 16pt, fill: white)
 #show math.equation: set text(top-edge: "{top_edge}", bottom-edge: "{bottom_edge}")
 
@@ -238,7 +239,8 @@ $ {formula} $"#
         )
     } else {
         format!(
-            r#"#set page(width: auto, height: auto, margin: 0pt)
+            r#"#import "@preview/physica:0.9.8": *
+#set page(width: auto, height: auto, margin: 0pt)
 #set text(size: 16pt, fill: white)
 #show math.equation: set text(top-edge: "{top_edge}", bottom-edge: "{bottom_edge}")
 
