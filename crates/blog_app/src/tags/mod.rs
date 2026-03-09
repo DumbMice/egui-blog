@@ -6,14 +6,26 @@ use egui::Color32;
 
 /// Get tag colors from the current Catppuccin theme
 /// Uses Surface colors which are designed for subtle backgrounds
-pub fn get_tag_colors(theme: &crate::ui::components::Theme) -> Vec<Color32> {
-    use catppuccin::{Flavor, PALETTE};
+pub fn get_tag_colors(theme: &crate::ui::components::Theme) -> &'static [Color32] {
+    use catppuccin::PALETTE;
+    use std::sync::OnceLock;
 
-    let flavor = match theme {
-        crate::ui::components::Theme::CatppuccinLatte => &PALETTE.latte,
-        crate::ui::components::Theme::CatppuccinMacchiato => &PALETTE.macchiato,
-    };
+    // Cache for each theme
+    static LATTE_COLORS: OnceLock<Vec<Color32>> = OnceLock::new();
+    static MACCHIATO_COLORS: OnceLock<Vec<Color32>> = OnceLock::new();
 
+    match theme {
+        crate::ui::components::Theme::CatppuccinLatte => {
+            LATTE_COLORS.get_or_init(|| compute_tag_colors(&PALETTE.latte))
+        }
+        crate::ui::components::Theme::CatppuccinMacchiato => {
+            MACCHIATO_COLORS.get_or_init(|| compute_tag_colors(&PALETTE.macchiato))
+        }
+    }
+}
+
+/// Compute tag colors for a specific flavor
+fn compute_tag_colors(flavor: &catppuccin::Flavor) -> Vec<Color32> {
     // Convert Catppuccin colors to egui Color32
     fn to_color32(rgb: catppuccin::Rgb) -> Color32 {
         Color32::from_rgb(rgb.r, rgb.g, rgb.b)
@@ -77,6 +89,7 @@ fn blend_with_surface(accent: Color32, surface: Color32, accent_strength: f32) -
 
 /// Tag metadata
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Tag {
     /// Tag name
     pub name: String,
@@ -113,33 +126,16 @@ impl Tag {
 /// Tag search state
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Default)]
 pub struct TagSearchState {
-    /// Currently selected tags
     pub selected_tags: Vec<String>,
-    /// Text search query
-    pub search_text: String,
-    /// Whether we're currently in tag mode (typing after #)
-    pub in_tag_mode: bool,
-    /// Current tag input (when typing #tag)
     pub tag_input: String,
-    /// Tag suggestions for autocomplete
-    #[cfg_attr(feature = "serde", serde(skip))]
+    pub search_text: String,
+    last_tag_input: String,
     pub suggestions: Vec<Tag>,
-    /// Index of highlighted suggestion
+    pub show_suggestions: bool,
+    pub in_tag_mode: bool,
     pub highlighted_index: usize,
-}
-
-impl Default for TagSearchState {
-    fn default() -> Self {
-        Self {
-            selected_tags: Vec::new(),
-            search_text: String::new(),
-            in_tag_mode: false,
-            tag_input: String::new(),
-            suggestions: Vec::new(),
-            highlighted_index: 0,
-        }
-    }
 }
 
 impl TagSearchState {
@@ -211,7 +207,7 @@ impl TagSearchState {
 /// Assign a consistent color to a tag based on its hash and current theme
 pub fn assign_tag_color(tag: &str, theme: &crate::ui::components::Theme) -> Color32 {
     use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
+    use std::hash::{Hash as _, Hasher as _};
 
     let mut hasher = DefaultHasher::new();
     tag.hash(&mut hasher);

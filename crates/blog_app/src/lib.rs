@@ -56,6 +56,9 @@ pub struct BlogApp {
     previous_theme: Theme,
     /// Tag-based search state
     tag_search_state: crate::tags::TagSearchState,
+    /// Cached tags with theme-based colors
+    #[cfg_attr(feature = "serde", serde(skip))]
+    cached_tags: Option<(crate::ui::components::Theme, std::collections::HashMap<String, crate::tags::Tag>)>,
     /// Selected content type filter (None = show all)
     selected_content_type: Option<crate::posts::ContentType>,
     /// Layout configuration
@@ -146,6 +149,7 @@ impl Default for BlogApp {
             find_matches: Vec::new(),
             current_find_match: 0,
             find_mode_active: false,
+            cached_tags: None,
         }
     }
 }
@@ -200,8 +204,27 @@ impl BlogApp {
         // Update our state tracking
         self.post_manager_state = self.post_manager.state().clone();
 
+        // Invalidate tag cache since posts may have changed
+        self.cached_tags = None;
+
         // Ensure valid selection
         self.ensure_valid_selection();
+    }
+
+    /// Get cached tags, computing them if necessary
+    fn get_cached_tags(&mut self) -> &std::collections::HashMap<String, crate::tags::Tag> {
+        // Check if cache is valid (matches current theme)
+        let cache_valid = self.cached_tags.as_ref().is_some_and(|(cached_theme, _)| {
+            *cached_theme == self.theme
+        });
+
+        if !cache_valid {
+            // Compute tags and cache them
+            let tags = crate::tags::extract_all_tags(self.post_manager.posts(), &self.theme);
+            self.cached_tags = Some((self.theme, tags));
+        }
+
+        &self.cached_tags.as_ref().expect("cached_tags should be initialized").1
     }
 
     /// Navigate to a new route and update browser URL.
@@ -401,8 +424,8 @@ impl eframe::App for BlogApp {
         // Track if tag search state was modified
         let mut tag_search_was_modified = false;
         
-        // Extract all tags from posts (used in multiple places)
-        let all_tags = crate::tags::extract_all_tags(self.post_manager.posts(), &self.theme);
+        // Get cached tags once and reuse
+        let all_tags = self.get_cached_tags();
         let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
         
         // Top panel
@@ -431,6 +454,9 @@ impl eframe::App for BlogApp {
                 self.previous_theme, self.theme);
             self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
+            
+            // Invalidate tag cache since colors depend on theme
+            self.cached_tags = None;
         }
 
         // Update and show debug windows (debug builds only)
@@ -541,6 +567,8 @@ impl eframe::App for BlogApp {
         let mut panel_clicked = false;
         let mut route_to_navigate = None;
 
+        // all_tags_vec is already computed above and can be reused here
+
         let _central_panel_response = CentralPanel::default().show_inside(ui, |ui| {
             // Get the full panel rect BEFORE the scroll area
             let panel_rect = ui.available_rect_before_wrap();
@@ -563,10 +591,6 @@ impl eframe::App for BlogApp {
                         current_route: self.router.current_route(),
                         on_navigate: &mut navigate_callback,
                     };
-
-                    // Extract all tags from posts
-                    let all_tags = crate::tags::extract_all_tags(self.post_manager.posts(), &self.theme);
-                    let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
                     
                     let state = ui::layout::MainContentState::new(
                         &self.post_manager,
@@ -924,6 +948,8 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
             crate::ui::Theme::CatppuccinLatte => crate::ui::Theme::CatppuccinMacchiato,
             crate::ui::Theme::CatppuccinMacchiato => crate::ui::Theme::CatppuccinLatte,
         };
+        // Invalidate tag cache since theme changed
+        self.cached_tags = None;
         true
     }
     

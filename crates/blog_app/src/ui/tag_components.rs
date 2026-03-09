@@ -53,13 +53,11 @@ pub fn tag_chip(ui: &mut Ui, tag: &Tag, search_state: &mut TagSearchState) -> Re
         search_state.add_tag(tag.name.clone());
     }
 
-    let response = if let Some(description) = &tag.description {
+    if let Some(description) = &tag.description {
         response.on_hover_text(description)
     } else {
         response.on_hover_text(format!("{} posts", tag.post_count))
-    };
-
-    response
+    }
 }
 
 /// Display selected tags as removable chips.
@@ -71,12 +69,8 @@ pub fn selected_tags_chips(
     let mut changed = false;
 
     ui.horizontal_wrapped(|ui| {
-        for tag_name in search_state
-            .selected_tags
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>()
-        {
+        let tag_names: Vec<String> = search_state.selected_tags.to_vec();
+        for tag_name in tag_names {
             // Find the tag to get its color
             let tag_color = all_tags
                 .iter()
@@ -87,7 +81,7 @@ pub fn selected_tags_chips(
             let text_color = text_color_for_background(tag_color, ui);
             let response = ui.add(
                 egui::Button::new(
-                    RichText::new(format!("#{} ✕", tag_name))
+                    RichText::new(format!("#{tag_name} ✕"))
                         .small()
                         .color(text_color),
                 )
@@ -144,7 +138,7 @@ pub fn tag_search_bar(
                     }
                     search_state.tag_input.clear();
                 } else if let Some(tag_part) = search_state.search_text.strip_prefix('#') {
-                    let new_tag_input = tag_part.to_string();
+                    let new_tag_input: String = tag_part.to_owned();
 
                     // Only update suggestions if tag input actually changed
                     if new_tag_input != search_state.tag_input {
