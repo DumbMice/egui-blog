@@ -415,6 +415,12 @@ pub enum ShortcutAction {
     ShowHelp,
     /// Focus browser address bar (web only)
     BrowserAddress,
+    /// Toggle side panel
+    ToggleSidePanel,
+    /// Collapse side panel
+    CollapseSidePanel,
+    /// Expand side panel
+    ExpandSidePanel,
     /// Custom action (for extensibility)
     Custom {
         name: String,

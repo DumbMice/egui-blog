@@ -40,6 +40,15 @@ pub trait ActionExecutor {
     /// Focus browser address bar (web only)
     fn browser_address(&mut self) -> bool;
 
+    /// Toggle side panel
+    fn toggle_side_panel(&mut self) -> bool;
+
+    /// Collapse side panel
+    fn collapse_side_panel(&mut self) -> bool;
+
+    /// Expand side panel
+    fn expand_side_panel(&mut self) -> bool;
+
     /// Execute custom action
     fn execute_custom(&mut self, action: &str) -> bool;
 }
@@ -121,6 +130,21 @@ impl ActionExecutor for TestExecutor {
 
     fn browser_address(&mut self) -> bool {
         self.actions_log.push("browser_address".to_string());
+        true
+    }
+
+    fn toggle_side_panel(&mut self) -> bool {
+        self.actions_log.push("toggle_side_panel".to_string());
+        true
+    }
+
+    fn collapse_side_panel(&mut self) -> bool {
+        self.actions_log.push("collapse_side_panel".to_string());
+        true
+    }
+
+    fn expand_side_panel(&mut self) -> bool {
+        self.actions_log.push("expand_side_panel".to_string());
         true
     }
 
@@ -214,6 +238,21 @@ impl<T: ActionExecutor> ActionExecutor for LoggingExecutor<T> {
         self.inner.browser_address()
     }
 
+    fn toggle_side_panel(&mut self) -> bool {
+        self.log.push("Toggling side panel".to_string());
+        self.inner.toggle_side_panel()
+    }
+
+    fn collapse_side_panel(&mut self) -> bool {
+        self.log.push("Collapsing side panel".to_string());
+        self.inner.collapse_side_panel()
+    }
+
+    fn expand_side_panel(&mut self) -> bool {
+        self.log.push("Expanding side panel".to_string());
+        self.inner.expand_side_panel()
+    }
+
     fn execute_custom(&mut self, action: &str) -> bool {
         self.log.push(format!("Executing custom: {}", action));
         self.inner.execute_custom(action)
@@ -239,9 +278,12 @@ mod tests {
         assert!(executor.toggle_theme());
         assert!(executor.show_help());
         assert!(executor.browser_address());
+        assert!(executor.toggle_side_panel());
+        assert!(executor.collapse_side_panel());
+        assert!(executor.expand_side_panel());
         assert!(executor.execute_custom("test"));
 
-        assert_eq!(executor.actions_log.len(), 12);
+        assert_eq!(executor.actions_log.len(), 15);
     }
 
     #[test]

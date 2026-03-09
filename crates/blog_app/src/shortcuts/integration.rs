@@ -211,6 +211,21 @@ impl ActionExecutor for TestIntegration {
         true
     }
 
+    fn toggle_side_panel(&mut self) -> bool {
+        self.actions_log.push("toggle_side_panel".to_owned());
+        true
+    }
+
+    fn collapse_side_panel(&mut self) -> bool {
+        self.actions_log.push("collapse_side_panel".to_owned());
+        true
+    }
+
+    fn expand_side_panel(&mut self) -> bool {
+        self.actions_log.push("expand_side_panel".to_owned());
+        true
+    }
+
     fn execute_custom(&mut self, action: &str) -> bool {
         self.actions_log.push(format!("execute_custom: {action}"));
         true
@@ -231,7 +246,7 @@ mod tests {
     #[test]
     fn test_test_integration() {
         let mut test = TestIntegration::new();
-        let ctx = egui::Context::default();
+        let _ctx = egui::Context::default();
 
         // Test context provider
         test.focused_panel = FocusedPanel::LeftPanel;

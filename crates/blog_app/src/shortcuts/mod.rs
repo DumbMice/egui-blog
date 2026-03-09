@@ -37,6 +37,9 @@
 //! #     fn toggle_theme(&mut self) -> bool { false }
 //! #     fn show_help(&mut self) -> bool { false }
 //! #     fn browser_address(&mut self) -> bool { false }
+//! #     fn toggle_side_panel(&mut self) -> bool { false }
+//! #     fn collapse_side_panel(&mut self) -> bool { false }
+//! #     fn expand_side_panel(&mut self) -> bool { false }
 //! #     fn execute_custom(&mut self, _action: &str) -> bool { false }
 //! # }
 //! # impl blog_app::shortcuts::ContextProvider for DummyApp {

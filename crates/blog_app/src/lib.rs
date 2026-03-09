@@ -61,6 +61,8 @@ pub struct BlogApp {
     layout_config: LayoutConfig,
     /// Responsive layout configuration
     responsive_config: ResponsiveConfig,
+    /// Side panel collapsed state
+    side_panel_collapsed: bool,
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
@@ -123,6 +125,7 @@ impl Default for BlogApp {
             selected_content_type: None, // Show all content types by default
             layout_config: LayoutConfig::default(),
             responsive_config: ResponsiveConfig::default(),
+            side_panel_collapsed: false,
             math_asset_manager: MathAssetManager::default(),
             router: Router::new(),
             pending_url_update: None,
@@ -342,20 +345,21 @@ impl eframe::App for BlogApp {
         if shortcut_handled {
             ui.ctx().request_repaint();
         }
-
-        // Update post manager state
-        self.post_manager_state = self.post_manager.state().clone();
-
-        // Apply theme if it changed
-        if self.theme != self.previous_theme {
-            self.theme.apply(ui.ctx());
-            self.previous_theme = self.theme;
+        
+        // Mobile auto-collapse logic
+        let screen_width = ui.ctx().content_rect().width();
+        let is_mobile = screen_width < self.responsive_config.mobile_breakpoint;
+        
+        if is_mobile && !self.side_panel_collapsed {
+            log::debug!("Mobile screen detected ({}px < {}px), auto-collapsing side panel", 
+                screen_width, self.responsive_config.mobile_breakpoint);
+            self.side_panel_collapsed = true;
         }
-
-        // Apply current theme
-        self.theme.apply(ui.ctx());
-
-        // Update focus animation state
+        
+        // Note: Removed auto-expand logic to give users full control over panel state
+        // Users can expand/collapse using hamburger buttons in top panel or side panel
+        // Auto-collapse on mobile still works, but auto-expand on desktop is disabled
+        
         let current_time = ui.ctx().input(|i| i.time);
         
         // Check if focus changed since last frame
@@ -374,7 +378,7 @@ impl eframe::App for BlogApp {
         let animation_config = {
             #[cfg(debug_assertions)]
             {
-                self.debug_state.animation_config.clone()
+                self.debug_state.animation_config
             }
             #[cfg(not(debug_assertions))]
             {
@@ -395,12 +399,25 @@ impl eframe::App for BlogApp {
                 self.selected_post,
                 #[cfg(debug_assertions)]
                 &mut self.debug_state,
+                self.side_panel_collapsed,
+                || {
+                    log::debug!("Toggling side panel from top panel");
+                    self.side_panel_collapsed = !self.side_panel_collapsed;
+                },
             );
         });
 
         if top_panel_changed {
             // If search changed, we might need to adjust selection
             // For now, just keep current selection if possible
+        }
+        
+        // Check if theme changed (via UI button or keyboard shortcut) and apply it
+        if self.theme != self.previous_theme {
+            log::debug!("Theme changed from {:?} to {:?}, applying to UI", 
+                self.previous_theme, self.theme);
+            self.theme.apply(ui.ctx());
+            self.previous_theme = self.theme;
         }
 
         // Update and show debug windows (debug builds only)
@@ -428,30 +445,48 @@ impl eframe::App for BlogApp {
         // Side panel
         let mut selection_changed = false;
         let mut selected_post_for_nav = None;
-        let _side_panel_response = Panel::left("side_panel").show_inside(ui, |ui| {
-            // Get the full panel rect
-            let panel_rect = ui.available_rect_before_wrap();
-            
-            let (changed, panel_clicked) = ui::layout::side_panel(
-                ui,
-                &self.post_manager,
-                &self.post_manager_state, // NEW: pass state
-                &self.search_query,
-                &mut self.selected_content_type,
-                &mut self.selected_post,
-                &mut self.layout_config,
-                |post_opt| {
-                    selected_post_for_nav = post_opt.cloned();
-                },
-                self.focused_panel == crate::shortcuts::FocusedPanel::LeftPanel,
-                panel_rect,
-                &mut self.side_panel_scroll_offset,
-                &mut self.request_side_panel_auto_scroll,
-                // Animation parameters
-                &self.focus_animation,
-                &animation_config,
-            );
-            selection_changed = changed;
+        
+        // Determine panel width based on collapsed state
+        let panel_width = if self.side_panel_collapsed {
+            40.0 // Minimal width when collapsed (just enough for hamburger button)
+        } else {
+            200.0 // Default width when expanded
+        };
+        
+        let _side_panel_response = Panel::left("side_panel")
+            .resizable(!self.side_panel_collapsed) // Only resizable when expanded
+            .min_size(if self.side_panel_collapsed { 40.0 } else { 150.0 })
+            .max_size(if self.side_panel_collapsed { 40.0 } else { 500.0 })
+            .default_size(panel_width)
+            .show_inside(ui, |ui| {
+                // Get the full panel rect (will be 0 width when collapsed)
+                let panel_rect = ui.available_rect_before_wrap();
+                
+                let (changed, panel_clicked) = ui::layout::side_panel(
+                    ui,
+                    &self.post_manager,
+                    &self.post_manager_state,
+                    &self.search_query,
+                    &mut self.selected_content_type,
+                    &mut self.selected_post,
+                    &mut self.layout_config,
+                    |post_opt| {
+                        selected_post_for_nav = post_opt.cloned();
+                    },
+                    self.focused_panel == crate::shortcuts::FocusedPanel::LeftPanel,
+                    panel_rect,
+                    &mut self.side_panel_scroll_offset,
+                    &mut self.request_side_panel_auto_scroll,
+                    // Animation parameters
+                    &self.focus_animation,
+                    &animation_config,
+                    // Panel state
+                    self.side_panel_collapsed,
+                    || {
+                        self.side_panel_collapsed = !self.side_panel_collapsed;
+                    },
+                );
+                selection_changed = changed;
             
             if panel_clicked {
                 log::debug!("Side panel clicked from layout.rs, focusing left panel");
@@ -634,7 +669,7 @@ impl crate::shortcuts::ContextProvider for BlogApp {
 // Implement ActionExecutor for BlogApp
 impl crate::shortcuts::ActionExecutor for BlogApp {
     fn execute_action(&mut self, action: &crate::shortcuts::ShortcutAction) -> bool {
-        use crate::shortcuts::ShortcutAction::{NavigatePost, SwitchTab, Scroll, FocusPanel, FocusSearch, FindInContent, FindNext, FindPrevious, ToggleTheme, ShowHelp, BrowserAddress, Custom};
+        use crate::shortcuts::ShortcutAction::{NavigatePost, SwitchTab, Scroll, FocusPanel, FocusSearch, FindInContent, FindNext, FindPrevious, ToggleTheme, ShowHelp, BrowserAddress, ToggleSidePanel, CollapseSidePanel, ExpandSidePanel, Custom};
         
         match action {
             NavigatePost { direction } => self.navigate_post(*direction),
@@ -648,6 +683,9 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
             ToggleTheme => self.toggle_theme(),
             ShowHelp => self.show_help(),
             BrowserAddress => self.browser_address(),
+            ToggleSidePanel => self.toggle_side_panel(),
+            CollapseSidePanel => self.collapse_side_panel(),
+            ExpandSidePanel => self.expand_side_panel(),
             Custom { name } => self.execute_custom(name),
         }
     }
@@ -788,6 +826,13 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
     
     fn focus_panel(&mut self, panel: crate::shortcuts::FocusedPanel) -> bool {
         log::debug!("Focus panel called: {panel:?}");
+        
+        // If focusing left panel and it's collapsed, expand it first
+        if panel == crate::shortcuts::FocusedPanel::LeftPanel && self.side_panel_collapsed {
+            log::debug!("Left panel is collapsed, expanding it");
+            self.side_panel_collapsed = false;
+        }
+        
         self.focused_panel = panel;
         true
     }
@@ -856,6 +901,24 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         {
             log::debug!("Browser address focus is web-only feature");
         }
+        true
+    }
+    
+    fn toggle_side_panel(&mut self) -> bool {
+        log::debug!("Toggling side panel, current state: {}", self.side_panel_collapsed);
+        self.side_panel_collapsed = !self.side_panel_collapsed;
+        true
+    }
+    
+    fn collapse_side_panel(&mut self) -> bool {
+        log::debug!("Collapsing side panel");
+        self.side_panel_collapsed = true;
+        true
+    }
+    
+    fn expand_side_panel(&mut self) -> bool {
+        log::debug!("Expanding side panel");
+        self.side_panel_collapsed = false;
         true
     }
     

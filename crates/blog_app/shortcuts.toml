@@ -181,3 +181,25 @@ description = "Focus browser address bar (web only)"
 contexts = ["Global"]
 keys = [{ modifiers = ["Alt"], key = "d" }]
 action = { type = "BrowserAddress" }
+
+# Vim-style side panel controls
+[[shortcuts]]
+name = "toggle_side_panel"
+description = "Toggle side panel (vim: conceal highest level)"
+contexts = ["Global", "LeftPanel", "RightPanel"]
+keys = [{ modifiers = [], sequence = ["z", "i"] }]
+action = { type = "ToggleSidePanel" }
+
+[[shortcuts]]
+name = "collapse_side_panel"  
+description = "Collapse side panel (vim: conceal more)"
+contexts = ["Global", "LeftPanel", "RightPanel"]
+keys = [{ modifiers = [], sequence = ["z", "m"] }]
+action = { type = "CollapseSidePanel" }
+
+[[shortcuts]]
+name = "expand_side_panel"
+description = "Expand side panel (vim: conceal open)"
+contexts = ["Global", "LeftPanel", "RightPanel"]
+keys = [{ modifiers = [], sequence = ["z", "o"] }]
+action = { type = "ExpandSidePanel" }

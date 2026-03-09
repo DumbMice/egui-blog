@@ -104,11 +104,20 @@ pub fn top_panel(
     post_manager: &PostManager,
     selected_post: usize,
     #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
+    side_panel_collapsed: bool,
+    mut on_toggle_side_panel: impl FnMut(),
 ) -> bool {
     let mut theme_changed = false;
     let mut search_changed = false;
 
     ui.horizontal(|ui| {
+        // Hamburger button for toggling side panel (always visible in top bar)
+        let hamburger_button = ui.button("☰")
+            .on_hover_text(if side_panel_collapsed { "Expand side panel" } else { "Collapse side panel" });
+        if hamburger_button.clicked() {
+            on_toggle_side_panel();
+        }
+        
         // Blog title
         ui.heading(title);
 
@@ -132,6 +141,7 @@ pub fn top_panel(
 
         // Theme toggle
         if components::theme_toggle(ui, theme) {
+            log::debug!("Theme changed in top_panel, new theme: {:?}", theme);
             theme_changed = true;
         }
 
@@ -166,6 +176,9 @@ pub fn side_panel(
     // Animation parameters
     animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
+    // Panel state
+    side_panel_collapsed: bool,
+    mut on_toggle_panel: impl FnMut(),
 ) -> (bool, bool) {
     let mut selection_changed = false;
     let mut panel_clicked = false;
@@ -191,6 +204,21 @@ pub fn side_panel(
         );
     }
 
+    // Handle collapsed state - show only hamburger button
+    if side_panel_collapsed {
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                // Hamburger menu button for expanding panel
+                let hamburger_button = ui.button("☰")
+                    .on_hover_text("Expand panel");
+                if hamburger_button.clicked() {
+                    on_toggle_panel();
+                }
+            });
+        });
+        return (selection_changed, panel_clicked);
+    }
+    
     // Handle loading/error states before entering the UI closure
     match post_manager_state {
         PostManagerState::Loading => {
@@ -223,8 +251,20 @@ pub fn side_panel(
         }
         }
 
+    let mut interactive_element_clicked = false;
+    
     ui.vertical(|ui| {
         ui.horizontal(|ui| {
+            // Hamburger menu button for collapsing/expanding panel
+            let hamburger_button = ui.button("☰");
+            if hamburger_button
+                .on_hover_text(if side_panel_collapsed { "Expand panel" } else { "Collapse panel" })
+                .clicked()
+            {
+                interactive_element_clicked = true;
+                on_toggle_panel();
+            }
+            
             ui.heading("Blog Posts");
 
             // Sort order toggle button
@@ -241,6 +281,7 @@ pub fn side_panel(
                 })
                 .clicked()
             {
+                interactive_element_clicked = true;
                 // Toggle sort order
                 config.post_sort_order = match config.post_sort_order {
                     PostSortOrder::NewestFirst => PostSortOrder::OldestFirst,
@@ -257,6 +298,7 @@ pub fn side_panel(
             let all_selected = selected_content_type.is_none();
             let all_response = ui.selectable_label(all_selected, "All");
             if all_response.clicked() && !all_selected {
+                interactive_element_clicked = true;
                 *selected_content_type = None;
                 // When switching to "All", navigate to Home to show all posts
                 selection_changed = true;
@@ -272,6 +314,7 @@ pub fn side_panel(
                 let is_selected = *selected_content_type == Some(content_type);
                 let response = ui.selectable_label(is_selected, content_type.display_name());
                 if response.clicked() && !is_selected {
+                    interactive_element_clicked = true;
                     *selected_content_type = Some(content_type);
                     // Find first post of this content type to select
                     let filtered_posts = post_manager
@@ -363,6 +406,7 @@ pub fn side_panel(
                         ui.separator();
 
                         if clicked {
+                            interactive_element_clicked = true;
                             *selected_post_index = original_index;
                             selection_changed = true;
                             // Update URL when post is selected
@@ -425,7 +469,7 @@ pub fn side_panel(
             false
         };
     
-    if detected_click {
+    if detected_click && !interactive_element_clicked {
         panel_clicked = true;
     }
     
