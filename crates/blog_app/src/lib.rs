@@ -402,7 +402,7 @@ impl eframe::App for BlogApp {
         let mut tag_search_was_modified = false;
         
         // Extract all tags from posts (used in multiple places)
-        let all_tags = crate::tags::extract_all_tags(self.post_manager.posts());
+        let all_tags = crate::tags::extract_all_tags(self.post_manager.posts(), &self.theme);
         let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
         
         // Top panel
@@ -565,7 +565,7 @@ impl eframe::App for BlogApp {
                     };
 
                     // Extract all tags from posts
-                    let all_tags = crate::tags::extract_all_tags(self.post_manager.posts());
+                    let all_tags = crate::tags::extract_all_tags(self.post_manager.posts(), &self.theme);
                     let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
                     
                     let state = ui::layout::MainContentState::new(

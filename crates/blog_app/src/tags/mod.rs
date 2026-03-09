@@ -4,32 +4,76 @@ use std::collections::HashMap;
 
 use egui::Color32;
 
-/// Catppuccin palette colors for tags
-/// Using more subtle Surface colors instead of vibrant accent colors
-/// Based on Catppuccin Latte (light) and Macchiato (dark) themes
-pub const CATPPUCCIN_COLORS: [Color32; 12] = [
-    // Surface 0 - Light: #ccd0da, Dark: #363a4f
-    Color32::from_rgb(140, 143, 161), // Muted lavender-gray
-    // Surface 1 - Light: #bcc0cc, Dark: #494d64
-    Color32::from_rgb(120, 124, 147), // Slightly darker muted tone
-    // Surface 2 - Light: #acb0be, Dark: #5b6078
-    Color32::from_rgb(100, 104, 130), // Medium muted tone
-    // Overlay 0 - Light: #8c8fa1, Dark: #6c7086
-    Color32::from_rgb(110, 113, 138), // Gray-blue
-    // Overlay 1 - Light: #828596, Dark: #7c7f93
-    Color32::from_rgb(125, 128, 150), // Soft gray
-    // Overlay 2 - Light: #737994, Dark: #8c8fa1
-    Color32::from_rgb(130, 133, 160), // Light gray-blue
-    // Subtext 0 - Light: #6c6f85, Dark: #a5adcb
-    Color32::from_rgb(135, 138, 165), // Muted blue-gray
-    // Subtext 1 - Light: #5c5f77, Dark: #b8c0e0
-    Color32::from_rgb(140, 143, 175), // Soft blue
-    // Muted accent colors (less saturated versions)
-    Color32::from_rgb(100, 130, 180), // Muted blue
-    Color32::from_rgb(100, 160, 120), // Muted green
-    Color32::from_rgb(180, 140, 100), // Muted peach
-    Color32::from_rgb(160, 120, 180), // Muted mauve
-];
+/// Get tag colors from the current Catppuccin theme
+/// Uses Surface colors which are designed for subtle backgrounds
+pub fn get_tag_colors(theme: &crate::ui::components::Theme) -> Vec<Color32> {
+    use catppuccin::{Flavor, PALETTE};
+
+    let flavor = match theme {
+        crate::ui::components::Theme::CatppuccinLatte => &PALETTE.latte,
+        crate::ui::components::Theme::CatppuccinMacchiato => &PALETTE.macchiato,
+    };
+
+    // Convert Catppuccin colors to egui Color32
+    fn to_color32(rgb: catppuccin::Rgb) -> Color32 {
+        Color32::from_rgb(rgb.r, rgb.g, rgb.b)
+    }
+
+    // Use Surface and Overlay colors for tags - these are designed for backgrounds
+    // and will automatically adapt to light/dark themes
+    vec![
+        // Surface colors (primary backgrounds)
+        to_color32(flavor.colors.surface0.rgb),
+        to_color32(flavor.colors.surface1.rgb),
+        to_color32(flavor.colors.surface2.rgb),
+        // Overlay colors (secondary backgrounds)
+        to_color32(flavor.colors.overlay0.rgb),
+        to_color32(flavor.colors.overlay1.rgb),
+        to_color32(flavor.colors.overlay2.rgb),
+        // Muted accent colors for variety (with reduced saturation)
+        blend_with_surface(
+            to_color32(flavor.colors.blue.rgb),
+            to_color32(flavor.colors.surface1.rgb),
+            0.3,
+        ),
+        blend_with_surface(
+            to_color32(flavor.colors.green.rgb),
+            to_color32(flavor.colors.surface1.rgb),
+            0.3,
+        ),
+        blend_with_surface(
+            to_color32(flavor.colors.yellow.rgb),
+            to_color32(flavor.colors.surface1.rgb),
+            0.3,
+        ),
+        blend_with_surface(
+            to_color32(flavor.colors.red.rgb),
+            to_color32(flavor.colors.surface1.rgb),
+            0.3,
+        ),
+        blend_with_surface(
+            to_color32(flavor.colors.mauve.rgb),
+            to_color32(flavor.colors.surface1.rgb),
+            0.3,
+        ),
+        blend_with_surface(
+            to_color32(flavor.colors.peach.rgb),
+            to_color32(flavor.colors.surface1.rgb),
+            0.3,
+        ),
+    ]
+}
+
+/// Blend an accent color with a surface color to make it more subtle
+fn blend_with_surface(accent: Color32, surface: Color32, accent_strength: f32) -> Color32 {
+    let surface_strength = 1.0 - accent_strength;
+
+    let r = (accent.r() as f32 * accent_strength + surface.r() as f32 * surface_strength) as u8;
+    let g = (accent.g() as f32 * accent_strength + surface.g() as f32 * surface_strength) as u8;
+    let b = (accent.b() as f32 * accent_strength + surface.b() as f32 * surface_strength) as u8;
+
+    Color32::from_rgb(r, g, b)
+}
 
 /// Tag metadata
 #[derive(Debug, Clone)]
@@ -45,9 +89,13 @@ pub struct Tag {
 }
 
 impl Tag {
-    /// Create a new tag with color assignment
-    pub fn new(name: String, description: Option<String>) -> Self {
-        let color = assign_tag_color(&name);
+    /// Create a new tag with color assignment based on theme
+    pub fn new(
+        name: String,
+        description: Option<String>,
+        theme: &crate::ui::components::Theme,
+    ) -> Self {
+        let color = assign_tag_color(&name, theme);
         Self {
             name,
             description,
@@ -160,8 +208,8 @@ impl TagSearchState {
     }
 }
 
-/// Assign a consistent color to a tag based on its hash
-pub fn assign_tag_color(tag: &str) -> Color32 {
+/// Assign a consistent color to a tag based on its hash and current theme
+pub fn assign_tag_color(tag: &str, theme: &crate::ui::components::Theme) -> Color32 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 
@@ -169,12 +217,16 @@ pub fn assign_tag_color(tag: &str) -> Color32 {
     tag.hash(&mut hasher);
     let hash = hasher.finish();
 
-    let index = (hash as usize) % CATPPUCCIN_COLORS.len();
-    CATPPUCCIN_COLORS[index]
+    let tag_colors = get_tag_colors(theme);
+    let index = (hash as usize) % tag_colors.len();
+    tag_colors[index]
 }
 
-/// Extract all unique tags from posts
-pub fn extract_all_tags(posts: &[crate::posts::BlogPost]) -> HashMap<String, Tag> {
+/// Extract all unique tags from posts with theme-based colors
+pub fn extract_all_tags(
+    posts: &[crate::posts::BlogPost],
+    theme: &crate::ui::components::Theme,
+) -> HashMap<String, Tag> {
     let mut tag_map = HashMap::new();
 
     for post in posts {
@@ -182,7 +234,7 @@ pub fn extract_all_tags(posts: &[crate::posts::BlogPost]) -> HashMap<String, Tag
             tag_map
                 .entry(tag_name.clone())
                 .and_modify(|tag: &mut Tag| tag.increment_count())
-                .or_insert_with(|| Tag::new(tag_name.clone(), None));
+                .or_insert_with(|| Tag::new(tag_name.clone(), None, theme));
         }
     }
 

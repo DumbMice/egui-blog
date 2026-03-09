@@ -5,73 +5,34 @@ use egui::{Color32, Response, RichText, Ui};
 use crate::tags::{Tag, TagSearchState};
 
 /// Determine text color for good contrast on a background color
-/// Uses appropriate text color based on background luminance and current theme
+/// Uses Catppuccin theme colors: text color for contrast, falls back to base color if needed
 fn text_color_for_background(bg_color: Color32, ui: &Ui) -> Color32 {
-    // Get current text color from theme
-    let current_text_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
+    let visuals = ui.visuals();
 
-    // Calculate luminance of background and current text
-    let bg_luminance = calculate_luminance(bg_color);
-    let text_luminance = calculate_luminance(current_text_color);
+    // Get theme text color (should be appropriate for normal text on panel_fill)
+    let text_color = visuals.widgets.noninteractive.fg_stroke.color;
+    // Simple luminance check - if background is dark, text should be light, and vice versa
+    let bg_luminance =
+        bg_color.r() as f32 * 0.299 + bg_color.g() as f32 * 0.587 + bg_color.b() as f32 * 0.114;
 
-    // Calculate contrast ratio between background and current text
-    let contrast_ratio = if bg_luminance > text_luminance {
-        (bg_luminance + 0.05) / (text_luminance + 0.05)
+    let text_luminance = text_color.r() as f32 * 0.299
+        + text_color.g() as f32 * 0.587
+        + text_color.b() as f32 * 0.114;
+
+    // Check if text color has good contrast with background
+    // Simple heuristic: if both are light or both are dark, we need opposite
+    let bg_is_light = bg_luminance > 128.0;
+    let text_is_light = text_luminance > 128.0;
+
+    if bg_is_light == text_is_light {
+        // Both light or both dark - need opposite
+        // For Catppuccin themes, we can use the panel_fill color as opposite
+        // (light theme: panel_fill is light, text is dark; dark theme: panel_fill is dark, text is light)
+        visuals.panel_fill
     } else {
-        (text_luminance + 0.05) / (bg_luminance + 0.05)
-    };
-
-    // WCAG requires at least 4.5:1 contrast for normal text
-    if contrast_ratio >= 4.5 {
-        // Current text color has sufficient contrast
-        current_text_color
-    } else {
-        // Insufficient contrast, choose opposite luminance text
-        if bg_luminance < 128.0 {
-            // Dark background, use light text
-            // Use theme's text color (should be light in dark mode)
-            current_text_color
-        } else {
-            // Light background, use dark text
-            // If current text is already dark, use it
-            if text_luminance < 128.0 {
-                current_text_color
-            } else {
-                // Current text is light, need dark text
-                // Use a dark gray that works in both themes
-                Color32::from_gray(30) // Dark gray
-            }
-        }
+        // Good contrast
+        text_color
     }
-}
-
-/// Calculate relative luminance of a color (0-255 scale)
-fn calculate_luminance(color: Color32) -> f32 {
-    let r = color.r() as f32 / 255.0;
-    let g = color.g() as f32 / 255.0;
-    let b = color.b() as f32 / 255.0;
-
-    // Convert to linear RGB
-    let r_lin = if r <= 0.04045 {
-        r / 12.92
-    } else {
-        ((r + 0.055) / 1.055).powf(2.4)
-    };
-
-    let g_lin = if g <= 0.04045 {
-        g / 12.92
-    } else {
-        ((g + 0.055) / 1.055).powf(2.4)
-    };
-
-    let b_lin = if b <= 0.04045 {
-        b / 12.92
-    } else {
-        ((b + 0.055) / 1.055).powf(2.4)
-    };
-
-    // Relative luminance formula
-    (0.2126 * r_lin + 0.7152 * g_lin + 0.0722 * b_lin) * 255.0
 }
 
 /// Display a tag as an interactive chip.
