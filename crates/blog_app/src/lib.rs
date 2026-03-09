@@ -109,6 +109,9 @@ pub struct BlogApp {
     current_find_match: usize,
     /// Whether find mode is active
     find_mode_active: bool,
+    /// Whether route has been restored from persistence (to avoid restoring every frame)
+    #[cfg_attr(feature = "serde", serde(skip))]
+    route_restored: bool,
 }
 
 impl Default for BlogApp {
@@ -150,6 +153,7 @@ impl Default for BlogApp {
             current_find_match: 0,
             find_mode_active: false,
             cached_tags: None,
+            route_restored: false,
         }
     }
 }
@@ -350,8 +354,9 @@ impl eframe::App for BlogApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // Restore saved route once on first frame
         #[cfg(feature = "persistence")]
-        if !self.router.is_initialized() {
+        if !self.route_restored {
             self.restore_route();
+            self.route_restored = true;
         }
 
         // Handle URL changes from browser (web target only)
