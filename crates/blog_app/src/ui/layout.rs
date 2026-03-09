@@ -132,7 +132,7 @@ pub fn top_panel(
 
         // Theme toggle
         if components::theme_toggle(ui, theme) {
-            log::debug!("Theme changed in top_panel, new theme: {:?}", theme);
+            log::debug!("Theme changed in top_panel, new theme: {theme:?}");
             theme_changed = true;
         }
 

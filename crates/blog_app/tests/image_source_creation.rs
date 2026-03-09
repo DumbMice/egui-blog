@@ -4,7 +4,7 @@ use blog_app::math::{self, MathAssetManager};
 
 #[test]
 fn test_image_source_creation() {
-    let asset_manager = MathAssetManager::default();
+    let _asset_manager = MathAssetManager::default();
     let manifest = math::load_manifest();
 
     // Test a known formula

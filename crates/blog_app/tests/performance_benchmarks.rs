@@ -10,13 +10,13 @@ fn benchmark_manifest_loading() {
 
     // First load (cold cache)
     let start = Instant::now();
-    let manifest1 = load_manifest();
+    let _manifest1 = load_manifest();
     let first_load_time = start.elapsed();
     println!("First load (cold cache): {:?}", first_load_time);
 
     // Second load (warm cache - should be much faster)
     let start = Instant::now();
-    let manifest2 = load_manifest();
+    let _manifest2 = load_manifest();
     let second_load_time = start.elapsed();
     println!("Second load (warm cache): {:?}", second_load_time);
 

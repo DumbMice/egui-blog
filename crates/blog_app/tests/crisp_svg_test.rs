@@ -6,7 +6,7 @@ use egui::{Image, ImageSource};
 /// Test that ImageSource is created correctly for crisp SVG rendering
 #[test]
 fn test_crisp_svg_image_source() {
-    let asset_manager = MathAssetManager::default();
+    let _asset_manager = MathAssetManager::default();
     let manifest = math::load_manifest();
 
     // Test a known formula
@@ -63,7 +63,7 @@ fn test_crisp_svg_image_source() {
 /// Test that Image widget can be created from the ImageSource
 #[test]
 fn test_image_widget_creation() {
-    let asset_manager = MathAssetManager::default();
+    let _asset_manager = MathAssetManager::default();
     let manifest = math::load_manifest();
 
     // Test a known formula
@@ -96,7 +96,7 @@ fn test_image_widget_creation() {
 /// Test multiple formulas to ensure consistent behavior
 #[test]
 fn test_multiple_formulas() {
-    let asset_manager = MathAssetManager::default();
+    let _asset_manager = MathAssetManager::default();
     let manifest = math::load_manifest();
 
     let test_formulas = [

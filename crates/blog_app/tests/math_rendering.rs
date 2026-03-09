@@ -71,7 +71,7 @@ fn test_svg_loading() {
 #[test]
 fn test_asset_manager_basics() {
     // Create asset manager
-    let mut manager = MathAssetManager::default();
+    let _manager = MathAssetManager::default();
 
     // Check manifest is loaded
     assert_eq!(

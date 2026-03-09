@@ -64,7 +64,7 @@ fn test_shortcut_manager_creation() {
 #[test]
 fn test_test_integration() {
     let mut test = TestIntegration::new();
-    let ctx = Context::default();
+    let _ctx = Context::default();
 
     // Test context provider
     test.focused_panel = FocusedPanel::LeftPanel;
