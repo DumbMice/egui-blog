@@ -104,20 +104,11 @@ pub fn top_panel(
     post_manager: &PostManager,
     selected_post: usize,
     #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
-    side_panel_collapsed: bool,
-    mut on_toggle_side_panel: impl FnMut(),
 ) -> bool {
     let mut theme_changed = false;
     let mut search_changed = false;
 
     ui.horizontal(|ui| {
-        // Hamburger button for toggling side panel (always visible in top bar)
-        let hamburger_button = ui.button("☰")
-            .on_hover_text(if side_panel_collapsed { "Expand side panel" } else { "Collapse side panel" });
-        if hamburger_button.clicked() {
-            on_toggle_side_panel();
-        }
-        
         // Blog title
         ui.heading(title);
 
@@ -208,10 +199,11 @@ pub fn side_panel(
     if side_panel_collapsed {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                // Hamburger menu button for expanding panel
-                let hamburger_button = ui.button("☰")
+                // Panel expand button (when panel is collapsed)
+                // Use » (right-pointing) to indicate expand
+                let expand_button = ui.button("»")
                     .on_hover_text("Expand panel");
-                if hamburger_button.clicked() {
+                if expand_button.clicked() {
                     on_toggle_panel();
                 }
             });
@@ -255,16 +247,6 @@ pub fn side_panel(
     
     ui.vertical(|ui| {
         ui.horizontal(|ui| {
-            // Hamburger menu button for collapsing/expanding panel
-            let hamburger_button = ui.button("☰");
-            if hamburger_button
-                .on_hover_text(if side_panel_collapsed { "Expand panel" } else { "Collapse panel" })
-                .clicked()
-            {
-                interactive_element_clicked = true;
-                on_toggle_panel();
-            }
-            
             ui.heading("Blog Posts");
 
             // Sort order toggle button
@@ -287,6 +269,19 @@ pub fn side_panel(
                     PostSortOrder::NewestFirst => PostSortOrder::OldestFirst,
                     PostSortOrder::OldestFirst => PostSortOrder::NewestFirst,
                 };
+            }
+            
+            // Panel collapse/expand button (after sort button)
+            // Use « when expanded (pointing left to indicate collapse)
+            // Use » when collapsed (pointing right to indicate expand)
+            let button_icon = if side_panel_collapsed { "»" } else { "«" };
+            let collapse_button = ui.button(button_icon);
+            if collapse_button
+                .on_hover_text(if side_panel_collapsed { "Expand panel" } else { "Collapse panel" })
+                .clicked()
+            {
+                interactive_element_clicked = true;
+                on_toggle_panel();
             }
         });
 

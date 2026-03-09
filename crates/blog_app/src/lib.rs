@@ -399,11 +399,6 @@ impl eframe::App for BlogApp {
                 self.selected_post,
                 #[cfg(debug_assertions)]
                 &mut self.debug_state,
-                self.side_panel_collapsed,
-                || {
-                    log::debug!("Toggling side panel from top panel");
-                    self.side_panel_collapsed = !self.side_panel_collapsed;
-                },
             );
         });
 
