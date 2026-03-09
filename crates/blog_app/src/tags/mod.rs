@@ -5,32 +5,30 @@ use std::collections::HashMap;
 use egui::Color32;
 
 /// Catppuccin palette colors for tags
+/// Using more subtle Surface colors instead of vibrant accent colors
 /// Based on Catppuccin Latte (light) and Macchiato (dark) themes
 pub const CATPPUCCIN_COLORS: [Color32; 12] = [
-    // Blue
-    Color32::from_rgb(30, 102, 245), // Catppuccin Blue
-    // Green
-    Color32::from_rgb(64, 160, 43), // Catppuccin Green
-    // Yellow
-    Color32::from_rgb(223, 142, 29), // Catppuccin Yellow
-    // Red
-    Color32::from_rgb(210, 15, 57), // Catppuccin Red
-    // Mauve
-    Color32::from_rgb(136, 57, 239), // Catppuccin Mauve
-    // Pink
-    Color32::from_rgb(234, 118, 203), // Catppuccin Pink
-    // Peach
-    Color32::from_rgb(254, 100, 11), // Catppuccin Peach
-    // Rosewater
-    Color32::from_rgb(220, 138, 120), // Catppuccin Rosewater
-    // Lavender
-    Color32::from_rgb(183, 189, 248), // Catppuccin Lavender
-    // Sky
-    Color32::from_rgb(4, 165, 229), // Catppuccin Sky
-    // Sapphire
-    Color32::from_rgb(32, 159, 181), // Catppuccin Sapphire
-    // Teal
-    Color32::from_rgb(23, 146, 153), // Catppuccin Teal
+    // Surface 0 - Light: #ccd0da, Dark: #363a4f
+    Color32::from_rgb(140, 143, 161), // Muted lavender-gray
+    // Surface 1 - Light: #bcc0cc, Dark: #494d64
+    Color32::from_rgb(120, 124, 147), // Slightly darker muted tone
+    // Surface 2 - Light: #acb0be, Dark: #5b6078
+    Color32::from_rgb(100, 104, 130), // Medium muted tone
+    // Overlay 0 - Light: #8c8fa1, Dark: #6c7086
+    Color32::from_rgb(110, 113, 138), // Gray-blue
+    // Overlay 1 - Light: #828596, Dark: #7c7f93
+    Color32::from_rgb(125, 128, 150), // Soft gray
+    // Overlay 2 - Light: #737994, Dark: #8c8fa1
+    Color32::from_rgb(130, 133, 160), // Light gray-blue
+    // Subtext 0 - Light: #6c6f85, Dark: #a5adcb
+    Color32::from_rgb(135, 138, 165), // Muted blue-gray
+    // Subtext 1 - Light: #5c5f77, Dark: #b8c0e0
+    Color32::from_rgb(140, 143, 175), // Soft blue
+    // Muted accent colors (less saturated versions)
+    Color32::from_rgb(100, 130, 180), // Muted blue
+    Color32::from_rgb(100, 160, 120), // Muted green
+    Color32::from_rgb(180, 140, 100), // Muted peach
+    Color32::from_rgb(160, 120, 180), // Muted mauve
 ];
 
 /// Tag metadata
