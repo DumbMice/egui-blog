@@ -189,9 +189,7 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
     // Single toggle button
     let button = ui.button(icon).on_hover_text(hover_text);
     if button.clicked() {
-        log::debug!(
-            "Theme toggle button clicked, current theme: {current_theme:?}"
-        );
+        log::debug!("Theme toggle button clicked, current theme: {current_theme:?}");
         // Toggle to the opposite theme
         *current_theme = match current_theme {
             Theme::CatppuccinLatte => Theme::CatppuccinMacchiato,
@@ -290,6 +288,44 @@ pub fn post_metadata(ui: &mut Ui, date: &str, tags: &[String]) {
             }
         }
     });
+}
+
+/// Display post metadata with interactive tags.
+pub fn post_metadata_with_tags(
+    ui: &mut Ui,
+    date: &str,
+    tags: &[String],
+    tag_search_state: &mut crate::tags::TagSearchState,
+    all_tags: &[crate::tags::Tag],
+) -> bool {
+    let mut tags_changed = false;
+
+    ui.horizontal(|ui| {
+        ui.label("📅");
+        ui.label(date);
+
+        if !tags.is_empty() {
+            ui.add_space(8.0);
+            ui.label("🏷");
+            for tag_name in tags {
+                // Find the tag to get its color
+                if let Some(tag) = all_tags.iter().find(|t| t.name == *tag_name) {
+                    if crate::ui::tag_components::tag_chip(ui, tag, tag_search_state).clicked() {
+                        tags_changed = true;
+                    }
+                } else {
+                    // Fallback for tags not in all_tags (shouldn't happen)
+                    ui.label(
+                        egui::RichText::new(tag_name)
+                            .small()
+                            .color(ui.visuals().weak_text_color()),
+                    );
+                }
+            }
+        }
+    });
+
+    tags_changed
 }
 
 /// A navigation bar for moving between posts.

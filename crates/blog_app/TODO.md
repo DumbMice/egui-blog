@@ -286,27 +286,58 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Math formula baseline alignment is now perfect! Uses Typst's baseline extraction with two-pass rendering to get baseline position, then aligns SVG baseline with text baseline accounting for layout centering. Tall SVGs automatically have baseline offset discarded and are scaled if needed to prevent line spacing disruption. Blockquote rendering now uses GitHub-style 4px solid border with proper padding (one row height horizontal, half row height vertical) and scales correctly with multi-line content.
 
-## Priority 14: Collapsible & Resizable Side Panel
-- [ ] Add toggle button on left panel or top-left of content
-- [ ] Persist panel state across sessions
-- [ ] Keep current resizable behavior
-- [ ] Auto-hide on small screens
-- [ ] No special keyboard shortcut for toggling (for now)
-- [ ] Adjust layout when panel is collapsed
+## Priority 14: Collapsible & Resizable Side Panel ✅ COMPLETED 2026-03-09
+- [x] Add toggle button on left panel or top-left of content
+- [x] Persist panel state across sessions
+- [x] Keep current resizable behavior
+- [x] Auto-hide on small screens
+- [x] No special keyboard shortcut for toggling (for now)
+- [x] Adjust layout when panel is collapsed
 
 **Note**: Quick UX improvement for more screen space when needed.
 
-## Priority 15: Complete Label/Tag System
-- [ ] Make labels interactive (click to search)
-- [ ] Assign colors from Catppuccin palette
-- [ ] Implement tag autocomplete in search bar
-- [ ] Support multiple tag selection with visual chips
-- [ ] Allow backspace to remove selected tags
-- [ ] Combine tag search with text search (AND logic)
-- [ ] Optional tag descriptions (show on hover)
-- [ ] Tag filtering in post lists
+### Implementation Details:
+1. **State extension**: Added `side_panel_collapsed: bool` field to `BlogApp` struct with serialization
+2. **Panel configuration**: Custom width control (200px expanded, 40px collapsed) with `default_size()`
+3. **Button redesign**: Changed from ☰ to directional arrows «/» positioned after date sort button
+4. **Vim shortcuts**: Added `ToggleSidePanel`, `CollapseSidePanel`, `ExpandSidePanel` actions to `ShortcutAction` enum
+5. **Shortcut configuration**: Added `zi`/`zm`/`zo` shortcuts to `shortcuts.toml`
+6. **Enhanced `Ctrl+←`**: Updated `focus_panel()` to expand collapsed panel before focusing
+7. **Mobile auto-collapse**: Added logic to collapse panel when screen width < 768px
+8. **Trait updates**: Updated all `ActionExecutor` implementations
+9. **Theme toggler fix**: Added theme application logic in `ui()` method
+10. **Click detection fix**: Prevent panel focus when interactive elements clicked
+11. **Auto-expand removal**: Removed conflicting auto-expand logic
+12. **Code quality**: Fixed all clippy warnings and unused variables
+13. **Testing**: All 42 existing tests pass, doctests updated
+
+## Priority 15: Complete Label/Tag System ✅ COMPLETED 2026-03-09
+- [x] Make labels interactive (click to search)
+- [x] Assign colors from Catppuccin palette
+- [x] Implement tag autocomplete in search bar
+- [x] Support multiple tag selection with visual chips
+- [x] Allow backspace to remove selected tags
+- [x] Combine tag search with text search (AND logic)
+- [x] Optional tag descriptions (show on hover)
+- [x] Tag filtering in post lists
 
 **Note**: Complex but powerful feature for content discovery. See [TAG_SYSTEM.md](TAG_SYSTEM.md) for detailed specification.
+
+### Implementation Details:
+1. **Tag module**: Created `src/tags/mod.rs` with `Tag`, `TagSearchState` structs and utility functions
+2. **Catppuccin colors**: 12-color palette with hash-based assignment for consistent tag colors
+3. **Interactive tag chips**: Clickable colored pills with hover tooltips showing post counts
+4. **Enhanced search bar**: `tag_search_bar()` component with:
+   - Tag autocomplete when typing `#`
+   - Visual tag chips in search bar
+   - Backspace to remove tags
+   - Clear search button
+5. **Tag components**: `src/ui/tag_components.rs` with reusable UI widgets
+6. **Search integration**: Combined AND logic for tags + text search
+7. **URL routing**: Tag searches update browser URL and are bookmarkable
+8. **State persistence**: Tag search state saved across sessions
+9. **Performance**: Efficient tag extraction and filtering with hash-based color assignment
+10. **UI integration**: Tags are interactive in post lists, post metadata, and search results
 
 ## Priority 16: Advanced Typography (Future Enhancement)
 - [ ] Add support for real bold fonts (font weight changes, not just color)

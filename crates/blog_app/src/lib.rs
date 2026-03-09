@@ -7,6 +7,7 @@ mod web;
 pub mod math;
 mod posts;
 mod routing;
+mod tags;
 mod ui;
 pub mod shortcuts;
 pub mod animation;
@@ -53,8 +54,8 @@ pub struct BlogApp {
     theme: Theme,
     /// Previous theme (to detect changes)
     previous_theme: Theme,
-    /// Search query
-    search_query: String,
+    /// Tag-based search state
+    tag_search_state: crate::tags::TagSearchState,
     /// Selected content type filter (None = show all)
     selected_content_type: Option<crate::posts::ContentType>,
     /// Layout configuration
@@ -121,7 +122,7 @@ impl Default for BlogApp {
             new_post_content: String::new(),
             theme: Theme::default(),
             previous_theme: Theme::default(),
-            search_query: String::new(),
+            tag_search_state: crate::tags::TagSearchState::new(),
             selected_content_type: None, // Show all content types by default
             layout_config: LayoutConfig::default(),
             responsive_config: ResponsiveConfig::default(),
@@ -168,6 +169,13 @@ impl BlogApp {
         // Apply theme to context
         app.theme.apply(&cc.egui_ctx);
         app.previous_theme = app.theme;
+
+        // Migration: Convert old search_query to new tag_search_state
+        #[cfg(feature = "persistence")]
+        {
+            // Check if we have the old field (this is a hack since we can't directly access it)
+            // We'll rely on serde's default for missing fields
+        }
 
         // Ensure valid selection
         app.ensure_valid_selection();
@@ -219,12 +227,15 @@ impl BlogApp {
                     self.router.navigate_to(Route::NotFound);
                 }
             }
-            Route::Search { query, tags: _ } => {
-                self.search_query = query.clone();
-                // TODO: Handle tags when tag system is implemented
+            Route::Search { query, tags } => {
+                self.tag_search_state.search_text = query.clone();
+                self.tag_search_state.selected_tags = tags.clone();
             }
-            Route::Tag { tag: _ } | Route::NotFound => {
-                // TODO: Handle tag filtering when tag system is implemented
+            Route::Tag { tag } => {
+                self.tag_search_state.selected_tags = vec![tag.clone()];
+                self.tag_search_state.search_text.clear();
+            }
+            Route::NotFound => {
                 // Show 404 message - handled in UI
             }
             Route::Home => {
@@ -387,6 +398,13 @@ impl eframe::App for BlogApp {
         };
         self.focus_animation.update(current_time, &animation_config);
 
+        // Track if tag search state was modified
+        let mut tag_search_was_modified = false;
+        
+        // Extract all tags from posts (used in multiple places)
+        let all_tags = crate::tags::extract_all_tags(self.post_manager.posts());
+        let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
+        
         // Top panel
         let mut top_panel_changed = false;
         Panel::top("top_panel").show_inside(ui, |ui| {
@@ -394,18 +412,18 @@ impl eframe::App for BlogApp {
                 ui,
                 "My Blog",
                 &mut self.theme,
-                &mut self.search_query,
+                &mut self.tag_search_state,
+                &all_tags_vec,
                 &self.post_manager,
                 self.selected_post,
                 #[cfg(debug_assertions)]
                 &mut self.debug_state,
             );
+            
+            if top_panel_changed {
+                tag_search_was_modified = true;
+            }
         });
-
-        if top_panel_changed {
-            // If search changed, we might need to adjust selection
-            // For now, just keep current selection if possible
-        }
         
         // Check if theme changed (via UI button or keyboard shortcut) and apply it
         if self.theme != self.previous_theme {
@@ -461,7 +479,8 @@ impl eframe::App for BlogApp {
                     ui,
                     &self.post_manager,
                     &self.post_manager_state,
-                    &self.search_query,
+                    &mut self.tag_search_state,
+                    &all_tags_vec,
                     &mut self.selected_content_type,
                     &mut self.selected_post,
                     &mut self.layout_config,
@@ -545,6 +564,10 @@ impl eframe::App for BlogApp {
                         on_navigate: &mut navigate_callback,
                     };
 
+                    // Extract all tags from posts
+                    let all_tags = crate::tags::extract_all_tags(self.post_manager.posts());
+                    let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
+                    
                     let state = ui::layout::MainContentState::new(
                         &self.post_manager,
                         self.selected_post,
@@ -554,6 +577,8 @@ impl eframe::App for BlogApp {
                         &self.post_manager_state,
                         Some(&mut self.math_asset_manager),
                         navigation,
+                        &mut self.tag_search_state,
+                        &all_tags_vec,
                     );
                     let result = ui::layout::main_content(
                         ui, 
@@ -628,6 +653,20 @@ impl eframe::App for BlogApp {
             self.handle_retry();
         }
 
+        // Update URL if tag search was modified
+        if tag_search_was_modified {
+            if self.tag_search_state.is_active() {
+                let route = crate::routing::Route::Search {
+                    query: self.tag_search_state.search_text.clone(),
+                    tags: self.tag_search_state.selected_tags.clone(),
+                };
+                self.navigate_to(route);
+            } else {
+                // Clear search - navigate to home
+                self.navigate_to(crate::routing::Route::Home);
+            }
+        }
+
         // Bottom panel
         Panel::bottom("bottom_panel").show_inside(ui, |ui| {
             ui::layout::bottom_panel(ui);
@@ -689,19 +728,26 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         use crate::shortcuts::PostNavigation::{Next, Previous, First, Last};
         
         // Get filtered posts using the same logic as the side panel display
-        // This includes search query, sort order, and content type filter
-        let posts_to_show: Vec<_> = self.post_manager
-            .search(&self.search_query, self.layout_config.post_sort_order)
-            .into_iter()
-            .enumerate()
-            .filter(|(_, post)| {
-                // Apply content type filter if set
-                match self.selected_content_type {
-                    Some(content_type) => post.content_type == content_type,
-                    None => true, // Show all
-                }
-            })
-            .collect();
+        // This includes tag search, sort order, and content type filter
+        let mut posts_to_show = crate::tags::search_posts(
+            self.post_manager.posts(),
+            &self.tag_search_state,
+        );
+        
+        // Apply content type filter if set
+        if let Some(content_type) = self.selected_content_type {
+            posts_to_show.retain(|post| post.content_type == content_type);
+        }
+        
+        // Apply sort order
+        posts_to_show.sort_by(|a, b| {
+            match self.layout_config.post_sort_order {
+                crate::ui::layout::PostSortOrder::NewestFirst => b.date.cmp(&a.date),
+                crate::ui::layout::PostSortOrder::OldestFirst => a.date.cmp(&b.date),
+            }
+        });
+        
+        let posts_to_show: Vec<_> = posts_to_show.into_iter().enumerate().collect();
         
         if posts_to_show.is_empty() {
             return false;

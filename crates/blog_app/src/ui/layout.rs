@@ -33,6 +33,10 @@ pub struct MainContentState<'a> {
     pub math_asset_manager: Option<&'a mut MathAssetManager>,
     /// Navigation context
     pub navigation: NavigationContext<'a>,
+    /// Tag search state
+    pub tag_search_state: &'a mut crate::tags::TagSearchState,
+    /// All tags for color assignment
+    pub all_tags: &'a [crate::tags::Tag],
 }
 
 impl<'a> MainContentState<'a> {
@@ -47,6 +51,8 @@ impl<'a> MainContentState<'a> {
         post_manager_state: &'a PostManagerState,
         math_asset_manager: Option<&'a mut MathAssetManager>,
         navigation: NavigationContext<'a>,
+        tag_search_state: &'a mut crate::tags::TagSearchState,
+        all_tags: &'a [crate::tags::Tag],
     ) -> Self {
         Self {
             post_manager,
@@ -57,6 +63,8 @@ impl<'a> MainContentState<'a> {
             post_manager_state,
             math_asset_manager,
             navigation,
+            tag_search_state,
+            all_tags,
         }
     }
 }
@@ -100,7 +108,8 @@ pub fn top_panel(
     ui: &mut Ui,
     title: &str,
     theme: &mut Theme,
-    search_query: &mut String,
+    tag_search_state: &mut crate::tags::TagSearchState,
+    all_tags: &[crate::tags::Tag],
     post_manager: &PostManager,
     selected_post: usize,
     #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
@@ -114,8 +123,10 @@ pub fn top_panel(
 
         ui.separator();
 
-        // Search bar
-        if components::search_bar(ui, search_query) {
+        // Search bar with tag support
+        let (search_bar_changed, tags_changed) = 
+            crate::ui::tag_components::tag_search_bar(ui, tag_search_state, all_tags);
+        if search_bar_changed || tags_changed {
             search_changed = true;
         }
 
@@ -155,7 +166,8 @@ pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
     post_manager_state: &PostManagerState,
-    search_query: &str,
+    tag_search_state: &mut crate::tags::TagSearchState,
+    all_tags: &[crate::tags::Tag],
     selected_content_type: &mut Option<crate::posts::ContentType>,
     selected_post_index: &mut usize,
     config: &mut LayoutConfig,
@@ -312,11 +324,13 @@ pub fn side_panel(
                     interactive_element_clicked = true;
                     *selected_content_type = Some(content_type);
                     // Find first post of this content type to select
-                    let filtered_posts = post_manager
-                        .search(search_query, config.post_sort_order)
-                        .into_iter()
-                        .filter(|post| post.content_type == content_type)
-                        .collect::<Vec<_>>();
+                    let filtered_posts = crate::tags::search_posts(
+                        post_manager.posts(),
+                        tag_search_state,
+                    )
+                    .into_iter()
+                    .filter(|post| post.content_type == content_type)
+                    .collect::<Vec<_>>();
                     if let Some(first_post) = filtered_posts.first()
                         && let Some(index) = post_manager
                             .posts()
@@ -334,23 +348,29 @@ pub fn side_panel(
 
         ui.separator();
 
-        // Get posts based on search query, content type filter, and sort order
-        let posts_to_show = post_manager
-            .search(search_query, config.post_sort_order)
-            .into_iter()
-            .filter(|post| {
-                // Apply content type filter if set
-                match selected_content_type {
-                    Some(content_type) => post.content_type == *content_type,
-                    None => true, // Show all
-                }
-            })
-            .collect::<Vec<_>>();
+        // Get posts based on tag search, content type filter, and sort order
+        let mut posts_to_show = crate::tags::search_posts(
+            post_manager.posts(),
+            tag_search_state,
+        );
+        
+        // Apply content type filter if set
+        if let Some(content_type) = selected_content_type {
+            posts_to_show.retain(|post| post.content_type == *content_type);
+        }
+        
+        // Apply sort order
+        posts_to_show.sort_by(|a, b| {
+            match config.post_sort_order {
+                PostSortOrder::NewestFirst => b.date.cmp(&a.date),
+                PostSortOrder::OldestFirst => a.date.cmp(&b.date),
+            }
+        });
 
         if posts_to_show.is_empty() {
             ui.label("No posts found");
-            if !search_query.is_empty() {
-                ui.label("Try a different search term");
+            if tag_search_state.is_active() {
+                ui.label("Try a different search or remove some tags");
             }
         } else {
             let scroll_response = egui::ScrollArea::vertical()
@@ -388,12 +408,20 @@ pub fn side_panel(
 
                         if config.show_tags_in_list && !post.tags.is_empty() {
                             ui.horizontal_wrapped(|ui| {
-                                for tag in &post.tags {
-                                    ui.label(
-                                        egui::RichText::new(format!("#{tag}"))
-                                            .small()
-                                            .color(ui.visuals().weak_text_color()),
-                                    );
+                                for tag_name in &post.tags {
+                                    // Find the tag to get its color
+                                    if let Some(tag) = all_tags.iter().find(|t| t.name == *tag_name) {
+                                        if crate::ui::tag_components::tag_chip(ui, tag, tag_search_state).clicked() {
+                                            // Tag was clicked - selection will be updated in main loop
+                                        }
+                                    } else {
+                                        // Fallback for tags not in all_tags
+                                        ui.label(
+                                            egui::RichText::new(format!("#{tag_name}"))
+                                                .small()
+                                                .color(ui.visuals().weak_text_color()),
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -602,7 +630,16 @@ fn main_content_internal_impl(
                     ui.heading(&post.title);
                     ui.separator();
 
-                    components::post_metadata(ui, &post.date, &post.tags);
+                    if components::post_metadata_with_tags(
+                        ui, 
+                        &post.date, 
+                        &post.tags,
+                        state.tag_search_state,
+                        state.all_tags,
+                    ) {
+                        // Tags were clicked, trigger search update
+                        // This will be handled by the main app loop
+                    }
                     ui.separator();
 
                     // Render markdown content with math support using preprocessed content
