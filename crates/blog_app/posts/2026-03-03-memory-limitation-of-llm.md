@@ -41,7 +41,9 @@ $ R= Q^tack.b K <=> R^(nu tau) = Q^(mu nu) lr(K_mu)^tau = Q^( tack.b nu mu)  lr(
 
 The query result funciton, $r(dot.c, dot.c)$, is a _bilinear form_, $RR^d times RR^d -> RR$, with matrix $R$. In general, there is no constraint put on $Q$ and $K$, and thus $R$ is almost always asymmetric, and so is the corresponding bilinear form $r$.
 
-### Thermodynamic Ensemble on Tokens
+### Ensemble on Tokens
+
+#### Detour to Physics
 
 Let's take a small detour to physics. In thermodynamics, the probability, $p_i$, of finding a system of temperature $T$ at a state of index $i$ with energy $E_i$, is given by the Boltzmann distribution
 
@@ -55,32 +57,77 @@ $ phi[bold(x)] = e^((i S[bold(x)])/hbar) $
 
 where $S[bold(x)] equiv  integral_(t_i)^(t_f) L(bold(x), dot(bold(x))) dif t$ is the integral of Lagrangian along the path $bold(x)$ from $t_i$ to $t_f$.
 
-A neural networks, a highly related function is called softmax function, 
+A neural networks, a highly related function is called softmax function,
 
 $ "softmax"( bold(x))_i =  e^(x_i)/(sum_i e^(x_i)) $
 
-which maps an array of values $bold(x)$ to a probability distribution $"softmax"(bold(x))$. Softmax function could be viewed as a Boltzmann distribution with $x_i -> (-E_i)/(k_B T)$. 
+which maps an array of values $bold(x)$ to a probability distribution $"softmax"(bold(x))$. Softmax function could be viewed as a Boltzmann distribution with $x_i -> (-E_i)/(k_B T)$.
 
-Note, the quantity on the exponent has to be dimensionless, otherwise quantities of different physical dimensions are added together in Taylor expansion of exponential function, $e^x = sum_(n=0)^infinity (x^n)/(n!)$. For Boltzmann distribution, $E_i$ and $k_B T$ have dimension of energy, and in path integral, $A$ and $hbar$ have dimension of energy times time. Their ratios on the exponent are dimensionless. The denominator of this fraction, often called temperature in consistent with its meaning in thermodynamics, controls the spikiness or peakiness of the distribution. As temperature $-> infinity$, the distribution becomes flat; as temperature $->0$, the distribution peaks at max or min (if there is negative sign). The temperature is also responsible setting a standard scale of energy. If energy levels increase and temperature scales by the same factor, then the distribution keeps the original.
+Note, the quantity on the exponent has to be dimensionless, otherwise quantities of different physical dimensions are added together in Taylor expansion of exponential function, $e^x = sum_(n=0)^infinity (x^n)/(n!)$. For Boltzmann distribution, $E_i$ and $k_B T$ have dimension of energy, and in path integral, $A$ and $hbar$ have dimension of energy times time. Their ratios on the exponent are dimensionless.
 
-Back to our bilinear forms on tokens. In the end we want to define a distribution using query scores among tokens. The probability distribution should be invariant with detailed implementation, such as the dimension of projections $d$. In practice, we can assume the following statistical features about tokens and matrices, 
+The denominator of this fraction, often called temperature in consistent with its meaning in thermodynamics, controls the spikiness or peakiness of the distribution. As temperature $-> infinity$, the distribution becomes flat; as temperature $->0$, the distribution peaks at max or min (if there is negative sign). The temperature also sets a standard scale of energy. If energy levels and temperature scale by the same factor, then the distribution keeps the original.
 
-$ &EE[x_(mu)] = 0, "Var"[x_(mu)]=1 \ &lr(Q^mu)_nu tilde cal(N)(0;1), lr(K^mu)_nu tilde cal(N)(0;1) $,
+#### Normalized Query Score
 
-then the projected vector $q_mu$ follows,
+Back to our bilinear forms on tokens. In the end we want to define a distribution using query scores among tokens. The probability distribution should be invariant regardless of representations, such as the dimensions $d$ and $d_"tok"$. In practice, we can assume entries in tokens and matrices are i.i.d. random variables with the following mean and variance,
 
-$ EE[q_mu]=EE[lr(Q^mu)_nu x_(nu)] = 0, "Var"[q_mu]="Var"[lr(Q^mu)_nu]"Var"[x_(nu)]=d times 1/d times 1 = 1. $
+$ &EE[x_(mu)] = 0, "Var"[x_(mu)]=1 \ &lr(Q^mu)_nu tilde cal(N)(0,1/d_"tok"), lr(K^mu)_nu tilde cal(N)(0,1/d_"tok"). $
 
-Similarly, the projected vector $k_mu$ follows
+Then for entries in the bilinear matrix $R$, it follows that
 
-$ EE[k_mu]= 0, "Var"[k_mu]= 1. $
+$ &EE[R^(mu nu)] = EE[lr(Q^tack.b)^(mu tau) K_tau^nu]= 0 \ &"Var"[R^(mu nu)] = "Var"[lr(Q^tack.b)^(mu tau)] dot "Var"[K_tau^nu] = d/lr(d_"tok")^2. $
 
-The dot product, or the linear 
+The query score $r_(i j) equiv r(bold(x)_i, bold(x)_j)$ hence has the mean and variance,
 
-In probability theory and thermodynamics, we usually define an expectation value of some variable $O(i)$ as 
+$ &EE[r_(i j)] = EE(x_(mu i) R^(mu nu) x_(nu j)) = 0 \ &"Var"[r_(i j)] = "Var"[x_(mu i)] dot "Var"[R^(mu nu)] dot "Var"[x_(nu j)] = lr(d_"tok")^2 dot 1 dot d/lr(d_"tok")^2 dot 1 = d. $
 
-$ EE[O] equiv chevron.l O chevron.r equiv sum_i p_i O(i). $ 
+As a result, this bilinear form, which should define the relation among tokens, has a variance that scales linearly with the dimension of projection dimension $d$, which is a intermediate parameter that depends on actual implementation.
 
-For each new token $x_t$, following a sequence of tokens $[x_1, dots, x_(t-1)]$, each self-attention incapsulates the contribution of all preceding tokens to this token,
+To get ride of this dependency, we define a normalized query score $hat(r)_(i j)$ as
 
-$ "softmax"() $
+$ hat(r)_(i j) = hat(r)(bold(x)_i, bold(x)_j) = (bold(x)^(tack.b)_i R bold(x)_j) / sqrt(d) $,
+
+which is normalized score with means and variance independent of $d$ ,
+
+$ &EE[hat(r)_(i j)] =  0 \ &"Var"[hat(r)_(i j)] = 1 $
+
+and this $sqrt(d)$ can be interpreted either as a dimension quantity that renders $hat(r)$ dimensionless or a temperature that preserves the peakiness of distribution given from $hat(r)$.
+
+#### Self-Attention as Ensemble on Tokens
+
+Given a query token $bold(x)_i$, we can use normalized query score to define a distribution (or an ensemble), $bold(p)_i$ on attended tokens $bold(x)_j$,
+
+$ (bold(p)_i)_j = (e^(r_(i j)))/(sum_j e^(r_(i j))) = (e^(r_(i j)))/(Z_i), $
+
+where $Z_i$ is the partition function. This could also be written as a softmax function if we define $(bold(r)_i)_j equiv r_(i j)$,
+
+$ bold(p)_i = "softmax"(bold(r)_i). $
+
+Then we could also define the expected value of any function $O(x_j)$ of $x_j$ under $bold(p)_i$ as
+
+$ EE_(x_j tilde bold(p)_i)[O] equiv sum_j (bold(p)_i)_j O(x_j). $
+
+If you regard assemble of query score as the result of a routing process, distributing attention to tokens of useful information, then we still need to extract information from them. This involves the last piece of self attention, extracting values from attended tokens. This requires a third projection of tokens,  value projection $bold(v)_t in RR^(d)$,
+
+$ bold(v)_t = V bold(bold(x)_t), $
+
+where $V$ is the third matrix of linear transformation $RR^(d_"tok") -> RR^d$.
+
+The value extracted from all attended tokens is the expected value of value projection function,
+
+$ EE_(x_j tilde bold(p)_i)[V] equiv sum_j (bold(p)_i)_j V bold(x_j) $
+
+where we are abusing $V$ to denote both the linear transformation and its matrix.
+
+As a result, self attention calculates the expectation value of value projection map evaluated on a ensemble induced by normalized query score.
+
+### Causal Structure on Tokens
+
+In a decoder-only autoregressive transformers, an extra causal strucutre must be imposed on self-attention.
+During inference, autoregressive model predicts next token using previous tokens. So during training, self-attention should also only use tokens in the past to predict next.
+
+This causal structure requires the ensemble contribution from the future to be zero,
+
+$ (bold(p_i))_(j>i) = 0 $
+
+which could be equivalently achieved by restricting summation range $j<=i$, multiplying a causal mask $M_(i j)=bb(1)_(i>=j)$, or setting query score $r_(i<j)=-infinity$.
