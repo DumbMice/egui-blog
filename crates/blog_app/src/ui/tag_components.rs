@@ -69,7 +69,7 @@ pub fn selected_tags_chips(
     let mut changed = false;
 
     ui.horizontal_wrapped(|ui| {
-        let tag_names: Vec<String> = search_state.selected_tags.to_vec();
+        let tag_names: Vec<String> = search_state.selected_tags.clone();
         for tag_name in tag_names {
             // Find the tag to get its color
             let tag_color = all_tags

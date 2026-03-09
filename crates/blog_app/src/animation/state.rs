@@ -122,7 +122,7 @@ impl FocusAnimationState {
     }
 
     /// Check if animation is currently active (not idle).
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub fn is_active(&self) -> bool {
         self.focused_panel != FocusedPanel::None
     }

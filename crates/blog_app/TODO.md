@@ -336,7 +336,12 @@ cargo blog-wasm     # Build WASM library only
 6. **Search integration**: Combined AND logic for tags + text search
 7. **URL routing**: Tag searches update browser URL and are bookmarkable
 8. **State persistence**: Tag search state saved across sessions
-9. **Performance**: Efficient tag extraction and filtering with hash-based color assignment
+9. **Performance optimizations** (2026-03-09):
+   - Cached tag color palettes per theme using `OnceLock`
+   - Reduced duplicate tag computations (once per frame instead of twice)
+   - Explicit cache invalidation when theme changes
+   - Fixed frame spikes during theme toggling
+   - All tag colors change synchronously with other UI elements
 10. **UI integration**: Tags are interactive in post lists, post metadata, and search results
 
 ## Priority 16: Advanced Typography (Future Enhancement)
