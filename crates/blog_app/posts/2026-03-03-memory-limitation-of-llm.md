@@ -119,7 +119,11 @@ $ EE_(x_j tilde bold(p)_i)[V] equiv sum_j (bold(p)_i)_j V bold(x_j) $
 
 where we are abusing $V$ to denote both the linear transformation and its matrix.
 
-As a result, self attention calculates the expectation value of value projection map evaluated on a ensemble induced by normalized query score.
+As a result, _self attention calculates the expectation value of value projection map evaluated on a ensemble induced by normalized query score_.
+
+In the end, let's the final output from self-attention module as $y equiv [bold(y)_1, dots, bold(y)_T]$ composing of components $y_(mu t)$, and each output feature $bold(y)_t in RR^d$. Using the tensor annotation, the calculation of self attention can be captured as a single term
+
+$  y_(mu t) = sum_j (e^(r_(t j)))/(Z_t) dot.c V_mu^alpha x_(alpha j) =  sum_j "exp"(x_(nu t) R^(nu tau) x_(tau j))/(sum_i exp(x_(sigma t) R^(sigma rho) x_(rho i))) dot.c lr(V_mu)^alpha x_(alpha j). $
 
 ### Causal Structure on Tokens
 
