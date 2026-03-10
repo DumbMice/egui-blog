@@ -112,9 +112,21 @@ pub struct TopPanelResult {
     pub theme_changed: bool,
 }
 
+/// Configuration for the top panel
+pub struct TopPanelConfig<'a> {
+    /// Tag search state
+    pub tag_search_state: &'a mut crate::tags::TagSearchState,
+    /// All available tags
+    pub all_tags: &'a [crate::tags::Tag],
+    /// Post manager for search functionality
+    pub post_manager: &'a PostManager,
+    /// Currently selected post index
+    pub selected_post: usize,
+}
+
 impl TopPanelResult {
     /// Returns true if either search or theme changed
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn any_changed(&self) -> bool {
         self.search_changed || self.theme_changed
     }
@@ -125,10 +137,7 @@ pub fn top_panel(
     ui: &mut Ui,
     title: &str,
     theme: &mut Theme,
-    tag_search_state: &mut crate::tags::TagSearchState,
-    all_tags: &[crate::tags::Tag],
-    post_manager: &PostManager,
-    selected_post: usize,
+    config: &mut TopPanelConfig<'_>,
     #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
 ) -> TopPanelResult {
     let mut theme_changed = false;
@@ -142,7 +151,7 @@ pub fn top_panel(
 
         // Search bar with tag support
         let (search_bar_changed, tags_changed) = 
-            crate::ui::tag_components::tag_search_bar(ui, tag_search_state, all_tags);
+            crate::ui::tag_components::tag_search_bar(ui, config.tag_search_state, config.all_tags);
         if search_bar_changed || tags_changed {
             search_changed = true;
         }
@@ -152,8 +161,8 @@ pub fn top_panel(
         // Post counter
         ui.label(format!(
             "Posts: {}/{}",
-            if post_manager.count() > 0 { selected_post + 1 } else { 0 },
-            post_manager.count()
+            if config.post_manager.count() > 0 { config.selected_post + 1 } else { 0 },
+            config.post_manager.count()
         ));
 
         ui.separator();

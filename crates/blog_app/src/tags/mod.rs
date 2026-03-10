@@ -162,19 +162,19 @@ impl TagSearchState {
     }
 
     /// Remove the last selected tag
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn remove_last_tag(&mut self) -> Option<String> {
         self.selected_tags.pop()
     }
 
     /// Clear all selected tags
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn clear_tags(&mut self) {
         self.selected_tags.clear();
     }
 
     /// Get the full search query including tags
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn full_query(&self) -> String {
         let mut parts = Vec::new();
 

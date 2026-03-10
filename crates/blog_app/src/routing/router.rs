@@ -17,7 +17,7 @@ pub struct Router {
     initialized: bool,
     /// Serialization version for backward compatibility
     #[cfg_attr(feature = "serde", serde(skip))]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     version: u32,
 }
 

@@ -311,23 +311,29 @@ impl BlogApp {
     /// Handle URL changes from the browser (web target only).
     #[cfg(target_arch = "wasm32")]
     fn handle_url_changes(&mut self, frame: &eframe::Frame) {
-        let hash = &frame.info().web_info.location.hash;
-        log::debug!("handle_url_changes called with hash: '{}'", hash);
+        #[cfg(target_arch = "wasm32")]
+        {
+            let hash = &frame.info().web_info.location.hash;
+            log::debug!("handle_url_changes called with hash: '{}'", hash);
 
-        // Skip if we just restored state (to prevent conflicts)
-        if self.just_restored {
-            log::debug!("Skipping handle_url_changes after restore (just_restored: true)");
-            return;
-        }
+            // Skip if we just restored state (to prevent conflicts)
+            if self.just_restored {
+                log::debug!("Skipping handle_url_changes after restore (just_restored: true)");
+                return;
+            }
 
-        // Update router from hash
-        if self.router.update_from_hash(hash) {
-            log::debug!("Route changed, calling sync_state_to_route()");
-            self.sync_state_to_route();
-        } else {
-            // Clear any pending update since we're already at this route
-            self.pending_url_update = None;
+            // Update router from hash
+            if self.router.update_from_hash(hash) {
+                log::debug!("Route changed, calling sync_state_to_route()");
+                self.sync_state_to_route();
+            } else {
+                // Clear any pending update since we're already at this route
+                self.pending_url_update = None;
+            }
         }
+        
+        #[cfg(not(target_arch = "wasm32"))]
+        let _ = frame; // Mark as unused on native
     }
 
     /// Update browser URL if needed (web target only).
@@ -373,6 +379,9 @@ impl BlogApp {
                 return;
             }
         }
+        
+        #[cfg(not(target_arch = "wasm32"))]
+        let _ = frame; // Mark as unused on native
         
         // Step 2: Use persisted state (if available and not just restored)
         #[cfg(feature = "persistence")]
@@ -528,10 +537,12 @@ impl eframe::App for BlogApp {
                 ui,
                 "My Blog",
                 &mut self.theme,
-                &mut self.tag_search_state,
-                &all_tags_vec,
-                &self.post_manager,
-                self.selected_post,
+                &mut ui::layout::TopPanelConfig {
+                    tag_search_state: &mut self.tag_search_state,
+                    all_tags: &all_tags_vec,
+                    post_manager: &self.post_manager,
+                    selected_post: self.selected_post,
+                },
                 #[cfg(debug_assertions)]
                 &mut self.debug_state,
             );

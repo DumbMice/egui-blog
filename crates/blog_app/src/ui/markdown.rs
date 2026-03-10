@@ -275,8 +275,19 @@ pub fn extract_and_replace_math_formulas(
                 if !formula.is_empty() {
                     // Look up hash in manifest
                     if let Some(hash) = manifest.find_hash(formula, is_display) {
-                        let placeholder = format!("({hash}.typ)");
-                        result.push_str(&placeholder);
+                        // Check if we're inside parentheses: ($x$)
+                        // If char before $ is '(' and char after $ is ')', don't add extra parentheses
+                        let before_is_open_paren = i > 0 && chars[i - 1] == '(';
+                        let after_is_close_paren = j + 1 < chars.len() && chars[j + 1] == ')';
+
+                        if before_is_open_paren && after_is_close_paren {
+                            // We're inside parentheses, use hash.typ without extra parentheses
+                            result.push_str(&format!("{hash}.typ"));
+                        } else {
+                            // Normal case: add parentheses around placeholder
+                            result.push_str(&format!("({hash}.typ)"));
+                        }
+
                         i = j + 1;
                         continue;
                     }
@@ -369,10 +380,13 @@ fn render_markdown_impl(
                     Tag::Heading(level, _, _) => {
                         // Headings
                         let mut heading_text = String::new();
-                        while let Some(Event::Text(text)) = events.next() {
-                            heading_text.push_str(&text);
-                            if let Some(Event::End(Tag::Heading(_, _, _))) = events.peek() {
-                                break;
+                        for event in events.by_ref() {
+                            match event {
+                                Event::End(Tag::Heading(_, _, _)) => break,
+                                Event::Text(text) => heading_text.push_str(&text),
+                                Event::SoftBreak => heading_text.push(' '),
+                                Event::HardBreak => heading_text.push('\n'),
+                                _ => {} // Skip other events (code, html, etc.)
                             }
                         }
 
@@ -382,21 +396,25 @@ fn render_markdown_impl(
                         // Apply margin collapsing for heading top margin
                         add_top_margin_with_collapsing(ui, &previous_bottom_margin, top_margin);
 
-                        let rich_text = match level {
-                            HeadingLevel::H1 => RichText::new(heading_text).heading(), // Uses TextStyle::Heading (32px)
-                            HeadingLevel::H2 => RichText::new(heading_text)
-                                .text_style(TextStyle::Name("Heading2".into())), // 24px
-                            HeadingLevel::H3 => RichText::new(heading_text)
-                                .text_style(TextStyle::Name("Heading3".into())), // 20px
-                            HeadingLevel::H4 => RichText::new(heading_text)
-                                .text_style(TextStyle::Name("Heading4".into())), // 16px
-                            HeadingLevel::H5 => RichText::new(heading_text)
-                                .text_style(TextStyle::Name("Heading5".into())), // 14px
-                            HeadingLevel::H6 => RichText::new(heading_text)
-                                .text_style(TextStyle::Name("Heading6".into())), // 13.6px
+                        // Process text with math placeholders
+                        let paragraph_content = process_text_with_math(
+                            &heading_text,
+                            manifest,
+                            &mut math_asset_manager,
+                        );
+
+                        // Determine text style based on heading level
+                        let text_style = match level {
+                            HeadingLevel::H1 => TextStyle::Heading,
+                            HeadingLevel::H2 => TextStyle::Name("Heading2".into()),
+                            HeadingLevel::H3 => TextStyle::Name("Heading3".into()),
+                            HeadingLevel::H4 => TextStyle::Name("Heading4".into()),
+                            HeadingLevel::H5 => TextStyle::Name("Heading5".into()),
+                            HeadingLevel::H6 => TextStyle::Name("Heading6".into()),
                         };
 
-                        ui.label(rich_text);
+                        // Render heading content
+                        render_paragraph_content_vec(ui, &paragraph_content, &text_style, None);
 
                         // Add bottom border for h1 and h2 (GitHub style)
                         match level {
@@ -460,7 +478,17 @@ fn render_markdown_impl(
                                     ui.label(RichText::new("•"));
                                 }
                                 ui.add_space(one_indent / 3.0);
-                                ui.label(item);
+
+                                // Process text with math placeholders
+                                let paragraph_content =
+                                    process_text_with_math(item, manifest, &mut math_asset_manager);
+
+                                render_paragraph_content_vec(
+                                    ui,
+                                    &paragraph_content,
+                                    &TextStyle::Body,
+                                    None,
+                                );
                             });
 
                             // Add spacing between list items (GitHub: 0.25em = 4px)
@@ -564,7 +592,20 @@ fn render_markdown_impl(
                         if in_paragraph {
                             paragraph_content.push(ParagraphContent::Strong(bold_text));
                         } else {
-                            ui.label(RichText::new(bold_text).strong());
+                            // Process text with math placeholders
+                            let paragraph_content_vec = process_text_with_math(
+                                &bold_text,
+                                manifest,
+                                &mut math_asset_manager,
+                            );
+
+                            // Render with strong styling
+                            render_paragraph_content_vec(
+                                ui,
+                                &paragraph_content_vec,
+                                &TextStyle::Body,
+                                Some(|rt| rt.strong()),
+                            );
                         }
                     }
                     Tag::Emphasis => {
@@ -581,7 +622,20 @@ fn render_markdown_impl(
                         if in_paragraph {
                             paragraph_content.push(ParagraphContent::Emphasis(italic_text));
                         } else {
-                            ui.label(RichText::new(italic_text).italics());
+                            // Process text with math placeholders
+                            let paragraph_content_vec = process_text_with_math(
+                                &italic_text,
+                                manifest,
+                                &mut math_asset_manager,
+                            );
+
+                            // Render with italic styling
+                            render_paragraph_content_vec(
+                                ui,
+                                &paragraph_content_vec,
+                                &TextStyle::Body,
+                                Some(|rt| rt.italics()),
+                            );
                         }
                     }
                     Tag::Link(_, url, _) => {
@@ -603,7 +657,67 @@ fn render_markdown_impl(
                                 url,
                             });
                         } else {
-                            ui.add(Hyperlink::from_label_and_url(&link_text, &url));
+                            // Process text with math placeholders
+                            let paragraph_content_vec = process_text_with_math(
+                                &link_text,
+                                manifest,
+                                &mut math_asset_manager,
+                            );
+
+                            // For links outside paragraphs, we need to handle them differently
+                            // since Hyperlink doesn't support rich text with math
+                            // For now, render as plain text with link styling
+                            ui.horizontal_wrapped(|ui| {
+                                ui.spacing_mut().item_spacing.x = 0.0;
+                                for item in paragraph_content_vec {
+                                    match item {
+                                        ParagraphContent::Text(text) => {
+                                            ui.add(Hyperlink::from_label_and_url(&text, &url));
+                                        }
+                                        ParagraphContent::MathImage {
+                                            image_source,
+                                            size,
+                                            is_display: _,
+                                            baseline_from_top,
+                                        } => {
+                                            // Render math image (same for display and inline in links)
+                                            if let Some(baseline) = baseline_from_top {
+                                                render_baseline_aligned_image(
+                                                    ui,
+                                                    image_source.clone(),
+                                                    size,
+                                                    baseline,
+                                                );
+                                            } else {
+                                                let image = egui::Image::new(image_source.clone())
+                                                    .tint(ui.visuals().text_color())
+                                                    .fit_to_exact_size(size)
+                                                    .corner_radius(0.0);
+                                                ui.add(image);
+                                            }
+                                        }
+                                        ParagraphContent::MathCode {
+                                            content,
+                                            is_display: _,
+                                        } => {
+                                            ui.label(RichText::new(content).code());
+                                        }
+                                        _ => {
+                                            // Other content types in links - render as text
+                                            let text = match item {
+                                                ParagraphContent::Strong(t)
+                                                | ParagraphContent::Emphasis(t)
+                                                | ParagraphContent::Strikethrough(t)
+                                                | ParagraphContent::InlineCode(t) => t,
+                                                _ => String::new(),
+                                            };
+                                            if !text.is_empty() {
+                                                ui.add(Hyperlink::from_label_and_url(&text, &url));
+                                            }
+                                        }
+                                    }
+                                }
+                            });
                         }
                     }
                     Tag::Strikethrough => {
@@ -620,7 +734,20 @@ fn render_markdown_impl(
                         if in_paragraph {
                             paragraph_content.push(ParagraphContent::Strikethrough(strike_text));
                         } else {
-                            ui.label(RichText::new(strike_text).strikethrough());
+                            // Process text with math placeholders
+                            let paragraph_content_vec = process_text_with_math(
+                                &strike_text,
+                                manifest,
+                                &mut math_asset_manager,
+                            );
+
+                            // Render with strikethrough styling
+                            render_paragraph_content_vec(
+                                ui,
+                                &paragraph_content_vec,
+                                &TextStyle::Body,
+                                Some(|rt| rt.strikethrough()),
+                            );
                         }
                     }
                     Tag::BlockQuote => {
@@ -669,11 +796,26 @@ fn render_markdown_impl(
                                 // Render quote text with proper padding and color
                                 ui.vertical(|ui| {
                                     ui.add_space(vertical_padding);
-                                    ui.label(
-                                        RichText::new(quote_text)
-                                            .color(ui.visuals().weak_text_color())
-                                            .text_style(TextStyle::Body),
+
+                                    // Process text with math placeholders
+                                    let paragraph_content = process_text_with_math(
+                                        quote_text,
+                                        manifest,
+                                        &mut math_asset_manager,
                                     );
+
+                                    // Render with weak text color
+                                    ui.scope(|ui| {
+                                        ui.style_mut().visuals.override_text_color =
+                                            Some(ui.visuals().weak_text_color());
+                                        render_paragraph_content_vec(
+                                            ui,
+                                            &paragraph_content,
+                                            &TextStyle::Body,
+                                            None,
+                                        );
+                                    });
+
                                     ui.add_space(vertical_padding);
                                 });
 
@@ -1261,6 +1403,80 @@ fn render_text_with_math(ui: &mut Ui, text: &str) {
 }
 
 /// Render a single paragraph content item
+/// Render a vector of paragraph content with optional styling
+fn render_paragraph_content_vec(
+    ui: &mut Ui,
+    content: &[ParagraphContent],
+    text_style: &TextStyle,
+    apply_style: Option<fn(RichText) -> RichText>,
+) {
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        for item in content {
+            match item {
+                ParagraphContent::Text(text) => {
+                    let rich_text = RichText::new(text).text_style((*text_style).clone());
+                    let rich_text = if let Some(style_fn) = apply_style {
+                        style_fn(rich_text)
+                    } else {
+                        rich_text
+                    };
+                    ui.label(rich_text);
+                }
+                ParagraphContent::Strong(text) => {
+                    let rich_text = RichText::new(text).strong().text_style(text_style.clone());
+                    ui.label(rich_text);
+                }
+                ParagraphContent::Emphasis(text) => {
+                    let rich_text = RichText::new(text).italics().text_style(text_style.clone());
+                    ui.label(rich_text);
+                }
+                ParagraphContent::Strikethrough(text) => {
+                    let rich_text = RichText::new(text)
+                        .strikethrough()
+                        .text_style(text_style.clone());
+                    ui.label(rich_text);
+                }
+                ParagraphContent::InlineCode(code) => {
+                    let rich_text = RichText::new(code).code().text_style(text_style.clone());
+                    ui.label(rich_text);
+                }
+                ParagraphContent::Link { text, url } => {
+                    ui.add(Hyperlink::from_label_and_url(
+                        RichText::new(text).text_style(text_style.clone()),
+                        url,
+                    ));
+                }
+                ParagraphContent::MathImage {
+                    image_source,
+                    size,
+                    is_display: _,
+                    baseline_from_top,
+                } => {
+                    // Display math should be handled differently, not in horizontal layout
+                    // For now, render inline but this should be improved
+                    if let Some(baseline) = baseline_from_top {
+                        render_baseline_aligned_image(ui, image_source.clone(), *size, *baseline);
+                    } else {
+                        let image = egui::Image::new(image_source.clone())
+                            .tint(ui.visuals().text_color())
+                            .fit_to_exact_size(*size)
+                            .corner_radius(0.0);
+                        ui.add(image);
+                    }
+                }
+                ParagraphContent::MathCode {
+                    content,
+                    is_display: _,
+                } => {
+                    // Display math code - render as code
+                    ui.label(RichText::new(content).code().text_style(text_style.clone()));
+                }
+            }
+        }
+    });
+}
+
 fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
     match content {
         ParagraphContent::Text(text) => {
@@ -1359,13 +1575,14 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
     }
 }
 
-/// Accumulate text content for paragraph rendering
-fn accumulate_text_content(
+/// Process text with math placeholders and return paragraph content
+/// This is a reusable version of `accumulate_text_content` that returns the result
+fn process_text_with_math(
     text: &str,
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
-    paragraph_content: &mut Vec<ParagraphContent>,
-) {
+) -> Vec<ParagraphContent> {
+    let mut paragraph_content = Vec::new();
     let mut remaining = text;
 
     while let Some(start) = remaining.find('(') {
@@ -1447,6 +1664,19 @@ fn accumulate_text_content(
     if !remaining.is_empty() {
         paragraph_content.push(ParagraphContent::Text(remaining.to_owned()));
     }
+
+    paragraph_content
+}
+
+/// Accumulate text content for paragraph rendering
+fn accumulate_text_content(
+    text: &str,
+    manifest: &crate::math::MathManifest,
+    math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    paragraph_content: &mut Vec<ParagraphContent>,
+) {
+    let processed = process_text_with_math(text, manifest, math_asset_manager);
+    paragraph_content.extend(processed);
 }
 
 #[cfg(test)]
