@@ -546,7 +546,7 @@ impl eframe::App for BlogApp {
         if self.theme != self.previous_theme {
             log::debug!("Theme changed from {:?} to {:?}, applying to UI", self.previous_theme, self.theme);
             self.theme.apply(ui.ctx());
-            self.previous_theme = self.theme.clone();
+            self.previous_theme = self.theme;
         } else if top_panel_result.theme_changed {
             // This shouldn't happen, but log if it does (theme changed but detection didn't trigger)
             log::warn!("top_panel reported theme changed but self.theme == self.previous_theme");
@@ -642,27 +642,24 @@ impl eframe::App for BlogApp {
 
         if selection_changed {
             self.editing_new_post = false;
-            match selected_post_for_nav {
-                Some(post) => {
-                    // Navigate to the correct route based on content type
-                    let route = match post.content_type {
-                        crate::posts::ContentType::Post => {
-                            crate::routing::Router::route_to_post(&post.slug)
-                        }
-                        crate::posts::ContentType::Note => {
-                            crate::routing::Router::route_to_note(&post.slug)
-                        }
-                        crate::posts::ContentType::Review => {
-                            crate::routing::Router::route_to_review(&post.slug)
-                        }
-                    };
-                    self.navigate_to(route);
-                }
-                None => {
-                    // Navigate to Home (e.g., when "All" tab is clicked)
-                    log::debug!("Selection changed to None, navigating to Home");
-                    self.navigate_to(crate::routing::Route::Home);
-                }
+            if let Some(post) = selected_post_for_nav {
+                // Navigate to the correct route based on content type
+                let route = match post.content_type {
+                    crate::posts::ContentType::Post => {
+                        crate::routing::Router::route_to_post(&post.slug)
+                    }
+                    crate::posts::ContentType::Note => {
+                        crate::routing::Router::route_to_note(&post.slug)
+                    }
+                    crate::posts::ContentType::Review => {
+                        crate::routing::Router::route_to_review(&post.slug)
+                    }
+                };
+                self.navigate_to(route);
+            } else {
+                // Navigate to Home (e.g., when "All" tab is clicked)
+                log::debug!("Selection changed to None, navigating to Home");
+                self.navigate_to(crate::routing::Route::Home);
             }
         }
 

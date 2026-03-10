@@ -114,6 +114,7 @@ pub struct TopPanelResult {
 
 impl TopPanelResult {
     /// Returns true if either search or theme changed
+    #[allow(dead_code)]
     pub fn any_changed(&self) -> bool {
         self.search_changed || self.theme_changed
     }
@@ -324,7 +325,7 @@ pub fn side_panel(
             let all_selected = selected_content_type.is_none();
             let all_response = ui.selectable_label(all_selected, "All");
             if all_response.clicked() && !all_selected {
-                log::debug!("Side panel: 'All' tab clicked, selected_content_type was: {:?}", selected_content_type);
+                log::debug!("Side panel: 'All' tab clicked, selected_content_type was: {selected_content_type:?}");
                 interactive_element_clicked = true;
                 *selected_content_type = None;
                 // When switching to "All", navigate to Home to show all posts

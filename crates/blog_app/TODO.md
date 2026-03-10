@@ -1,5 +1,14 @@
 # Blog App TODO List
 
+## Recent Fixes (2026-03-10)
+✅ **Theme Toggle Navigation Bug Fix**
+- Fixed bug where toggling theme caused navigation to home page
+- Root cause: Theme changes incorrectly marked as search modifications  
+- Solution: Added `TopPanelResult` struct to separate search vs theme changes
+- Added defensive check comparing search state before/after top panel
+- Fixed router serialization with custom deserialization for graceful fallback
+- Updated state restoration precedence: Browser URL > Persisted State > Default
+
 ## Priority 1: Content Separation
 - [x] Define post file format (Markdown + YAML frontmatter)
 - [x] Create posts directory structure
@@ -190,6 +199,12 @@ cargo blog-wasm     # Build WASM library only
 2. **"All" Tab Logic**: Fixed logic for selecting first post when switching to "All" tab
 3. **Navigation State**: Fixed content type filter persistence when navigating between posts
 4. **Post Selection**: Fixed post selection click handler in `post_preview` function
+5. **Theme Toggle Navigation Bug**: Fixed bug where toggling theme caused navigation to home page
+   - Root cause: Theme changes incorrectly marked as search modifications
+   - Solution: Added `TopPanelResult` struct to separate search vs theme changes
+   - Added defensive check comparing search state before/after top panel
+   - Fixed router serialization with custom deserialization for graceful fallback
+   - Updated state restoration precedence: Browser URL > Persisted State > Default
 
 ### Testing:
 - All 29 existing tests pass
