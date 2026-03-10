@@ -359,7 +359,31 @@ cargo blog-wasm     # Build WASM library only
    - All tag colors change synchronously with other UI elements
 10. **UI integration**: Tags are interactive in post lists, post metadata, and search results
 
-## Priority 16: Advanced Typography (Future Enhancement)
+## Priority 16: Fix Search Bar Crash with '#' Character (CRITICAL BUG)
+- [ ] Fix WASM crash when typing '#' in search bar
+- [ ] Root cause: Autocomplete menu with tags causing NaN rect in `advance_cursor_after_rect`
+- [ ] Error: `panicked at crates/egui/src/ui.rs:1407:9: rect is nan in advance_cursor_after_rect`
+- [ ] Investigate tag autocomplete menu rendering logic
+- [ ] Fix NaN values in UI layout calculations
+- [ ] Add defensive checks for invalid rect dimensions
+- [ ] Test with various '#' input scenarios
+- [ ] Ensure tag autocomplete works without crashes
+
+**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Needs immediate investigation and fix.
+
+## Priority 17: Fix Math Formula Rendering in Blockquotes, Lists, and Parentheses
+- [ ] Fix math formulas not rendering in blockquotes (shows `(****.typ)` instead of SVG)
+- [ ] Fix math formulas not rendering in lists (shows `(****.typ)` instead of SVG)
+- [ ] Fix math formulas surrounded by parentheses: `($x$)` transforms to `((xxxx.typ))` instead of SVG
+- [ ] Root cause: Search and replace logic in SVG rendering fails in nested markdown contexts
+- [ ] Investigate markdown parser context handling for blockquotes and lists
+- [ ] Fix regex or replacement logic for formulas with surrounding parentheses
+- [ ] Test formulas in various nested markdown contexts
+- [ ] Ensure all math formulas render correctly regardless of surrounding syntax
+
+**Note**: Math formulas fail to render when inside blockquotes, lists, or surrounded by parentheses. The placeholder `(****.typ)` appears instead of the SVG. Likely due to markdown context handling or regex replacement issues.
+
+## Priority 18: Advanced Typography (Future Enhancement)
 - [ ] Add support for real bold fonts (font weight changes, not just color)
 - [ ] Research egui font loading and font family support
 - [ ] Implement proper font weight variations (light, regular, bold, etc.)
@@ -370,7 +394,7 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Currently `.strong()` only changes text color due to egui limitations. Real bold fonts would require proper font loading and font family support.
 
-## Priority 17: Dynamic Content Loading (Low Priority)
+## Priority 19: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture
