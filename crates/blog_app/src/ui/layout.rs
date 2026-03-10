@@ -103,6 +103,22 @@ impl Default for LayoutConfig {
     }
 }
 
+/// Result of rendering the top panel.
+#[derive(Debug, Clone, Copy)]
+pub struct TopPanelResult {
+    /// Whether the search state (text or tags) was modified
+    pub search_changed: bool,
+    /// Whether the theme was changed
+    pub theme_changed: bool,
+}
+
+impl TopPanelResult {
+    /// Returns true if either search or theme changed
+    pub fn any_changed(&self) -> bool {
+        self.search_changed || self.theme_changed
+    }
+}
+
 /// Top panel with blog title and controls.
 pub fn top_panel(
     ui: &mut Ui,
@@ -113,7 +129,7 @@ pub fn top_panel(
     post_manager: &PostManager,
     selected_post: usize,
     #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
-) -> bool {
+) -> TopPanelResult {
     let mut theme_changed = false;
     let mut search_changed = false;
 
@@ -157,7 +173,10 @@ pub fn top_panel(
         }
     });
 
-    theme_changed || search_changed
+    TopPanelResult {
+        search_changed,
+        theme_changed,
+    }
 }
 
 /// Side panel with post list.
@@ -305,11 +324,15 @@ pub fn side_panel(
             let all_selected = selected_content_type.is_none();
             let all_response = ui.selectable_label(all_selected, "All");
             if all_response.clicked() && !all_selected {
+                log::debug!("Side panel: 'All' tab clicked, selected_content_type was: {:?}", selected_content_type);
                 interactive_element_clicked = true;
                 *selected_content_type = None;
                 // When switching to "All", navigate to Home to show all posts
                 selection_changed = true;
+                log::debug!("Side panel: Calling on_selection(None) because 'All' tab clicked");
                 on_selection(None); // Navigate to Home
+            } else if all_response.clicked() {
+                log::debug!("Side panel: 'All' tab clicked but already selected (bug?)");
             }
 
             // Content type tabs

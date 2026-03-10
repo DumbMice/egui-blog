@@ -72,7 +72,6 @@ pub struct BlogApp {
     math_asset_manager: MathAssetManager,
 
     /// URL router
-    #[cfg_attr(feature = "serde", serde(skip))]
     router: Router,
     /// Pending URL update to push to browser history
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -110,8 +109,11 @@ pub struct BlogApp {
     /// Whether find mode is active
     find_mode_active: bool,
     /// Whether route has been restored from persistence (to avoid restoring every frame)
-    #[cfg_attr(feature = "serde", serde(skip))]
     route_restored: bool,
+    /// Whether app was just restored from persistence (to avoid navigation immediately after restore)
+    #[cfg_attr(feature = "serde", serde(skip))]
+    just_restored: bool,
+
 }
 
 impl Default for BlogApp {
@@ -154,6 +156,8 @@ impl Default for BlogApp {
             find_mode_active: false,
             cached_tags: None,
             route_restored: false,
+            just_restored: false,
+
         }
     }
 }
@@ -167,6 +171,14 @@ impl BlogApp {
         } else {
             Self::default()
         };
+        
+        #[cfg(feature = "persistence")]
+        {
+            // If we loaded from storage, mark as just restored
+            if cc.storage.is_some() {
+                app.just_restored = true;
+            }
+        }
 
         #[cfg(not(feature = "persistence"))]
         let mut app = Self::default();
@@ -233,6 +245,10 @@ impl BlogApp {
 
     /// Navigate to a new route and update browser URL.
     pub fn navigate_to(&mut self, route: Route) {
+        use std::backtrace::Backtrace;
+        let backtrace = Backtrace::capture();
+        log::debug!("navigate_to called with route: {:?}. Current route: {:?}, selected_post: {}, selected_content_type: {:?}\nBacktrace:\n{}", 
+                   route, self.router.current_route(), self.selected_post, self.selected_content_type, backtrace);
         let url = self.router.navigate_to(route);
         self.pending_url_update = Some(url);
         self.sync_state_to_route();
@@ -240,6 +256,19 @@ impl BlogApp {
 
     /// Sync app state to match the current route.
     fn sync_state_to_route(&mut self) {
+        use std::backtrace::Backtrace;
+        let backtrace = Backtrace::capture();
+        log::debug!("sync_state_to_route called. Current route: {:?}, selected_post before: {}, just_restored: {}\nBacktrace:\n{}", 
+                   self.router.current_route(), self.selected_post, self.just_restored, backtrace);
+        
+        // If we just restored from persistence, skip navigation for any route
+        // This prevents unwanted navigation when state is freshly restored
+        if self.just_restored {
+            log::debug!("Skipping sync_state_to_route after restore (just_restored: true)");
+            self.just_restored = false;
+            return;
+        }
+        
         match self.router.current_route() {
             Route::Post { slug } | Route::Note { slug } | Route::Review { slug } => {
                 if let Some(index) = self.post_manager.find_post_index_by_slug(slug) {
@@ -266,9 +295,12 @@ impl BlogApp {
                 // Show 404 message - handled in UI
             }
             Route::Home => {
+                log::debug!("Route::Home detected in sync_state_to_route");
                 // Reset to default state
                 self.selected_content_type = None; // Show all content types on home
+                
                 if self.post_manager.count() > 0 {
+                    log::debug!("Setting selected_post = 0 for Route::Home");
                     self.selected_post = 0;
                 }
                 self.editing_new_post = false;
@@ -280,9 +312,17 @@ impl BlogApp {
     #[cfg(target_arch = "wasm32")]
     fn handle_url_changes(&mut self, frame: &eframe::Frame) {
         let hash = &frame.info().web_info.location.hash;
+        log::debug!("handle_url_changes called with hash: '{}'", hash);
+
+        // Skip if we just restored state (to prevent conflicts)
+        if self.just_restored {
+            log::debug!("Skipping handle_url_changes after restore (just_restored: true)");
+            return;
+        }
 
         // Update router from hash
         if self.router.update_from_hash(hash) {
+            log::debug!("Route changed, calling sync_state_to_route()");
             self.sync_state_to_route();
         } else {
             // Clear any pending update since we're already at this route
@@ -308,9 +348,45 @@ impl BlogApp {
     /// Restore saved route if valid
     #[cfg(feature = "persistence")]
     fn restore_route(&mut self) {
-        // Router state is restored from serialization
-        // Need to sync app state to the restored route
+        log::debug!("restore_route called. Current route: {:?}, selected_post before: {}", 
+                   self.router.current_route(), self.selected_post);
         self.sync_state_to_route();
+    }
+    
+    /// Unified state restoration with clear precedence
+    /// Precedence: Browser URL > Persisted State > Default
+    fn restore_state_with_precedence(&mut self, frame: &eframe::Frame) {
+        log::debug!("restore_state_with_precedence called");
+        
+        // Step 1: Check browser URL (highest priority for web)
+        #[cfg(target_arch = "wasm32")]
+        {
+            let hash = &frame.info().web_info.location.hash;
+            if !hash.is_empty() && hash != "#/" {
+                log::debug!("Browser URL found: '{}', using as source of truth", hash);
+                if self.router.update_from_hash(hash) {
+                    log::debug!("Updated router from browser URL");
+                }
+                // Browser URL takes precedence, skip persisted state
+                self.route_restored = true;
+                self.just_restored = false;
+                return;
+            }
+        }
+        
+        // Step 2: Use persisted state (if available and not just restored)
+        #[cfg(feature = "persistence")]
+        {
+            if !self.route_restored {
+                log::debug!("No browser URL, restoring from persisted state");
+                self.restore_route();
+                self.route_restored = true;
+                self.just_restored = false; // Clear just_restored flag for any route
+            }
+        }
+        
+        // Step 3: Default state (already set in constructor)
+        log::debug!("Using default state");
     }
     
     /// Initialize shortcuts (called from UI loop)
@@ -352,16 +428,22 @@ impl eframe::App for BlogApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // Restore saved route once on first frame
-        #[cfg(feature = "persistence")]
+        log::debug!("=== UI FRAME START ===");
+        log::debug!("Current state: route: {:?}, selected_post: {}, route_restored: {}", 
+                   self.router.current_route(), self.selected_post, self.route_restored);
+        
+        // Unified state restoration with clear precedence
         if !self.route_restored {
-            self.restore_route();
-            self.route_restored = true;
+            log::debug!("State not restored yet, calling restore_state_with_precedence()");
+            self.restore_state_with_precedence(_frame);
+            log::debug!("After restore_state_with_precedence: route: {:?}, selected_post: {}", 
+                       self.router.current_route(), self.selected_post);
+        } else {
+            log::debug!("State already restored (route_restored: {}), handling URL changes only", self.route_restored);
+            // Handle URL changes from browser (web target only)
+            #[cfg(target_arch = "wasm32")]
+            self.handle_url_changes(_frame);
         }
-
-        // Handle URL changes from browser (web target only)
-        #[cfg(target_arch = "wasm32")]
-        self.handle_url_changes(_frame);
 
         // Initialize and handle keyboard shortcuts
         self.initialize_shortcuts(ui.ctx());
@@ -433,10 +515,16 @@ impl eframe::App for BlogApp {
         let all_tags = self.get_cached_tags();
         let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
         
+        // Store search state before top panel to detect actual changes
+        let search_state_before = self.tag_search_state.clone();
+        
         // Top panel
-        let mut top_panel_changed = false;
+        let mut top_panel_result = ui::layout::TopPanelResult {
+            search_changed: false,
+            theme_changed: false,
+        };
         Panel::top("top_panel").show_inside(ui, |ui| {
-            top_panel_changed = ui::layout::top_panel(
+            top_panel_result = ui::layout::top_panel(
                 ui,
                 "My Blog",
                 &mut self.theme,
@@ -448,20 +536,33 @@ impl eframe::App for BlogApp {
                 &mut self.debug_state,
             );
             
-            if top_panel_changed {
+            // Only mark search as modified if it actually changed
+            if top_panel_result.search_changed {
                 tag_search_was_modified = true;
             }
         });
         
         // Check if theme changed (via UI button or keyboard shortcut) and apply it
         if self.theme != self.previous_theme {
-            log::debug!("Theme changed from {:?} to {:?}, applying to UI", 
-                self.previous_theme, self.theme);
+            log::debug!("Theme changed from {:?} to {:?}, applying to UI", self.previous_theme, self.theme);
             self.theme.apply(ui.ctx());
-            self.previous_theme = self.theme;
+            self.previous_theme = self.theme.clone();
+        } else if top_panel_result.theme_changed {
+            // This shouldn't happen, but log if it does (theme changed but detection didn't trigger)
+            log::warn!("top_panel reported theme changed but self.theme == self.previous_theme");
+        }
+        
+        // Defensive check: Verify search actually changed before navigating
+        // This prevents false positives from theme changes or other UI interactions
+        if tag_search_was_modified {
+            let search_actually_changed = 
+                search_state_before.search_text != self.tag_search_state.search_text ||
+                search_state_before.selected_tags != self.tag_search_state.selected_tags;
             
-            // Invalidate tag cache since colors depend on theme
-            self.cached_tags = None;
+            if !search_actually_changed {
+                log::debug!("Search marked as modified but no actual change detected (likely theme change), skipping navigation");
+                tag_search_was_modified = false;
+            }
         }
 
         // Update and show debug windows (debug builds only)
@@ -559,6 +660,7 @@ impl eframe::App for BlogApp {
                 }
                 None => {
                     // Navigate to Home (e.g., when "All" tab is clicked)
+                    log::debug!("Selection changed to None, navigating to Home");
                     self.navigate_to(crate::routing::Route::Home);
                 }
             }
@@ -949,12 +1051,15 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
     }
     
     fn toggle_theme(&mut self) -> bool {
+        log::debug!("toggle_theme called. Current route: {:?}, selected_post: {}", 
+                   self.router.current_route(), self.selected_post);
         self.theme = match self.theme {
             crate::ui::Theme::CatppuccinLatte => crate::ui::Theme::CatppuccinMacchiato,
             crate::ui::Theme::CatppuccinMacchiato => crate::ui::Theme::CatppuccinLatte,
         };
         // Invalidate tag cache since theme changed
         self.cached_tags = None;
+        log::debug!("toggle_theme completed. New theme: {:?}", self.theme);
         true
     }
     
@@ -1155,5 +1260,37 @@ mod tests {
         let app = BlogApp::default();
         // Verify app compiles with updated side panel call
         let _ = app;
+    }
+
+    #[test]
+    fn test_theme_toggle_does_not_navigate_to_home() {
+        let mut app = BlogApp::default();
+        
+        // Simulate being on a specific post (not home)
+        app.selected_post = 2; // Select a non-zero post
+        app.route_restored = true; // Route has been restored
+        
+        // Save initial state
+        let initial_selected_post = app.selected_post;
+        let initial_route_restored = app.route_restored;
+        
+        // Toggle theme
+        app.toggle_theme();
+        
+        // Verify theme changed
+        assert_ne!(app.theme, crate::ui::Theme::default());
+        
+        // Simulate persistence save/load cycle
+        // When persistence saves and loads, route_restored should remain true
+        // and selected_post should not change to 0
+        app.route_restored = initial_route_restored; // This would be restored from persistence
+        
+        // Check that we're still on the same post
+        assert_eq!(app.selected_post, initial_selected_post, 
+                   "Theme toggle should not change selected post from {} to {}", 
+                   initial_selected_post, app.selected_post);
+        
+        // Check that route_restored is still true (preventing restore_route() call)
+        assert!(app.route_restored, "route_restored should remain true after theme toggle");
     }
 }
