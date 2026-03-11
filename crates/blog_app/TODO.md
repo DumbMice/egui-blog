@@ -413,7 +413,33 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Currently `.strong()` only changes text color due to egui limitations. Real bold fonts would require proper font loading and font family support.
 
-## Priority 19: Dynamic Content Loading (Low Priority)
+## Priority 19: Build-time Filtering of Posts with Tag #test
+- [ ] Extend `blog_macros::embed_file_array!` macro to accept optional filter callback
+- [ ] Add frontmatter parsing in build script (`build.rs`) to detect `#test` tag
+- [ ] Implement conditional filtering based on `#[cfg(not(release))]` or `CARGO_CFG_RELEASE`
+- [ ] Update `load_embedded_content()` to handle filtered post arrays
+- [ ] Add build configuration via `Cargo.toml` features or environment variables
+- [ ] Test both dev and release builds to ensure proper filtering
+- [ ] Ensure backward compatibility (no filtering by default)
+- [ ] Add fallback to include post if parsing fails (safer approach)
+
+**Note**: Exclude posts tagged with `#test` from release builds to keep production content clean. Uses build-time filtering for smaller WASM size and no runtime overhead. Implementation requires parsing YAML frontmatter in build script and conditional compilation based on release profile.
+
+## Priority 20: Table of Contents in Collapsible Right Panel
+- [ ] Add TOC data structure to `BlogPost` with hierarchical heading support
+- [ ] Parse headings during post loading in `parse_post_content()` with URL-friendly ID generation
+- [ ] Extend `Route` enum to support heading fragments: `Post { slug: String, fragment: Option<String> }`
+- [ ] Update router to parse `#/posts/slug#heading-id` format and handle fragment navigation
+- [ ] Add `right_panel_collapsed: bool` to `BlogApp` with persistence support
+- [ ] Create `right_panel()` function in `layout.rs` with TOC rendering
+- [ ] Implement click-to-scroll navigation using `ui.scroll_to_cursor()`
+- [ ] Add collapsible sections with `CollapsingHeader` for nested headings
+- [ ] Handle URL/LocalStorage conflicts (fragment IDs vs SPA routing hash)
+- [ ] Test TOC with various heading structures and nesting levels
+
+**Note**: Interactive table of contents with heading navigation and URL fragment support. Shows all headings with nested indentation and collapsible sub-levels. Clicking TOC items scrolls to corresponding heading and updates URL with fragment. Basic functionality includes TOC generation, right panel UI, and fragment navigation. Advanced features (scroll tracking, keyboard shortcuts) are optional enhancements.
+
+## Priority 21: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture
@@ -502,7 +528,7 @@ cargo blog-wasm     # Build WASM library only
 - Tall SVG handling prevents line spacing disruption
 - GitHub-style 4px solid border with proper padding (row height horizontal, half row height vertical)
 
-## Git Checkpoints
+ ## Git Checkpoints
 - `fdd9f4ec` - Initial blog app with web and native support
 - `6ace4f51` - Clean up blog_app crate warnings and unused code
 - `d3dcb0d7` - WIP: Implement paragraph accumulation for inline math rendering
@@ -510,13 +536,17 @@ cargo blog-wasm     # Build WASM library only
 - `66d90429` - Performance optimizations: manifest caching, reverse index, markdown cache
 - `a0b6c22e` - Fix Catppuccin style guide compliance and strong text visibility
 - `54a14fe3` - Improve theme toggle to single button
- - `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
- - `e3c3e42a7` - WIP: Simplified focus animation system - flash-only with Catppuccin blue (Priority 12)
- - `569ec6f63` - WIP: Implement baseline alignment for math formulas (Priority 13)
- - `25eec7e04` - WIP: Implement tall SVG fix for math formulas
- - `1aeb1b58c` - WIP: Fix blockquote rendering issues
- - `710c59889` - fix: Complete blockquote vertical alignment and multi-line support
- - *Add checkpoint after each priority completion*
+- `f12f4fb4e` - Implement URL routing with Router encapsulation (Priority 8)
+- `e3c3e42a7` - WIP: Simplified focus animation system - flash-only with Catppuccin blue (Priority 12)
+- `569ec6f63` - WIP: Implement baseline alignment for math formulas (Priority 13)
+- `25eec7e04` - WIP: Implement tall SVG fix for math formulas
+- `1aeb1b58c` - WIP: Fix blockquote rendering issues
+- `710c59889` - fix: Complete blockquote vertical alignment and multi-line support
+- `e03221867` - feat: Fix theme toggle navigation bug (Priority 9 fix)
+- `a715e2ec6` - wip: Fix math formula rendering in all markdown contexts (Priority 17)
+- `870e08098` - feat: Complete math formula rendering fix for all markdown contexts (Priority 17)
+- `ef5976c40` - docs: Update TODO.md with tag icon bug report in Priority 16
+- *Add checkpoint after each priority completion*
 
 ## Minor Issues for Future Improvement
 
