@@ -491,13 +491,8 @@ fn render_markdown_impl(
                             HeadingLevel::H6 => TextStyle::Name("ContentHeading6".into()),
                         };
 
-                        // Render heading content with bold styling
-                        render_paragraph_content_vec(
-                            ui,
-                            &paragraph_content,
-                            &text_style,
-                            Some(|rt| rt.strong()),
-                        );
+                        // Render heading content (already uses bold font, no need for .strong() color)
+                        render_paragraph_content_vec(ui, &paragraph_content, &text_style);
 
                         // Add bottom border for h1 and h2 (GitHub style)
                         match level {
@@ -571,7 +566,6 @@ fn render_markdown_impl(
                                     ui,
                                     &paragraph_content,
                                     &TextStyle::Name("ContentBody".into()),
-                                    None,
                                 );
                             });
 
@@ -683,12 +677,11 @@ fn render_markdown_impl(
                                 &mut math_asset_manager,
                             );
 
-                            // Render with strong styling
+                            // Render with bold styling (uses bold font, no need for .strong() color)
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
                                 &TextStyle::Name("ContentBody".into()),
-                                Some(|rt| rt.strong()),
                             );
                         }
                     }
@@ -718,7 +711,6 @@ fn render_markdown_impl(
                                 ui,
                                 &paragraph_content_vec,
                                 &TextStyle::Name("ContentBody".into()),
-                                Some(|rt| rt.italics()),
                             );
                         }
                     }
@@ -830,7 +822,6 @@ fn render_markdown_impl(
                                 ui,
                                 &paragraph_content_vec,
                                 &TextStyle::Name("ContentBody".into()),
-                                Some(|rt| rt.strikethrough()),
                             );
                         }
                     }
@@ -897,7 +888,6 @@ fn render_markdown_impl(
                                             ui,
                                             &paragraph_content,
                                             &TextStyle::Name("ContentBody".into()),
-                                            None,
                                         );
                                     });
 
@@ -1489,35 +1479,19 @@ fn render_text_with_math(ui: &mut Ui, text: &str) {
 
 /// Render a single paragraph content item
 /// Render a vector of paragraph content with optional styling
-fn render_paragraph_content_vec(
-    ui: &mut Ui,
-    content: &[ParagraphContent],
-    text_style: &TextStyle,
-    apply_style: Option<fn(RichText) -> RichText>,
-) {
+fn render_paragraph_content_vec(ui: &mut Ui, content: &[ParagraphContent], text_style: &TextStyle) {
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
         for item in content {
             match item {
                 ParagraphContent::Text(text) => {
                     let rich_text = RichText::new(text).text_style((*text_style).clone());
-                    let rich_text = if let Some(style_fn) = apply_style {
-                        style_fn(rich_text)
-                    } else {
-                        rich_text
-                    };
                     ui.label(rich_text);
                 }
                 ParagraphContent::Strong(text) => {
-                    // Use bold text style instead of .strong() which only changes color
+                    // Use bold text style (true bold font, no color emphasis needed)
                     let bold_style = bold_text_style(text_style);
                     let rich_text = RichText::new(text).text_style(bold_style);
-                    // Still use .strong() for color emphasis if apply_style is provided
-                    let rich_text = if let Some(style_fn) = apply_style {
-                        style_fn(rich_text)
-                    } else {
-                        rich_text
-                    };
                     ui.label(rich_text);
                 }
                 ParagraphContent::Emphasis(text) => {
@@ -1529,12 +1503,6 @@ fn render_paragraph_content_vec(
                     } else {
                         // Use italic font variant
                         RichText::new(text).text_style(italic_style)
-                    };
-                    // Apply additional styling if provided
-                    let rich_text = if let Some(style_fn) = apply_style {
-                        style_fn(rich_text)
-                    } else {
-                        rich_text
                     };
                     ui.label(rich_text);
                 }

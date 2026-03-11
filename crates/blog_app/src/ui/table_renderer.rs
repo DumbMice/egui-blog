@@ -92,7 +92,7 @@ pub fn render_table(
                         for (col_idx, cell) in header_row.iter().enumerate() {
                             let alignment =
                                 alignments.get(col_idx).copied().unwrap_or(Alignment::None);
-                            let label = RichText::new(cell).strong();
+                            let label = RichText::new(cell);
 
                             // Apply alignment
                             match alignment {
