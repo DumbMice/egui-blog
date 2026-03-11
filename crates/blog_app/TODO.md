@@ -359,7 +359,7 @@ cargo blog-wasm     # Build WASM library only
    - All tag colors change synchronously with other UI elements
 10. **UI integration**: Tags are interactive in post lists, post metadata, and search results
 
-## Priority 16: Fix Search Bar Crash with '#' Character (CRITICAL BUG)
+## Priority 16: Fix Search Bar Crash with '#' Character and Tag Icon Bug (CRITICAL BUG)
 - [ ] Fix WASM crash when typing '#' in search bar
 - [ ] Root cause: Autocomplete menu with tags causing NaN rect in `advance_cursor_after_rect`
 - [ ] Error: `panicked at crates/egui/src/ui.rs:1407:9: rect is nan in advance_cursor_after_rect`
@@ -368,8 +368,15 @@ cargo blog-wasm     # Build WASM library only
 - [ ] Add defensive checks for invalid rect dimensions
 - [ ] Test with various '#' input scenarios
 - [ ] Ensure tag autocomplete works without crashes
+- [ ] **Bug report**: Icon after tag's text in search bar after being selected is not supported
+  - When a tag is selected in the search bar, it shows as a colored chip with text `#tagname ✕`
+  - Expected: Should show tag icon (🏷️) after the tag text, like `#tagname 🏷️ ✕` or `#tagname 🏷️`
+  - Current: Shows `#tagname ✕` where `✕` is removal icon, missing tag icon
+  - Location: `selected_tags_chips()` function in `src/ui/tag_components.rs:84`
+  - Impact: Minor visual inconsistency with other tag displays, easy to fix
+  - Fix: Update `RichText::new(format!("#{tag_name} ✕"))` to include tag icon
 
-**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Needs immediate investigation and fix.
+**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Needs immediate investigation and fix. Also includes minor visual bug with missing tag icon in search bar chips.
 
 ## Priority 17: Fix Math Formula Rendering in Blockquotes, Lists, and Parentheses ✅ COMPLETED 2026-03-10
 - [x] Fix math formulas not rendering in blockquotes (shows `(****.typ)` instead of SVG)
