@@ -8,7 +8,7 @@ use crate::ui::table_renderer::TableConfig;
 use crate::{ui::table_renderer, MathAssetManager};
 
 /// Get the bold variant of a text style
-/// Since egui's .strong() only changes color, not font weight,
+/// Since egui's `.strong()` only changes color, not font weight,
 /// we need to use different text styles for bold text
 fn bold_text_style(text_style: &TextStyle) -> TextStyle {
     match text_style {
@@ -55,7 +55,7 @@ fn bold_text_style(text_style: &TextStyle) -> TextStyle {
             if name_str.ends_with("Bold") {
                 text_style.clone()
             } else {
-                TextStyle::Name(format!("{}Bold", name_str).into())
+                TextStyle::Name(format!("{name_str}Bold").into())
             }
         }
         // For standard text styles, we can't change weight, so use .strong() color

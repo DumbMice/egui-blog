@@ -1,7 +1,7 @@
 //! Test to verify font weight rendering in markdown.
 
 use blog_app::typography;
-use egui::{FontFamily, FontId, TextStyle};
+use egui::{FontFamily, TextStyle};
 
 #[test]
 fn test_bold_text_style_mapping() {

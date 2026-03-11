@@ -116,10 +116,11 @@ pub fn configure_typography(cc: &eframe::CreationContext<'_>) -> bool {
 
     // Configure "Content" family with Ubuntu-Light as primary (300 weight - matches default egui)
     // This is for normal text (body, paragraphs, etc.)
-    let mut content_family = Vec::new();
-    content_family.push("Ubuntu-Light".to_owned()); // Primary font for normal text (300 weight)
-    content_family.push("NotoEmoji-Regular".to_owned()); // Emoji fallback
-    content_family.push("emoji-icon-font".to_owned()); // Icon fallback
+    let content_family = vec![
+        "Ubuntu-Light".to_owned(),      // Primary font for normal text (300 weight)
+        "NotoEmoji-Regular".to_owned(), // Emoji fallback
+        "emoji-icon-font".to_owned(),   // Icon fallback
+    ];
 
     fonts
         .families
@@ -127,10 +128,11 @@ pub fn configure_typography(cc: &eframe::CreationContext<'_>) -> bool {
 
     // Configure "ContentRegular" family with Ubuntu-Regular (400 weight)
     // This is for slightly heavier text if needed
-    let mut content_regular_family = Vec::new();
-    content_regular_family.push("Ubuntu-Regular".to_owned()); // Regular weight (400)
-    content_regular_family.push("NotoEmoji-Regular".to_owned()); // Emoji fallback
-    content_regular_family.push("emoji-icon-font".to_owned()); // Icon fallback
+    let content_regular_family = vec![
+        "Ubuntu-Regular".to_owned(),    // Regular weight (400)
+        "NotoEmoji-Regular".to_owned(), // Emoji fallback
+        "emoji-icon-font".to_owned(),   // Icon fallback
+    ];
 
     fonts.families.insert(
         FontFamily::Name("ContentRegular".into()),
@@ -139,10 +141,11 @@ pub fn configure_typography(cc: &eframe::CreationContext<'_>) -> bool {
 
     // Configure "ContentMedium" family with Ubuntu-Medium (500 weight)
     // This is for medium weight text
-    let mut content_medium_family = Vec::new();
-    content_medium_family.push("Ubuntu-Medium".to_owned()); // Medium weight (500)
-    content_medium_family.push("NotoEmoji-Regular".to_owned()); // Emoji fallback
-    content_medium_family.push("emoji-icon-font".to_owned()); // Icon fallback
+    let content_medium_family = vec![
+        "Ubuntu-Medium".to_owned(),     // Medium weight (500)
+        "NotoEmoji-Regular".to_owned(), // Emoji fallback
+        "emoji-icon-font".to_owned(),   // Icon fallback
+    ];
 
     fonts.families.insert(
         FontFamily::Name("ContentMedium".into()),
@@ -151,10 +154,11 @@ pub fn configure_typography(cc: &eframe::CreationContext<'_>) -> bool {
 
     // Configure "ContentBold" family with Ubuntu-Bold as primary (700 weight)
     // This is for headings and other bold text
-    let mut content_bold_family = Vec::new();
-    content_bold_family.push("Ubuntu-Bold".to_owned()); // Primary font for bold text
-    content_bold_family.push("NotoEmoji-Regular".to_owned()); // Emoji fallback
-    content_bold_family.push("emoji-icon-font".to_owned()); // Icon fallback
+    let content_bold_family = vec![
+        "Ubuntu-Bold".to_owned(),       // Primary font for bold text
+        "NotoEmoji-Regular".to_owned(), // Emoji fallback
+        "emoji-icon-font".to_owned(),   // Icon fallback
+    ];
 
     fonts
         .families
@@ -162,10 +166,11 @@ pub fn configure_typography(cc: &eframe::CreationContext<'_>) -> bool {
 
     // Configure "ContentItalic" family with Ubuntu-Italic as primary
     // This is for italic text
-    let mut content_italic_family = Vec::new();
-    content_italic_family.push("Ubuntu-Italic".to_owned()); // Primary font for italic text
-    content_italic_family.push("NotoEmoji-Regular".to_owned()); // Emoji fallback
-    content_italic_family.push("emoji-icon-font".to_owned()); // Icon fallback
+    let content_italic_family = vec![
+        "Ubuntu-Italic".to_owned(),     // Primary font for italic text
+        "NotoEmoji-Regular".to_owned(), // Emoji fallback
+        "emoji-icon-font".to_owned(),   // Icon fallback
+    ];
 
     fonts.families.insert(
         FontFamily::Name("ContentItalic".into()),
@@ -204,7 +209,7 @@ pub fn verify_text_styles_available(ctx: &Context) -> bool {
 
     for required_style in &required_styles {
         if !style.text_styles.contains_key(required_style) {
-            log::warn!("Required text style not found: {:?}", required_style);
+            log::warn!("Required text style not found: {required_style:?}");
             return false;
         }
     }
@@ -338,17 +343,17 @@ pub fn ui_text_styles() -> BTreeMap<TextStyle, FontId> {
     .into()
 }
 
-/// Apply text styles to the egui context using all_styles_mut pattern.
+/// Apply text styles to the egui context using `all_styles_mut` pattern.
 /// This ensures text styles are properly registered and available immediately.
-pub fn apply_text_styles(ctx: &Context, text_styles: BTreeMap<TextStyle, FontId>) {
+pub fn apply_text_styles(ctx: &Context, text_styles: &BTreeMap<TextStyle, FontId>) {
     log::info!(
         "Applying {} text styles using all_styles_mut",
         text_styles.len()
     );
 
     // Log what we're about to apply
-    for (text_style, font_id) in &text_styles {
-        log::debug!("Will set text style: {:?} -> {:?}", text_style, font_id);
+    for (text_style, font_id) in text_styles {
+        log::debug!("Will set text style: {text_style:?} -> {font_id:?}");
     }
 
     // Clone the text styles for the closure
@@ -363,7 +368,7 @@ pub fn apply_text_styles(ctx: &Context, text_styles: BTreeMap<TextStyle, FontId>
 
         // Merge new text styles with existing ones
         for (text_style, font_id) in &text_styles_clone {
-            log::info!("Setting text style: {:?} -> {:?}", text_style, font_id);
+            log::info!("Setting text style: {text_style:?} -> {font_id:?}");
             style
                 .text_styles
                 .insert(text_style.clone(), font_id.clone());
@@ -379,9 +384,9 @@ pub fn apply_text_styles(ctx: &Context, text_styles: BTreeMap<TextStyle, FontId>
     let style = ctx.global_style();
     for text_style in text_styles.keys() {
         if !style.text_styles.contains_key(text_style) {
-            log::error!("Text style {:?} was NOT applied successfully!", text_style);
+            log::error!("Text style {text_style:?} was NOT applied successfully!");
         } else {
-            log::debug!("Text style {:?} verified as applied", text_style);
+            log::debug!("Text style {text_style:?} verified as applied");
         }
     }
 }

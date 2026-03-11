@@ -1,8 +1,7 @@
 //! Tests for typography configuration and font loading.
 
 use blog_app::typography;
-use egui::{FontFamily, FontId, TextStyle};
-use std::collections::BTreeMap;
+use egui::{FontFamily, TextStyle};
 
 #[test]
 fn test_content_text_styles_creation() {

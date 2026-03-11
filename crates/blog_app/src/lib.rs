@@ -209,7 +209,7 @@ impl BlogApp {
             app.font_loading_state = FontLoadingState::Loading;
             log::info!("Font configuration initiated, fonts will be available in next frame");
         } else {
-            app.font_loading_state = FontLoadingState::Failed("Font configuration failed".to_string());
+            app.font_loading_state = FontLoadingState::Failed("Font configuration failed".to_owned());
             log::error!("Font configuration failed");
         }
         
@@ -470,7 +470,7 @@ impl eframe::App for BlogApp {
         
         // Check and update font loading state
         // Fonts load asynchronously and are only available in the next frame
-        match self.font_loading_state {
+        match &self.font_loading_state {
             FontLoadingState::Loading => {
                 // Check if fonts are now ready
                 if crate::typography::verify_text_styles_available(ui.ctx()) {
@@ -483,8 +483,8 @@ impl eframe::App for BlogApp {
             FontLoadingState::Ready => {
                 // Fonts are ready, nothing to do
             }
-            FontLoadingState::Failed(ref error) => {
-                log::warn!("Font loading failed: {}", error);
+            FontLoadingState::Failed(error) => {
+                log::warn!("Font loading failed: {error}");
                 // In a real implementation, we might try to recover here
                 // For now, we'll just log the error
             }

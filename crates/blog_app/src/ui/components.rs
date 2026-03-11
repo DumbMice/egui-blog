@@ -30,7 +30,7 @@ impl Theme {
         // Combine UI and content text styles
         let mut all_text_styles = crate::typography::ui_text_styles();
         all_text_styles.extend(crate::typography::content_text_styles());
-        crate::typography::apply_text_styles(ctx, all_text_styles);
+        crate::typography::apply_text_styles(ctx, &all_text_styles);
     }
 
     /// Create egui Visuals from a Catppuccin flavour.
