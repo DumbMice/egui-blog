@@ -41,6 +41,9 @@ clap = { version = "4.5", features = ["derive"] }
 # File embedding macros
 blog_macros = { path = "../blog_macros" }
 
+# Fonts
+epaint_default_fonts = { workspace = true }
+
 # Markdown and YAML parsing
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_yaml = "0.9"

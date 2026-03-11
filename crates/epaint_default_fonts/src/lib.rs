@@ -45,3 +45,33 @@ pub const UBUNTU_LIGHT: &[u8] = include_bytes!("../fonts/Ubuntu-Light.ttf");
 /// See [the `emoji-icon-font` repository](https://github.com/jslegers/emoji-icon-font)
 /// for more information.
 pub const EMOJI_ICON: &[u8] = include_bytes!("../fonts/emoji-icon-font.ttf");
+
+/// Latin Modern Roman - a derivative of Computer Modern designed for use with TeX.
+///
+/// Latin Modern is based on Computer Modern, the default font for TeX and LaTeX.
+/// It provides excellent readability for long-form content and perfect harmony
+/// with mathematical formulas rendered by Typst.
+///
+/// See [Latin Modern project](http://www.gust.org.pl/projects/e-foundry/latin-modern) for more information.
+pub const LATIN_MODERN_ROMAN_REGULAR: &[u8] =
+    include_bytes!("../fonts/latin_modern/LatinModernRoman-Regular.otf");
+
+/// Latin Modern Roman Italic variant.
+pub const LATIN_MODERN_ROMAN_ITALIC: &[u8] =
+    include_bytes!("../fonts/latin_modern/LatinModernRoman-Italic.otf");
+
+/// Latin Modern Roman Bold variant.
+pub const LATIN_MODERN_ROMAN_BOLD: &[u8] =
+    include_bytes!("../fonts/latin_modern/LatinModernRoman-Bold.otf");
+
+/// Ubuntu Regular variant.
+pub const UBUNTU_REGULAR: &[u8] = include_bytes!("../fonts/ubuntu-regular.ttf");
+
+/// Ubuntu Bold variant.
+pub const UBUNTU_BOLD: &[u8] = include_bytes!("../fonts/ubuntu-bold.ttf");
+
+/// Ubuntu Italic variant.
+pub const UBUNTU_ITALIC: &[u8] = include_bytes!("../fonts/ubuntu-italic.ttf");
+
+/// Ubuntu Medium variant.
+pub const UBUNTU_MEDIUM: &[u8] = include_bytes!("../fonts/ubuntu-medium.ttf");

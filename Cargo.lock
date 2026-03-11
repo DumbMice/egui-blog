@@ -636,6 +636,7 @@ dependencies = [
  "egui_extras",
  "egui_kittest",
  "env_logger",
+ "epaint_default_fonts",
  "log",
  "notify",
  "pulldown-cmark",

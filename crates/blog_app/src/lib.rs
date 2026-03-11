@@ -8,6 +8,7 @@ pub mod math;
 mod posts;
 mod routing;
 mod tags;
+pub mod typography;
 mod ui;
 pub mod shortcuts;
 pub mod animation;
@@ -22,6 +23,18 @@ use ui::{LayoutConfig, ResponsiveConfig, Theme};
 use crate::math::MathAssetManager;
 use crate::routing::{Route, Router};
 use crate::shortcuts::ActionExecutor as _;
+
+/// Font loading state tracking
+/// Fonts load asynchronously in egui and are only available in the next frame
+#[derive(Debug, Clone, PartialEq)]
+enum FontLoadingState {
+    /// Fonts are being loaded (initial state)
+    Loading,
+    /// Fonts have been loaded and are ready for use
+    Ready,
+    /// Font loading failed with error message
+    Failed(String),
+}
 
 /// A text match for find-in-content functionality
 #[derive(Debug, Clone)]
@@ -70,6 +83,12 @@ pub struct BlogApp {
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
+
+    /// Font loading state tracking
+    /// Fonts load asynchronously in egui and are only available in the next frame
+    /// This tracks whether fonts have been successfully loaded and are ready for use
+    #[cfg_attr(feature = "serde", serde(skip))]
+    font_loading_state: FontLoadingState,
 
     /// URL router
     router: Router,
@@ -136,6 +155,7 @@ impl Default for BlogApp {
             responsive_config: ResponsiveConfig::default(),
             side_panel_collapsed: false,
             math_asset_manager: MathAssetManager::default(),
+            font_loading_state: FontLoadingState::Loading,
             router: Router::new(),
             pending_url_update: None,
 
@@ -183,10 +203,17 @@ impl BlogApp {
         #[cfg(not(feature = "persistence"))]
         let mut app = Self::default();
 
-        // Note: Fonts are not available until first Context::run()
-        // We rely on default font configuration
-
-        // Apply theme to context
+        // Configure custom typography with Ubuntu font variants
+        let fonts_configured = crate::typography::configure_typography(cc);
+        if fonts_configured {
+            app.font_loading_state = FontLoadingState::Loading;
+            log::info!("Font configuration initiated, fonts will be available in next frame");
+        } else {
+            app.font_loading_state = FontLoadingState::Failed("Font configuration failed".to_string());
+            log::error!("Font configuration failed");
+        }
+        
+        // Apply theme to context (this will also set up text styles)
         app.theme.apply(&cc.egui_ctx);
         app.previous_theme = app.theme;
 
@@ -440,6 +467,28 @@ impl eframe::App for BlogApp {
         log::debug!("=== UI FRAME START ===");
         log::debug!("Current state: route: {:?}, selected_post: {}, route_restored: {}", 
                    self.router.current_route(), self.selected_post, self.route_restored);
+        
+        // Check and update font loading state
+        // Fonts load asynchronously and are only available in the next frame
+        match self.font_loading_state {
+            FontLoadingState::Loading => {
+                // Check if fonts are now ready
+                if crate::typography::verify_text_styles_available(ui.ctx()) {
+                    log::info!("Fonts are now ready for use");
+                    self.font_loading_state = FontLoadingState::Ready;
+                } else {
+                    log::debug!("Fonts still loading, waiting for next frame");
+                }
+            }
+            FontLoadingState::Ready => {
+                // Fonts are ready, nothing to do
+            }
+            FontLoadingState::Failed(ref error) => {
+                log::warn!("Font loading failed: {}", error);
+                // In a real implementation, we might try to recover here
+                // For now, we'll just log the error
+            }
+        }
         
         // Unified state restoration with clear precedence
         if !self.route_restored {

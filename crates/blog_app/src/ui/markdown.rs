@@ -7,6 +7,84 @@ use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag}
 use crate::ui::table_renderer::TableConfig;
 use crate::{ui::table_renderer, MathAssetManager};
 
+/// Get the bold variant of a text style
+/// Since egui's .strong() only changes color, not font weight,
+/// we need to use different text styles for bold text
+fn bold_text_style(text_style: &TextStyle) -> TextStyle {
+    match text_style {
+        // Content body variants
+        TextStyle::Name(name) if name == &"ContentBody".into() => {
+            TextStyle::Name("ContentBodyBold".into())
+        }
+        TextStyle::Name(name) if name == &"ContentBodyRegular".into() => {
+            TextStyle::Name("ContentBodyBold".into())
+        }
+        TextStyle::Name(name) if name == &"ContentBodyMedium".into() => {
+            TextStyle::Name("ContentBodyBold".into())
+        }
+        TextStyle::Name(name) if name == &"ContentBodyBold".into() => {
+            text_style.clone() // Already bold
+        }
+        // Small text variants
+        TextStyle::Name(name) if name == &"ContentSmall".into() => {
+            TextStyle::Name("ContentSmallBold".into())
+        }
+        TextStyle::Name(name) if name == &"ContentSmallRegular".into() => {
+            TextStyle::Name("ContentSmallBold".into())
+        }
+        TextStyle::Name(name) if name == &"ContentSmallMedium".into() => {
+            TextStyle::Name("ContentSmallBold".into())
+        }
+        TextStyle::Name(name) if name == &"ContentSmallBold".into() => {
+            text_style.clone() // Already bold
+        }
+        // Headings are already bold, keep as is
+        TextStyle::Name(name)
+            if name == &"ContentHeading".into()
+                || name == &"ContentHeading2".into()
+                || name == &"ContentHeading3".into()
+                || name == &"ContentHeading4".into()
+                || name == &"ContentHeading5".into()
+                || name == &"ContentHeading6".into() =>
+        {
+            text_style.clone()
+        }
+        // Default: try to append "Bold" to the style name
+        TextStyle::Name(name) => {
+            let name_str = name.to_string();
+            if name_str.ends_with("Bold") {
+                text_style.clone()
+            } else {
+                TextStyle::Name(format!("{}Bold", name_str).into())
+            }
+        }
+        // For standard text styles, we can't change weight, so use .strong() color
+        _ => text_style.clone(),
+    }
+}
+
+/// Get the italic variant of a text style
+fn italic_text_style(text_style: &TextStyle) -> TextStyle {
+    match text_style {
+        // Content body variants
+        TextStyle::Name(name) if name == &"ContentBody".into() => {
+            TextStyle::Name("ContentBodyItalic".into())
+        }
+        TextStyle::Name(name) if name == &"ContentBodyRegular".into() => {
+            TextStyle::Name("ContentBodyItalic".into())
+        }
+        TextStyle::Name(name) if name == &"ContentBodyMedium".into() => {
+            TextStyle::Name("ContentBodyItalic".into())
+        }
+        TextStyle::Name(name) if name == &"ContentBodyBold".into() => {
+            // Bold + Italic - we don't have this variant, use italic for now
+            TextStyle::Name("ContentBodyItalic".into())
+        }
+        // For other styles, we don't have italic variants
+        _ => text_style.clone(),
+    }
+}
+
 /// GitHub-inspired spacing constants for consistent markdown rendering
 /// Based on GitHub's markdown CSS: <https://github.com/sindresorhus/github-markdown-css>
 mod spacing {
@@ -61,7 +139,7 @@ fn render_baseline_aligned_image(
 ) {
     // Get text metrics (estimated)
     // Use configurable ascent ratio for baseline estimation
-    let text_height = ui.text_style_height(&TextStyle::Body);
+    let text_height = ui.text_style_height(&TextStyle::Name("ContentBody".into()));
     let estimated_ascent = text_height * ASCENT_RATIO;
 
     // Calculate offset accounting for vertical centering in horizontal_wrapped
@@ -405,16 +483,21 @@ fn render_markdown_impl(
 
                         // Determine text style based on heading level
                         let text_style = match level {
-                            HeadingLevel::H1 => TextStyle::Heading,
-                            HeadingLevel::H2 => TextStyle::Name("Heading2".into()),
-                            HeadingLevel::H3 => TextStyle::Name("Heading3".into()),
-                            HeadingLevel::H4 => TextStyle::Name("Heading4".into()),
-                            HeadingLevel::H5 => TextStyle::Name("Heading5".into()),
-                            HeadingLevel::H6 => TextStyle::Name("Heading6".into()),
+                            HeadingLevel::H1 => TextStyle::Name("ContentHeading".into()),
+                            HeadingLevel::H2 => TextStyle::Name("ContentHeading2".into()),
+                            HeadingLevel::H3 => TextStyle::Name("ContentHeading3".into()),
+                            HeadingLevel::H4 => TextStyle::Name("ContentHeading4".into()),
+                            HeadingLevel::H5 => TextStyle::Name("ContentHeading5".into()),
+                            HeadingLevel::H6 => TextStyle::Name("ContentHeading6".into()),
                         };
 
-                        // Render heading content
-                        render_paragraph_content_vec(ui, &paragraph_content, &text_style, None);
+                        // Render heading content with bold styling
+                        render_paragraph_content_vec(
+                            ui,
+                            &paragraph_content,
+                            &text_style,
+                            Some(|rt| rt.strong()),
+                        );
 
                         // Add bottom border for h1 and h2 (GitHub style)
                         match level {
@@ -459,7 +542,8 @@ fn render_markdown_impl(
                             }
                         }
 
-                        let row_height = ui.text_style_height(&TextStyle::Body);
+                        let row_height =
+                            ui.text_style_height(&TextStyle::Name("ContentBody".into()));
                         let one_indent = row_height / 2.0;
 
                         for (i, item) in list_items.iter().enumerate() {
@@ -486,7 +570,7 @@ fn render_markdown_impl(
                                 render_paragraph_content_vec(
                                     ui,
                                     &paragraph_content,
-                                    &TextStyle::Body,
+                                    &TextStyle::Name("ContentBody".into()),
                                     None,
                                 );
                             });
@@ -603,7 +687,7 @@ fn render_markdown_impl(
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
-                                &TextStyle::Body,
+                                &TextStyle::Name("ContentBody".into()),
                                 Some(|rt| rt.strong()),
                             );
                         }
@@ -633,7 +717,7 @@ fn render_markdown_impl(
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
-                                &TextStyle::Body,
+                                &TextStyle::Name("ContentBody".into()),
                                 Some(|rt| rt.italics()),
                             );
                         }
@@ -745,7 +829,7 @@ fn render_markdown_impl(
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
-                                &TextStyle::Body,
+                                &TextStyle::Name("ContentBody".into()),
                                 Some(|rt| rt.strikethrough()),
                             );
                         }
@@ -770,7 +854,8 @@ fn render_markdown_impl(
 
                         if !quote_text.is_empty() {
                             // Calculate dimensions for blockquote
-                            let row_height = ui.text_style_height(&TextStyle::Body);
+                            let row_height =
+                                ui.text_style_height(&TextStyle::Name("ContentBody".into()));
                             let border_width = 4.0; // GitHub-style 4px solid border
                             let horizontal_padding = row_height; // One row height of padding
                             let vertical_padding = row_height * 0.5; // Half row height vertical padding
@@ -811,7 +896,7 @@ fn render_markdown_impl(
                                         render_paragraph_content_vec(
                                             ui,
                                             &paragraph_content,
-                                            &TextStyle::Body,
+                                            &TextStyle::Name("ContentBody".into()),
                                             None,
                                         );
                                     });
@@ -1424,11 +1509,33 @@ fn render_paragraph_content_vec(
                     ui.label(rich_text);
                 }
                 ParagraphContent::Strong(text) => {
-                    let rich_text = RichText::new(text).strong().text_style(text_style.clone());
+                    // Use bold text style instead of .strong() which only changes color
+                    let bold_style = bold_text_style(text_style);
+                    let rich_text = RichText::new(text).text_style(bold_style);
+                    // Still use .strong() for color emphasis if apply_style is provided
+                    let rich_text = if let Some(style_fn) = apply_style {
+                        style_fn(rich_text)
+                    } else {
+                        rich_text
+                    };
                     ui.label(rich_text);
                 }
                 ParagraphContent::Emphasis(text) => {
-                    let rich_text = RichText::new(text).italics().text_style(text_style.clone());
+                    // Use italic text style if available
+                    let italic_style = italic_text_style(text_style);
+                    let rich_text = if italic_style == *text_style {
+                        // No italic variant available, use .italics() for slant
+                        RichText::new(text).italics().text_style(text_style.clone())
+                    } else {
+                        // Use italic font variant
+                        RichText::new(text).text_style(italic_style)
+                    };
+                    // Apply additional styling if provided
+                    let rich_text = if let Some(style_fn) = apply_style {
+                        style_fn(rich_text)
+                    } else {
+                        rich_text
+                    };
                     ui.label(rich_text);
                 }
                 ParagraphContent::Strikethrough(text) => {
@@ -1485,14 +1592,16 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
                 let parts: Vec<&str> = text.split('\n').collect();
                 for (i, part) in parts.iter().enumerate() {
                     if !part.is_empty() {
-                        ui.label(*part);
+                        ui.label(
+                            RichText::new(*part).text_style(TextStyle::Name("ContentBody".into())),
+                        );
                     }
                     if i < parts.len() - 1 {
                         ui.add_space(4.0); // Add vertical space for hard break
                     }
                 }
             } else {
-                ui.label(text);
+                ui.label(RichText::new(text).text_style(TextStyle::Name("ContentBody".into())));
             }
         }
         ParagraphContent::MathImage {
@@ -1561,16 +1670,25 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
             ui.label(RichText::new(code).code());
         }
         ParagraphContent::Strong(text) => {
-            ui.label(RichText::new(text).strong());
+            // Use ContentBodyBold for bold text
+            ui.label(RichText::new(text).text_style(TextStyle::Name("ContentBodyBold".into())));
         }
         ParagraphContent::Emphasis(text) => {
-            ui.label(RichText::new(text).italics());
+            // Use ContentBodyItalic for italic text
+            ui.label(RichText::new(text).text_style(TextStyle::Name("ContentBodyItalic".into())));
         }
         ParagraphContent::Link { text, url } => {
-            ui.add(Hyperlink::from_label_and_url(text, url));
+            ui.add(Hyperlink::from_label_and_url(
+                RichText::new(text).text_style(TextStyle::Name("ContentBody".into())),
+                url,
+            ));
         }
         ParagraphContent::Strikethrough(text) => {
-            ui.label(RichText::new(text).strikethrough());
+            ui.label(
+                RichText::new(text)
+                    .strikethrough()
+                    .text_style(TextStyle::Name("ContentBody".into())),
+            );
         }
     }
 }

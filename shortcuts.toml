@@ -1,0 +1,340 @@
+version = "1.0"
+vim_mode_enabled = true
+sequence_timeout_ms = 1000
+save_focus_state = true
+default_focused_panel = "LeftPanel"
+
+[[shortcuts]]
+name = "focus_left_panel"
+description = "Focus left panel (post list)"
+contexts = ["Global"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "H"
+sequence = []
+
+[shortcuts.action]
+type = "FocusPanel"
+panel = "LeftPanel"
+
+[[shortcuts]]
+name = "focus_right_panel"
+description = "Focus right panel (content)"
+contexts = ["Global"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "L"
+sequence = []
+
+[shortcuts.action]
+type = "FocusPanel"
+panel = "RightPanel"
+
+[[shortcuts]]
+name = "next_post"
+description = "Select next post"
+contexts = ["LeftPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "ArrowDown"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "J"
+sequence = []
+
+[shortcuts.action]
+type = "NavigatePost"
+direction = "Next"
+
+[[shortcuts]]
+name = "previous_post"
+description = "Select previous post"
+contexts = ["LeftPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "ArrowUp"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "K"
+sequence = []
+
+[shortcuts.action]
+type = "NavigatePost"
+direction = "Previous"
+
+[[shortcuts]]
+name = "first_post"
+description = "Navigate to first post"
+contexts = [
+    "LeftPanel",
+    "RightPanel",
+]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "Home"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+sequence = [
+    "G",
+    "G",
+]
+
+[shortcuts.action]
+type = "NavigatePost"
+direction = "First"
+
+[[shortcuts]]
+name = "last_post"
+description = "Navigate to last post"
+contexts = [
+    "LeftPanel",
+    "RightPanel",
+]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "End"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = ["Shift"]
+key = "G"
+sequence = []
+
+[shortcuts.action]
+type = "NavigatePost"
+direction = "Last"
+
+[[shortcuts]]
+name = "switch_tab_left"
+description = "Switch to previous content tab"
+contexts = ["LeftPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "ArrowLeft"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "H"
+sequence = []
+
+[shortcuts.action]
+type = "SwitchTab"
+direction = "Previous"
+
+[[shortcuts]]
+name = "switch_tab_right"
+description = "Switch to next content tab"
+contexts = ["LeftPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "ArrowRight"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "L"
+sequence = []
+
+[shortcuts.action]
+type = "SwitchTab"
+direction = "Next"
+
+[[shortcuts]]
+name = "scroll_down"
+description = "Scroll down small step"
+contexts = ["RightPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "J"
+sequence = []
+
+[shortcuts.action]
+type = "Scroll"
+direction = "Down"
+amount = "Small"
+
+[[shortcuts]]
+name = "scroll_up"
+description = "Scroll up small step"
+contexts = ["RightPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "K"
+sequence = []
+
+[shortcuts.action]
+type = "Scroll"
+direction = "Up"
+amount = "Small"
+
+[[shortcuts]]
+name = "scroll_half_page_down"
+description = "Scroll down half page"
+contexts = ["RightPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "D"
+sequence = []
+
+[shortcuts.action]
+type = "Scroll"
+direction = "Down"
+amount = "HalfPage"
+
+[[shortcuts]]
+name = "scroll_half_page_up"
+description = "Scroll up half page"
+contexts = ["RightPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "U"
+sequence = []
+
+[shortcuts.action]
+type = "Scroll"
+direction = "Up"
+amount = "HalfPage"
+
+[[shortcuts]]
+name = "focus_search"
+description = "Focus search bar"
+contexts = [
+    "Global",
+    "LeftPanel",
+]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "K"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "/"
+sequence = []
+
+[shortcuts.action]
+type = "FocusSearch"
+
+[[shortcuts]]
+name = "find_in_content"
+description = "Find text in current post"
+contexts = ["RightPanel"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "F"
+sequence = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "/"
+sequence = []
+
+[shortcuts.action]
+type = "FindInContent"
+
+[[shortcuts]]
+name = "next_match"
+description = "Next find match"
+contexts = ["FindMode"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "N"
+sequence = []
+
+[shortcuts.action]
+type = "FindNext"
+
+[[shortcuts]]
+name = "previous_match"
+description = "Previous find match"
+contexts = ["FindMode"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Shift"]
+key = "N"
+sequence = []
+
+[shortcuts.action]
+type = "FindPrevious"
+
+[[shortcuts]]
+name = "toggle_theme"
+description = "Toggle between light and dark themes"
+contexts = ["Global"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Control"]
+key = "T"
+sequence = []
+
+[shortcuts.action]
+type = "ToggleTheme"
+
+[[shortcuts]]
+name = "show_help"
+description = "Show keyboard shortcuts help"
+contexts = ["Global"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = []
+key = "?"
+sequence = []
+
+[shortcuts.action]
+type = "ShowHelp"
+
+[[shortcuts]]
+name = "browser_address"
+description = "Focus browser address bar (web only)"
+contexts = ["Global"]
+alternate_keys = []
+
+[[shortcuts.keys]]
+modifiers = ["Alt"]
+key = "D"
+sequence = []
+
+[shortcuts.action]
+type = "BrowserAddress"
+
+[contexts_enabled]

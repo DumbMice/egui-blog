@@ -1,8 +1,7 @@
 //! Reusable UI components for the blog app.
 
 use catppuccin::{Flavor, PALETTE};
-use egui::{Context, FontFamily, FontId, TextStyle, Ui, Visuals};
-use std::collections::BTreeMap;
+use egui::{Context, Ui, Visuals};
 
 /// Theme configuration for the blog.
 /// Only Catppuccin themes are supported for consistent aesthetics.
@@ -27,50 +26,11 @@ impl Theme {
             }
         }
 
-        // Set GitHub-like text styles (16px base font size)
-        let text_styles: BTreeMap<TextStyle, FontId> = [
-            (
-                TextStyle::Small,
-                FontId::new(12.0, FontFamily::Proportional),
-            ), // 75% of 16px
-            (TextStyle::Body, FontId::new(16.0, FontFamily::Proportional)), // GitHub: 16px base
-            (
-                TextStyle::Button,
-                FontId::new(16.0, FontFamily::Proportional),
-            ), // Same as body
-            (
-                TextStyle::Heading,
-                FontId::new(32.0, FontFamily::Proportional),
-            ), // GitHub H1: 2em = 32px
-            (
-                TextStyle::Monospace,
-                FontId::new(13.6, FontFamily::Monospace),
-            ), // GitHub: 85% of 16px = 13.6px
-            // Custom heading styles for GitHub sizes
-            (
-                TextStyle::Name("Heading2".into()),
-                FontId::new(24.0, FontFamily::Proportional),
-            ), // GitHub H2: 1.5em = 24px
-            (
-                TextStyle::Name("Heading3".into()),
-                FontId::new(20.0, FontFamily::Proportional),
-            ), // GitHub H3: 1.25em = 20px
-            (
-                TextStyle::Name("Heading4".into()),
-                FontId::new(16.0, FontFamily::Proportional),
-            ), // GitHub H4: 1em = 16px
-            (
-                TextStyle::Name("Heading5".into()),
-                FontId::new(14.0, FontFamily::Proportional),
-            ), // GitHub H5: 0.875em = 14px
-            (
-                TextStyle::Name("Heading6".into()),
-                FontId::new(13.6, FontFamily::Proportional),
-            ), // GitHub H6: 0.85em = 13.6px
-        ]
-        .into();
-
-        ctx.all_styles_mut(move |style| style.text_styles = text_styles.clone());
+        // Apply text styles from typography module
+        // Combine UI and content text styles
+        let mut all_text_styles = crate::typography::ui_text_styles();
+        all_text_styles.extend(crate::typography::content_text_styles());
+        crate::typography::apply_text_styles(ctx, all_text_styles);
     }
 
     /// Create egui Visuals from a Catppuccin flavour.
