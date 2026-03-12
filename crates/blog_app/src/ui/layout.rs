@@ -37,6 +37,8 @@ pub struct MainContentState<'a> {
     pub tag_search_state: &'a mut crate::tags::TagSearchState,
     /// All tags for color assignment
     pub all_tags: &'a [crate::tags::Tag],
+    /// Math formula resolution scaling factor
+    pub math_resolution_scale: f32,
 }
 
 impl<'a> MainContentState<'a> {
@@ -53,6 +55,7 @@ impl<'a> MainContentState<'a> {
         navigation: NavigationContext<'a>,
         tag_search_state: &'a mut crate::tags::TagSearchState,
         all_tags: &'a [crate::tags::Tag],
+        math_resolution_scale: f32,
     ) -> Self {
         Self {
             post_manager,
@@ -65,6 +68,7 @@ impl<'a> MainContentState<'a> {
             navigation,
             tag_search_state,
             all_tags,
+            math_resolution_scale,
         }
     }
 }
@@ -702,6 +706,7 @@ fn main_content_internal_impl(
                             ui,
                             content,
                             state.math_asset_manager,
+                            state.math_resolution_scale,
                         );
                     } else {
                         ui.label("Error: Post content not available");

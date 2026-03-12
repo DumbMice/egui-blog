@@ -23,6 +23,8 @@ pub struct DebugState {
     pub show_simple_search_test: bool,
     /// Simple search test state
     pub simple_search_test: crate::ui::simple_search_test::SimpleSearchTest,
+    /// Show math resolution configuration window
+    pub show_math_resolution_config: bool,
 }
 
 #[cfg(debug_assertions)]
@@ -39,6 +41,7 @@ impl Default for DebugState {
             animation_config: crate::animation::FocusAnimationConfig::default(),
             show_simple_search_test: false,
             simple_search_test: crate::ui::simple_search_test::SimpleSearchTest::new(),
+            show_math_resolution_config: false,
         }
     }
 }
@@ -492,5 +495,65 @@ pub fn show_simple_search_test_window(ui: &egui::Ui, debug_state: &mut DebugStat
                 debug_state.simple_search_test =
                     crate::ui::simple_search_test::SimpleSearchTest::new();
             }
+        });
+}
+
+/// Show math resolution configuration window for controlling formula rendering quality
+#[cfg(debug_assertions)]
+pub fn show_math_resolution_config_window(
+    ui: &egui::Ui,
+    debug_state: &mut DebugState,
+    math_resolution_scale: &mut f32,
+) {
+    egui::Window::new("Math Resolution Configuration")
+        .default_size([400.0, 250.0])
+        .open(&mut debug_state.show_math_resolution_config)
+        .show(ui.ctx(), |ui| {
+            ui.heading("Math Formula Resolution Scaling");
+            ui.separator();
+
+            ui.label("Control the rasterization resolution of math formulas.");
+            ui.label("Higher values produce crisper rendering but use more memory.");
+            ui.separator();
+
+            // Resolution scale control
+            ui.horizontal(|ui| {
+                ui.label("Resolution Scale:");
+                ui.add(
+                    egui::Slider::new(math_resolution_scale, 1.0..=25.0)
+                        .step_by(0.1)
+                        .suffix("x"),
+                );
+                ui.label(format!("{math_resolution_scale:.1}x"));
+            });
+
+            // Memory impact warning
+            let memory_factor = *math_resolution_scale * *math_resolution_scale;
+            ui.label(format!("Memory impact: {memory_factor:.1}x (scale²)"));
+
+            if *math_resolution_scale > 5.0 {
+                ui.colored_label(
+                    ui.visuals().warn_fg_color,
+                    "Warning: High resolution scales use significant memory",
+                );
+            }
+
+            ui.separator();
+
+            // Baseline information
+            ui.label("Baseline Alignment:");
+            ui.label("• Baseline is measured in SVG coordinates (points), not pixels");
+            ui.label("• Baseline does NOT scale with resolution");
+            ui.label("• Ensures proper vertical alignment with text");
+
+            ui.separator();
+
+            // Reset to default button
+            if ui.button("Reset to Default (1.0x)").clicked() {
+                *math_resolution_scale = 1.0;
+            }
+
+            ui.separator();
+            ui.label("Note: Changes take effect on next formula render");
         });
 }

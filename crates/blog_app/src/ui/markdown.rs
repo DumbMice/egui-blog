@@ -1,11 +1,11 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
+use egui::{vec2, Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{MathAssetManager, ui::table_renderer};
+use crate::{ui::table_renderer, MathAssetManager};
 
 /// Get the bold variant of a text style
 /// Since egui's `.strong()` only changes color, not font weight,
@@ -393,8 +393,15 @@ pub fn render_preprocessed_markdown(
     ui: &mut Ui,
     preprocessed_markdown: &str,
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
+    math_resolution_scale: f32,
 ) {
-    render_markdown_impl(ui, preprocessed_markdown, math_asset_manager, true);
+    render_markdown_impl(
+        ui,
+        preprocessed_markdown,
+        math_asset_manager,
+        true,
+        math_resolution_scale,
+    );
 }
 
 fn render_markdown_impl(
@@ -402,6 +409,7 @@ fn render_markdown_impl(
     markdown: &str,
     mut math_asset_manager: Option<&mut crate::math::MathAssetManager>,
     is_preprocessed: bool,
+    math_resolution_scale: f32,
 ) {
     let protected_text = if is_preprocessed {
         // Content is already preprocessed with math placeholders
@@ -479,6 +487,7 @@ fn render_markdown_impl(
                             &heading_text,
                             manifest,
                             &mut math_asset_manager,
+                            math_resolution_scale,
                         );
 
                         // Determine text style based on heading level
@@ -559,8 +568,12 @@ fn render_markdown_impl(
                                 ui.add_space(one_indent / 3.0);
 
                                 // Process text with math placeholders
-                                let paragraph_content =
-                                    process_text_with_math(item, manifest, &mut math_asset_manager);
+                                let paragraph_content = process_text_with_math(
+                                    item,
+                                    manifest,
+                                    &mut math_asset_manager,
+                                    math_resolution_scale,
+                                );
 
                                 render_paragraph_content_vec(
                                     ui,
@@ -675,6 +688,7 @@ fn render_markdown_impl(
                                 &bold_text,
                                 manifest,
                                 &mut math_asset_manager,
+                                math_resolution_scale,
                             );
 
                             // Render with bold styling (uses bold font, no need for .strong() color)
@@ -704,6 +718,7 @@ fn render_markdown_impl(
                                 &italic_text,
                                 manifest,
                                 &mut math_asset_manager,
+                                math_resolution_scale,
                             );
 
                             // Render with italic styling
@@ -738,6 +753,7 @@ fn render_markdown_impl(
                                 &link_text,
                                 manifest,
                                 &mut math_asset_manager,
+                                math_resolution_scale,
                             );
 
                             // For links outside paragraphs, we need to handle them differently
@@ -815,6 +831,7 @@ fn render_markdown_impl(
                                 &strike_text,
                                 manifest,
                                 &mut math_asset_manager,
+                                math_resolution_scale,
                             );
 
                             // Render with strikethrough styling
@@ -878,6 +895,7 @@ fn render_markdown_impl(
                                         quote_text,
                                         manifest,
                                         &mut math_asset_manager,
+                                        math_resolution_scale,
                                     );
 
                                     // Render with weak text color
@@ -1007,6 +1025,7 @@ fn render_markdown_impl(
                         manifest,
                         &mut math_asset_manager,
                         &mut paragraph_content,
+                        math_resolution_scale,
                     );
                 } else {
                     // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
@@ -1020,7 +1039,12 @@ fn render_markdown_impl(
                         // Render text before the placeholder
                         if start > 0 {
                             let before_text = &remaining[..start];
-                            render_text_with_latex(ui, before_text, &mut math_asset_manager);
+                            render_text_with_latex(
+                                ui,
+                                before_text,
+                                &mut math_asset_manager,
+                                math_resolution_scale,
+                            );
                         }
 
                         // Find the end of the placeholder - look for closing ')'
@@ -1035,23 +1059,26 @@ fn render_markdown_impl(
                                 // Look up metadata in manifest
                                 if let Some(metadata) = manifest.get_metadata(hash) {
                                     if let Some(_asset_manager) = &mut math_asset_manager {
-                                        // Try to render as SVG using hash
+                                        // Try to render as SVG using hash with resolution scale
                                         if let Some(image_source) =
-                                            MathAssetManager::get_image_source_for_hash(hash)
+                                            MathAssetManager::get_image_source_for_hash_with_resolution(
+                                                hash,
+                                                math_resolution_scale,
+                                            )
                                         {
                                             // Get the SVG's intrinsic size
                                             let svg_size = MathAssetManager::get_svg_size(hash);
 
                                             if let Some(size) = svg_size {
-                                                // Use SVG's intrinsic size directly (both in points)
-                                                // No scaling needed - SVG size is already in points
+                                                // Size stays the same - resolution scale affects rasterization quality, not display size
 
                                                 if metadata.is_display {
                                                     // Display math: center with spacing
                                                     ui.add_space(8.0);
                                                     ui.horizontal(|ui| {
                                                         ui.add_space(
-                                                            (ui.available_width() - size.x) / 2.0,
+                                                            (ui.available_width() - size.x)
+                                                                / 2.0,
                                                         );
 
                                                         // Create image with crisp rendering using SVG's intrinsic size
@@ -1138,7 +1165,12 @@ fn render_markdown_impl(
 
                     // Render any remaining text after the last placeholder
                     if !remaining.is_empty() {
-                        render_text_with_latex(ui, remaining, &mut math_asset_manager);
+                        render_text_with_latex(
+                            ui,
+                            remaining,
+                            &mut math_asset_manager,
+                            math_resolution_scale,
+                        );
                     }
 
                     // Add bottom margin for standalone text (same as paragraph)
@@ -1293,8 +1325,9 @@ fn render_text_with_latex(
     ui: &mut Ui,
     text: &str,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    math_resolution_scale: f32,
 ) {
-    render_text_with_math_impl(ui, text, math_asset_manager);
+    render_text_with_math_impl(ui, text, math_asset_manager, math_resolution_scale);
 }
 
 /// Internal implementation for rendering text with math formulas.
@@ -1302,10 +1335,11 @@ fn render_text_with_math_impl(
     ui: &mut Ui,
     text: &str,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    math_resolution_scale: f32,
 ) {
     // If we have an asset manager, try to render actual SVG textures
     if let Some(asset_manager) = math_asset_manager {
-        render_text_with_math_and_assets(ui, text, asset_manager);
+        render_text_with_math_and_assets(ui, text, asset_manager, math_resolution_scale);
     } else {
         // Fall back to code rendering
         render_text_with_math(ui, text);
@@ -1317,6 +1351,7 @@ fn render_text_with_math_and_assets(
     ui: &mut Ui,
     text: &str,
     asset_manager: &crate::math::MathAssetManager,
+    math_resolution_scale: f32,
 ) {
     let mut remaining = text;
 
@@ -1339,13 +1374,17 @@ fn render_text_with_math_and_assets(
             }
 
             // Try to render as SVG
-            if let Some(image_source) = asset_manager.get_image_source_for_formula(
+            if let Some(image_source) = asset_manager.get_image_source_for_formula_with_resolution(
                 math_content.trim(), // Trim whitespace
                 is_display_math,
+                math_resolution_scale,
             ) {
                 // Get the SVG's intrinsic size and baseline data
-                let svg_size_with_baseline =
-                    asset_manager.get_svg_size_with_baseline(math_content.trim(), is_display_math);
+                let svg_size_with_baseline = asset_manager.get_svg_size_with_baseline_scaled(
+                    math_content.trim(),
+                    is_display_math,
+                    math_resolution_scale,
+                );
 
                 if let Some((size, baseline_from_top)) = svg_size_with_baseline {
                     if is_display_math {
@@ -1667,6 +1706,7 @@ fn process_text_with_math(
     text: &str,
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    math_resolution_scale: f32,
 ) -> Vec<ParagraphContent> {
     let mut paragraph_content = Vec::new();
     let mut remaining = text;
@@ -1693,14 +1733,18 @@ fn process_text_with_math(
                 if let Some(metadata) = manifest.get_metadata(hash) {
                     // Inline math - accumulate in paragraph content
                     if let Some(_asset_manager) = math_asset_manager {
-                        // Try to get SVG using hash
+                        // Try to get SVG using hash with resolution scale
                         if let Some(image_source) =
-                            MathAssetManager::get_image_source_for_hash(hash)
+                            MathAssetManager::get_image_source_for_hash_with_resolution(
+                                hash,
+                                math_resolution_scale,
+                            )
                         {
                             // Get the SVG's intrinsic size
                             let svg_size = MathAssetManager::get_svg_size(hash);
 
                             if let Some(size) = svg_size {
+                                // Size stays the same - resolution scale affects rasterization quality, not display size
                                 paragraph_content.push(ParagraphContent::MathImage {
                                     image_source,
                                     size,
@@ -1760,8 +1804,10 @@ fn accumulate_text_content(
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
     paragraph_content: &mut Vec<ParagraphContent>,
+    math_resolution_scale: f32,
 ) {
-    let processed = process_text_with_math(text, manifest, math_asset_manager);
+    let processed =
+        process_text_with_math(text, manifest, math_asset_manager, math_resolution_scale);
     paragraph_content.extend(processed);
 }
 
@@ -1823,7 +1869,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
+                                           // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;

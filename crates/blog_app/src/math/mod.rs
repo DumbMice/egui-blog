@@ -7,9 +7,11 @@
 
 mod assets;
 mod embedded;
+pub mod resolution_aware_svg_loader;
 
 pub use assets::MathAssetManager;
 pub use embedded::{FormulaMetadata, MathManifest, get_svg_bytes, load_manifest};
+pub use resolution_aware_svg_loader::ResolutionAwareSvgLoader;
 
 /// Simple formula detection without regex
 /// Returns vector of (`start_index`, `end_index`, `formula_text`, `is_display_math`)

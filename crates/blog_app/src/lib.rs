@@ -24,6 +24,11 @@ use crate::math::MathAssetManager;
 use crate::routing::{Route, Router};
 use crate::shortcuts::ActionExecutor as _;
 
+/// Default math resolution scale (1.0 = original resolution)
+fn default_math_resolution_scale() -> f32 {
+    1.0
+}
+
 /// Font loading state tracking
 /// Fonts load asynchronously in egui and are only available in the next frame
 #[derive(Debug, Clone, PartialEq)]
@@ -86,6 +91,12 @@ pub struct BlogApp {
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
+
+    /// Math formula resolution scaling factor
+    /// 1.0 = original resolution, 2.0 = 2x resolution, etc.
+    /// Capped at 25.0 maximum
+    #[cfg_attr(feature = "serde", serde(default = "default_math_resolution_scale"))]
+    math_resolution_scale: f32,
 
     /// Font loading state tracking
     /// Fonts load asynchronously in egui and are only available in the next frame
@@ -157,6 +168,7 @@ impl Default for BlogApp {
             responsive_config: ResponsiveConfig::default(),
             side_panel_collapsed: false,
             math_asset_manager: MathAssetManager::default(),
+            math_resolution_scale: default_math_resolution_scale(),
             font_loading_state: FontLoadingState::Loading,
             router: Router::new(),
             pending_url_update: None,
@@ -714,6 +726,11 @@ impl eframe::App for BlogApp {
             if self.debug_state.show_simple_search_test {
                 crate::debug_windows::show_simple_search_test_window(ui, &mut self.debug_state);
             }
+
+            // Show math resolution config window if enabled
+            if self.debug_state.show_math_resolution_config {
+                crate::debug_windows::show_math_resolution_config_window(ui, &mut self.debug_state, &mut self.math_resolution_scale);
+            }
         }
 
         // Side panel
@@ -844,6 +861,7 @@ impl eframe::App for BlogApp {
                             navigation,
                             &mut self.tag_search_state,
                             &all_tags_vec,
+                            self.math_resolution_scale,
                         );
                         let result = ui::layout::main_content(
                             ui,

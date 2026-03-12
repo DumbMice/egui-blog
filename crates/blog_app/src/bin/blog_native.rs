@@ -20,6 +20,13 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| {
             // Install image loaders for SVG support
             egui_extras::install_image_loaders(&cc.egui_ctx);
+
+            // Install custom resolution-aware SVG loader for math formulas
+            use blog_app::math::resolution_aware_svg_loader::ResolutionAwareSvgLoader;
+            use std::sync::Arc;
+            cc.egui_ctx
+                .add_image_loader(Arc::new(ResolutionAwareSvgLoader::new()));
+
             Ok(Box::new(blog_app::BlogApp::new(cc)))
         }),
     )

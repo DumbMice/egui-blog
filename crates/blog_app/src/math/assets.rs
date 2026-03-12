@@ -37,6 +37,33 @@ impl MathAssetManager {
         })
     }
 
+    /// Get an `ImageSource` for a math formula hash with resolution scaling
+    /// `resolution_scale`: 1.0 = original size, 2.0 = 2x resolution, etc.
+    /// Capped at 25.0 maximum
+    pub fn get_image_source_for_hash_with_resolution(
+        hash: &str,
+        resolution_scale: f32,
+    ) -> Option<ImageSource<'static>> {
+        let resolution_scale = resolution_scale.clamp(1.0, 25.0);
+
+        // Get SVG bytes from embedded assets
+        let svg_bytes = crate::math::embedded::get_svg_bytes(hash)?;
+
+        // Create URI with resolution suffix for caching
+        let uri = if (resolution_scale - 1.0).abs() < 0.01 {
+            // Default resolution, no suffix
+            format!("bytes://math/{hash}.svg")
+        } else {
+            // Include resolution in URI for proper caching
+            format!("bytes://math/{hash}@{resolution_scale:.1}x.svg")
+        };
+
+        Some(ImageSource::Bytes {
+            uri: std::borrow::Cow::Owned(uri),
+            bytes: egui::load::Bytes::Static(svg_bytes),
+        })
+    }
+
     /// Get the intrinsic size of an SVG from its bytes
     pub fn get_svg_size(hash: &str) -> Option<egui::Vec2> {
         // Get SVG bytes from embedded assets
@@ -83,6 +110,20 @@ impl MathAssetManager {
         };
 
         Some((size, baseline))
+    }
+
+    /// Get SVG size with baseline data for a formula
+    /// Returns (`size`, `baseline_from_top`)
+    /// `resolution_scale`: Parameter is accepted for API compatibility but doesn't affect size
+    /// Capped at 25.0 maximum
+    pub fn get_svg_size_with_baseline_scaled(
+        &self,
+        formula: &str,
+        is_display: bool,
+        _resolution_scale: f32,
+    ) -> Option<(egui::Vec2, Option<f32>)> {
+        // Resolution scale doesn't affect display size, only rasterization quality
+        self.get_svg_size_with_baseline(formula, is_display)
     }
 
     /// Get baseline position for a formula hash
@@ -169,6 +210,20 @@ impl MathAssetManager {
         // Find the hash for this formula
         let hash = self.manifest.find_hash(formula, is_display)?.to_owned();
         Self::get_image_source_for_hash(&hash)
+    }
+
+    /// Get an `ImageSource` for a math formula text with resolution scaling
+    /// `resolution_scale`: 1.0 = original size, 2.0 = 2x resolution, etc.
+    /// Capped at 25.0 maximum
+    pub fn get_image_source_for_formula_with_resolution(
+        &self,
+        formula: &str,
+        is_display: bool,
+        resolution_scale: f32,
+    ) -> Option<ImageSource<'static>> {
+        let resolution_scale = resolution_scale.clamp(1.0, 25.0);
+        let hash = self.manifest.find_hash(formula, is_display)?;
+        Self::get_image_source_for_hash_with_resolution(hash, resolution_scale)
     }
 
     /// Clear any cached textures (no-op in new implementation)

@@ -207,6 +207,15 @@ pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugStat
 
                 ui.separator();
 
+                // Math resolution config button - toggle display
+                if ui.button("Toggle math resolution config").clicked() {
+                    debug_state.show_math_resolution_config =
+                        !debug_state.show_math_resolution_config;
+                    interacted = true;
+                }
+
+                ui.separator();
+
                 // Clear cache button
                 if ui.button("Clear cache").clicked() {
                     interacted = true;
