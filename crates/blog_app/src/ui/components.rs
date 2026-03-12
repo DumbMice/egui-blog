@@ -227,7 +227,7 @@ pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugStat
 }
 
 /// A search bar widget.
-#[expect(dead_code)]
+#[allow(dead_code)]
 pub fn search_bar(ui: &mut Ui, query: &mut String) -> bool {
     let mut changed = false;
 
@@ -249,7 +249,7 @@ pub fn search_bar(ui: &mut Ui, query: &mut String) -> bool {
 }
 
 /// Display post metadata (date, tags).
-#[expect(dead_code)]
+#[allow(dead_code)]
 pub fn post_metadata(ui: &mut Ui, date: &str, tags: &[String]) {
     ui.horizontal(|ui| {
         ui.label("📅");

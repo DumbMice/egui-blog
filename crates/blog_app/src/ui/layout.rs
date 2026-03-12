@@ -132,7 +132,7 @@ pub struct TopPanelConfig<'a> {
 
 impl TopPanelResult {
     /// Returns true if either search or theme changed
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub fn any_changed(&self) -> bool {
         self.search_changed || self.theme_changed || self.search_committed
     }

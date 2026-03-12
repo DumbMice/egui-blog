@@ -31,7 +31,7 @@ impl FocusAnimationConfig {
     ///
     /// # Returns
     /// `true` if all parameters are valid, `false` otherwise.
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub fn validate(&self) -> bool {
         self.intensity >= 0.0
             && self.intensity <= 1.0
