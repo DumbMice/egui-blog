@@ -291,13 +291,16 @@ pub fn tag_search_bar(
                                         if response.clicked() {
                                             search_state.add_tag(tag.name.clone());
                                             search_state.in_tag_mode = false;
-                                            // Don't clear search text - just exit tag mode
-                                            // Clearing text resets cursor position
+                                            // Clear the #tag_name from search text when tag is selected from dropdown
+                                            // This provides better UX - user doesn't need to manually delete it
+                                            if search_state.search_text.starts_with('#') {
+                                                search_state.search_text.clear();
+                                            }
                                             search_state.tag_input.clear();
                                             tags_changed = true;
                                             search_changed = true;
                                             #[cfg(target_arch = "wasm32")]
-                                            log::debug!("Tag selected from dropdown: {}", tag.name);
+                                            log::debug!("Tag selected from dropdown: {}, cleared search text", tag.name);
                                         }
                                     }
                                 });

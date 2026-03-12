@@ -945,15 +945,22 @@ impl crate::shortcuts::ContextProvider for BlogApp {
         self.focused_panel
     }
 
-    fn search_has_focus(&self, _ctx: &egui::Context) -> bool {
-        // TODO: Implement proper focus detection for search bar
-        // For now, check if search query is being edited
-        false
+    fn search_has_focus(&self, ctx: &egui::Context) -> bool {
+        // Check if the search bar widget has focus
+        // The search bar has ID: egui::Id::new("tag_search_input")
+        ctx.memory(|mem| mem.has_focus(egui::Id::new("tag_search_input")))
     }
 
-    fn editor_has_focus(&self, _ctx: &egui::Context) -> bool {
-        // TODO: Implement proper focus detection for editor
-        self.editing_new_post
+    fn editor_has_focus(&self, ctx: &egui::Context) -> bool {
+        // Check if any editor text field has focus
+        // New post title has ID: egui::Id::new("new_post_title")
+        // New post content has ID: egui::Id::new("new_post_content")
+        // Find dialog input has ID: egui::Id::new("find_dialog_input")
+        ctx.memory(|mem| {
+            mem.has_focus(egui::Id::new("new_post_title")) ||
+            mem.has_focus(egui::Id::new("new_post_content")) ||
+            mem.has_focus(egui::Id::new("find_dialog_input"))
+        })
     }
 
     fn find_mode_active(&self) -> bool {
@@ -1317,7 +1324,10 @@ impl BlogApp {
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Find:");
-                    let response = ui.text_edit_singleline(&mut self.find_query);
+                    let response = ui.add(
+                        egui::TextEdit::singleline(&mut self.find_query)
+                            .id(egui::Id::new("find_dialog_input"))
+                    );
 
                     // Focus the text input when dialog opens
                     if !self.find_query.is_empty() && self.find_matches.is_empty() {

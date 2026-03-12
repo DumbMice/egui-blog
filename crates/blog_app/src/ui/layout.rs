@@ -654,11 +654,15 @@ fn main_content_internal_impl(
                 ui.separator();
 
                 ui.label("Title:");
-                ui.text_edit_singleline(state.new_post_title);
+                ui.add(
+                    egui::TextEdit::singleline(state.new_post_title)
+                        .id(egui::Id::new("new_post_title"))
+                );
 
                 ui.label("Content (markdown):");
                 ui.add(
                     egui::TextEdit::multiline(state.new_post_content)
+                        .id(egui::Id::new("new_post_content"))
                         .desired_rows(20)
                         .desired_width(f32::INFINITY),
                 );
