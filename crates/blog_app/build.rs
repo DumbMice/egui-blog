@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Context as _, Result, anyhow};
+use anyhow::{anyhow, Context as _, Result};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -509,7 +509,7 @@ fn main() -> Result<()> {
                     serde_json::from_str(&content).context("Failed to parse existing manifest")?;
 
                 // Update old manifests to include missing fields
-                #[expect(clippy::iter_over_hash_type)]
+                #[allow(clippy::iter_over_hash_type)]
                 for metadata in manifest.formulas.values_mut() {
                     // If is_placeholder field doesn't exist in JSON, it will default to false
                     // which is what we want for old manifests (they were actual renderings)
@@ -563,7 +563,7 @@ fn main() -> Result<()> {
     let mut skipped_count = 0;
 
     // Process each unique formula
-    #[expect(clippy::iter_over_hash_type)]
+    #[allow(clippy::iter_over_hash_type)]
     for (formula, is_display) in unique_formulas {
         let hash = hash_formula(&formula);
         used_hashes.insert(hash.clone());

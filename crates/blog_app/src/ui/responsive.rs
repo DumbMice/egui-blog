@@ -35,7 +35,6 @@ impl Default for ResponsiveConfig {
 
 impl ResponsiveConfig {
     /// Calculate the ideal content width based on available space
-    #[allow(dead_code)]
     pub fn calculate_content_width(&self, available_width: f32) -> f32 {
         // Start with optimal width based on character count
         // Approximate: average character width is ~8px for readable text
@@ -54,7 +53,6 @@ impl ResponsiveConfig {
     }
 
     /// Check if current screen size is mobile
-    #[allow(dead_code)]
     pub fn is_mobile(&self, ctx: &Context) -> bool {
         let screen_size = ctx.content_rect().size();
         screen_size.x < self.mobile_breakpoint
@@ -124,7 +122,6 @@ pub fn responsive_container<R>(
 }
 
 /// Create a max-width container with auto-centering margins
-#[allow(dead_code)]
 pub fn max_width_container<R>(
     ui: &mut Ui,
     config: &ResponsiveConfig,

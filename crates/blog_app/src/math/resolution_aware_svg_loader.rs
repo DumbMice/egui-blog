@@ -187,9 +187,7 @@ impl ImageLoader for ResolutionAwareSvgLoader {
         let cache = self.cache.lock();
         let mut total = 0;
 
-        #[allow(clippy::iter_over_hash_type)]
         for bucket in cache.values() {
-            #[allow(clippy::iter_over_hash_type)]
             for entry in bucket.values() {
                 total += size_of::<Entry>();
                 if let Ok(image) = &entry.result {

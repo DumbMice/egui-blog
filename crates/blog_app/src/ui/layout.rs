@@ -43,7 +43,7 @@ pub struct MainContentState<'a> {
 
 impl<'a> MainContentState<'a> {
     /// Create a new state bundle
-    #[allow(clippy::too_many_arguments, clippy::allow_attributes)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         post_manager: &'a PostManager,
         selected_post_index: usize,
@@ -132,7 +132,6 @@ pub struct TopPanelConfig<'a> {
 
 impl TopPanelResult {
     /// Returns true if either search or theme changed
-    #[allow(dead_code)]
     pub fn any_changed(&self) -> bool {
         self.search_changed || self.theme_changed || self.search_committed
     }
@@ -205,7 +204,7 @@ pub fn top_panel(
 }
 
 /// Side panel with post list.
-#[allow(clippy::too_many_arguments, clippy::allow_attributes)]
+#[allow(clippy::too_many_arguments)]
 pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
