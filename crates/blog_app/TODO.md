@@ -1,5 +1,19 @@
 # Blog App TODO List
 
+## Recent Fixes (2026-03-12)
+✅ **Priority 18: Search Bar Crash with '#' Character and Tag Icon Bug**
+- Fixed WASM crash when typing '#' in search bar (get_dropdown_position with fallback)
+- Fixed cross icon from ✕ to ❌ in selected tags chips
+- Fixed cursor positioning by removing URL updates during typing
+- Added stable widget IDs for focus detection
+- Fixed state persistence across refreshes
+- Fixed inconsistent URL updates for keyboard navigation
+- Fixed tab switching behavior (now only filters)
+- Implemented search URL updates on Enter key
+- Clear search text after selecting tag from autocomplete
+- Prevent single-character shortcuts when typing in text fields
+- All tests pass
+
 ## Recent Fixes (2026-03-10)
 ✅ **Theme Toggle Navigation Bug Fix**
 - Fixed bug where toggling theme caused navigation to home page
@@ -423,16 +437,16 @@ cargo blog-wasm     # Build WASM library only
 - **Consistent typography**: Follows existing code conventions and patterns
 - **No defensive fallbacks**: System panics if fonts/text styles aren't available (as requested)
 
-## Priority 18: Fix Search Bar Crash with '#' Character and Tag Icon Bug (CRITICAL BUG)
-- [ ] Fix WASM crash when typing '#' in search bar
-- [ ] Root cause: Autocomplete menu with tags causing NaN rect in `advance_cursor_after_rect`
-- [ ] Error: `panicked at crates/egui/src/ui.rs:1407:9: rect is nan in advance_cursor_after_rect`
-- [ ] Investigate tag autocomplete menu rendering logic
-- [ ] Fix NaN values in UI layout calculations
-- [ ] Add defensive checks for invalid rect dimensions
-- [ ] Test with various '#' input scenarios
-- [ ] Ensure tag autocomplete works without crashes
-- [ ] **Bug report**: Wrong cross icon in search bar tag chips
+## Priority 18: Fix Search Bar Crash with '#' Character and Tag Icon Bug ✅ COMPLETED 2026-03-12
+- [x] Fix WASM crash when typing '#' in search bar
+- [x] Root cause: Autocomplete menu with tags causing NaN rect in `advance_cursor_after_rect`
+- [x] Error: `panicked at crates/egui/src/ui.rs:1407:9: rect is nan in advance_cursor_after_rect`
+- [x] Investigate tag autocomplete menu rendering logic
+- [x] Fix NaN values in UI layout calculations
+- [x] Add defensive checks for invalid rect dimensions
+- [x] Test with various '#' input scenarios
+- [x] Ensure tag autocomplete works without crashes
+- [x] **Bug report**: Wrong cross icon in search bar tag chips
   - When a tag is selected in the search bar, it shows as a colored chip with text `#tagname ✕`
   - Expected: Should show `#tagname ❌` where `❌` is the correct removal icon
   - Current: Shows `#tagname ✕` where `✕` is the wrong removal icon
@@ -440,7 +454,33 @@ cargo blog-wasm     # Build WASM library only
   - Impact: Minor visual inconsistency, easy to fix
   - Fix: Update `RichText::new(format!("#{tag_name} ✕"))` to `RichText::new(format!("#{tag_name} ❌"))`
 
-**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Needs immediate investigation and fix. Also includes minor visual bug with wrong cross icon in search bar chips.
+**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Fixed with comprehensive solution addressing multiple related issues.
+
+### Implementation Details:
+1. **Fixed WASM crash**: Created `get_dropdown_position()` function with fallback to prevent NaN coordinates in WASM
+2. **Fixed cross icon**: Changed from `✕` to `❌` in selected tags chips (`src/ui/tag_components.rs:112`)
+3. **Fixed cursor positioning**: Removed automatic URL updates during typing (caused focus/cursor corruption in WASM)
+4. **Added stable widget IDs**: Added IDs to all text fields for proper focus detection:
+   - Search bar: `egui::Id::new("tag_search_input")`
+   - New post title: `egui::Id::new("new_post_title")`
+   - New post content: `egui::Id::new("new_post_content")`
+   - Find dialog: `egui::Id::new("find_dialog_input")`
+5. **Fixed state persistence**: Added `sync_state_to_route()` call in browser URL branch of `restore_state_with_precedence()` to fix refresh navigation
+6. **Fixed inconsistent URL updates**: `navigate_post()` now calls `navigate_to()` after successful keyboard navigation
+7. **Fixed tab switching behavior**: Tab switching now only filters, doesn't navigate or select posts
+8. **Implemented search URL updates**: Enter key commits search to URL (`#/search?q=...&tags=...`)
+9. **Fixed Bug 1**: Clear search text after selecting tag from autocomplete menu
+10. **Fixed Bug 2**: Prevent single-character shortcuts when typing in text fields with proper focus detection
+11. **Created test case**: `simple_search_test.rs` to isolate cursor positioning issues without tag functionality
+12. **All tests pass**: 8 tag autocomplete tests + all existing tests pass
+
+### Key Fixes:
+- **WASM crash prevention**: `get_dropdown_position()` with fallback prevents NaN rects
+- **Cursor positioning**: No URL updates during typing prevents focus corruption
+- **State persistence**: Browser URL takes precedence over persisted state on refresh
+- **Keyboard navigation**: Consistent URL updates for both mouse and keyboard navigation
+- **Shortcut blocking**: Single-character shortcuts (`i`, `j`, `k`, `h`, `l`) don't trigger when typing in text fields
+- **Visual consistency**: Cross icon fixed from `✕` to `❌` in tag chips
 
 
 

@@ -3,21 +3,12 @@
 use egui::{Response, Ui};
 
 /// Simple search bar without tag functionality
-/// Used to test if cursor positioning issues exist in basic egui TextEdit
+/// Used to test if cursor positioning issues exist in basic egui `TextEdit`
+#[derive(Default)]
 pub struct SimpleSearchTest {
     pub search_text: String,
     pub change_count: u32,
     pub last_change_frame: u64,
-}
-
-impl Default for SimpleSearchTest {
-    fn default() -> Self {
-        Self {
-            search_text: String::new(),
-            change_count: 0,
-            last_change_frame: 0,
-        }
-    }
 }
 
 impl SimpleSearchTest {
@@ -64,7 +55,7 @@ impl SimpleSearchTest {
         (changed, ui.response())
     }
 
-    /// Alternative version using TextEdit builder with ID
+    /// Alternative version using `TextEdit` builder with ID
     pub fn show_with_id(&mut self, ui: &mut Ui) -> (bool, Response) {
         let mut changed = false;
 

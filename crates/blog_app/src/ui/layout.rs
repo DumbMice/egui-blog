@@ -369,7 +369,7 @@ pub fn side_panel(
                     // Tab switching is just a filter, not navigation
                     // Don't change selected_post_index or call on_selection
                     // Current post stays visible even if filtered out
-                    log::debug!("Tab switched to {:?} (filter only, no navigation)", content_type);
+                    log::debug!("Tab switched to {content_type:?} (filter only, no navigation)");
                 }
             }
         });

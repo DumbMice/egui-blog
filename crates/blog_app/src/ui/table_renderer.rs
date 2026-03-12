@@ -12,6 +12,7 @@ pub struct TableConfig {
     pub border_width: f32,
     /// Show vertical separators between columns
     /// Note: Currently disabled by default because we can't track column positions easily
+    #[expect(dead_code)]
     pub _show_column_separators: bool,
     /// Show horizontal separators between rows
     pub show_row_separators: bool,
