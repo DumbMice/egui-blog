@@ -127,9 +127,10 @@ impl HelpOverlay {
                     for shortcut in &config.shortcuts {
                         // Apply filter
                         if let Some(filter) = self.filter_context
-                            && !shortcut.contexts.contains(&filter) {
-                                continue;
-                            }
+                            && !shortcut.contexts.contains(&filter)
+                        {
+                            continue;
+                        }
 
                         // Format keys
                         let keys_text = Self::format_keys(&shortcut.keys);

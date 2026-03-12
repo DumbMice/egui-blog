@@ -32,10 +32,11 @@ impl KeySequenceHandler {
 
         // Clear buffer if timeout expired
         if let Some(last_time) = self.last_key_time
-            && current_time - last_time > self.timeout_seconds {
-                self.buffer.clear();
-                self.last_key_time = None;
-            }
+            && current_time - last_time > self.timeout_seconds
+        {
+            self.buffer.clear();
+            self.last_key_time = None;
+        }
 
         // Process key press events
         for event in ctx.input(|i| i.raw.events.clone()) {

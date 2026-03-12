@@ -150,7 +150,7 @@ pub fn top_panel(
         ui.separator();
 
         // Search bar with tag support
-        let (search_bar_changed, tags_changed) = 
+        let (search_bar_changed, tags_changed) =
             crate::ui::tag_components::tag_search_bar(ui, config.tag_search_state, config.all_tags);
         if search_bar_changed || tags_changed {
             search_changed = true;
@@ -161,7 +161,11 @@ pub fn top_panel(
         // Post counter
         ui.label(format!(
             "Posts: {}/{}",
-            if config.post_manager.count() > 0 { config.selected_post + 1 } else { 0 },
+            if config.post_manager.count() > 0 {
+                config.selected_post + 1
+            } else {
+                0
+            },
             config.post_manager.count()
         ));
 
@@ -217,14 +221,14 @@ pub fn side_panel(
 
     // Save the initial rect for click detection (not used for clicks anymore)
     let _initial_rect = ui.available_rect_before_wrap();
-    
+
     // Use the provided panel_rect for click detection (full panel area)
     let click_rect = panel_rect;
 
     // Draw animated focus indicator if panel is focused
     if is_focused {
         let current_time = ui.ctx().input(|i| i.time);
-        
+
         FocusRenderer::draw_focus_indicator(
             ui.painter(),
             panel_rect,
@@ -242,8 +246,7 @@ pub fn side_panel(
             ui.horizontal(|ui| {
                 // Panel expand button (when panel is collapsed)
                 // Use » (right-pointing) to indicate expand
-                let expand_button = ui.button("»")
-                    .on_hover_text("Expand panel");
+                let expand_button = ui.button("»").on_hover_text("Expand panel");
                 if expand_button.clicked() {
                     on_toggle_panel();
                 }
@@ -251,7 +254,7 @@ pub fn side_panel(
         });
         return (selection_changed, panel_clicked);
     }
-    
+
     // Handle loading/error states before entering the UI closure
     match post_manager_state {
         PostManagerState::Loading => {
@@ -282,10 +285,10 @@ pub fn side_panel(
         PostManagerState::Loaded => {
             // Continue with normal logic
         }
-        }
+    }
 
     let mut interactive_element_clicked = false;
-    
+
     ui.vertical(|ui| {
         ui.horizontal(|ui| {
             ui.heading("Blog Posts");
@@ -311,7 +314,7 @@ pub fn side_panel(
                     PostSortOrder::OldestFirst => PostSortOrder::NewestFirst,
                 };
             }
-            
+
             // Panel collapse/expand button (after sort button)
             // Use « when expanded (pointing left to indicate collapse)
             // Use » when collapsed (pointing right to indicate expand)
@@ -386,12 +389,12 @@ pub fn side_panel(
             post_manager.posts(),
             tag_search_state,
         );
-        
+
         // Apply content type filter if set
         if let Some(content_type) = selected_content_type {
             posts_to_show.retain(|post| post.content_type == *content_type);
         }
-        
+
         // Apply sort order
         posts_to_show.sort_by(|a, b| {
             match config.post_sort_order {
@@ -418,7 +421,7 @@ pub fn side_panel(
                         .unwrap_or(idx);
 
                     let is_selected = original_index == *selected_post_index;
-                    
+
                     // Handle auto-scroll if this is the selected post and auto-scroll is requested
                     if is_selected && *request_auto_scroll {
                         // Scroll to this item
@@ -471,13 +474,13 @@ pub fn side_panel(
                             *request_auto_scroll = true;
                         }
                     });
-                    
+
                     // Handle auto-scroll if this is the selected post and auto-scroll is requested
                     if is_selected && *request_auto_scroll {
                         // Check if the post is already visible in the scroll area
                         let clip_rect = ui.clip_rect();
                         let post_rect = post_response.response.rect;
-                        
+
                         // Only scroll if the post is not fully visible
                         if !clip_rect.contains_rect(post_rect) {
                             // Scroll to this item's rect
@@ -488,7 +491,7 @@ pub fn side_panel(
                     }
                 }
             });
-            
+
             // Update scroll offset from scroll area response
             *scroll_offset = scroll_response.state.offset.y;
         }
@@ -497,9 +500,9 @@ pub fn side_panel(
     // Check for clicks on the panel at the end (after all widgets are drawn)
     // This ensures we detect clicks even on widgets
     let pointer = ui.ctx().input(|i| i.pointer.clone());
-    
+
     // Try multiple ways to detect clicks/presses
-    let detected_click = 
+    let detected_click =
         // Method 1: Check for primary click at interact position
         if let Some(click_pos) = pointer.interact_pos()
             && click_rect.contains(click_pos) && pointer.primary_clicked()
@@ -524,25 +527,32 @@ pub fn side_panel(
         else {
             false
         };
-    
+
     if detected_click && !interactive_element_clicked {
         panel_clicked = true;
     }
-    
+
     (selection_changed, panel_clicked)
 }
 
 /// Main content area showing a post or editor with math support.
 pub fn main_content(
-    ui: &mut Ui, 
-    state: MainContentState<'_>, 
-    is_focused: bool, 
+    ui: &mut Ui,
+    state: MainContentState<'_>,
+    is_focused: bool,
     panel_rect: egui::Rect,
     // Animation parameters
     animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
-    main_content_internal(ui, state, is_focused, panel_rect, animation_state, animation_config)
+    main_content_internal(
+        ui,
+        state,
+        is_focused,
+        panel_rect,
+        animation_state,
+        animation_config,
+    )
 }
 
 fn main_content_internal(
@@ -553,7 +563,14 @@ fn main_content_internal(
     animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
-    main_content_internal_impl(ui, state, is_focused, panel_rect, animation_state, animation_config)
+    main_content_internal_impl(
+        ui,
+        state,
+        is_focused,
+        panel_rect,
+        animation_state,
+        animation_config,
+    )
 }
 
 fn main_content_internal_impl(
@@ -572,14 +589,22 @@ fn main_content_internal_impl(
 
     // Save the initial rect for debugging
     let initial_rect = ui.available_rect_before_wrap();
-    log::debug!("Main content initial rect: {:?} (min: {:?}, max: {:?}, size: {:?}), panel_rect: {:?} (min: {:?}, max: {:?}, size: {:?})", 
-        initial_rect, initial_rect.min, initial_rect.max, initial_rect.size(),
-        panel_rect, panel_rect.min, panel_rect.max, panel_rect.size());
+    log::debug!(
+        "Main content initial rect: {:?} (min: {:?}, max: {:?}, size: {:?}), panel_rect: {:?} (min: {:?}, max: {:?}, size: {:?})",
+        initial_rect,
+        initial_rect.min,
+        initial_rect.max,
+        initial_rect.size(),
+        panel_rect,
+        panel_rect.min,
+        panel_rect.max,
+        panel_rect.size()
+    );
 
     // Draw animated focus indicator if panel is focused
     if is_focused {
         let current_time = ui.ctx().input(|i| i.time);
-        
+
         crate::animation::FocusRenderer::draw_focus_indicator(
             ui.painter(),
             panel_rect,
@@ -664,8 +689,8 @@ fn main_content_internal_impl(
                     ui.separator();
 
                     if components::post_metadata_with_tags(
-                        ui, 
-                        &post.date, 
+                        ui,
+                        &post.date,
                         &post.tags,
                         state.tag_search_state,
                         state.all_tags,
@@ -706,11 +731,11 @@ fn main_content_internal_impl(
             }
         }
     }
-    
+
     // Check for clicks on the panel at the end (after all widgets are drawn)
     // This ensures we detect clicks even on widgets
     let pointer = ui.ctx().input(|i| i.pointer.clone());
-    
+
     // Simple approach: check if primary was clicked and the click position is in our rect
     if pointer.primary_clicked()
         && let Some(click_pos) = pointer.interact_pos()
@@ -749,7 +774,8 @@ mod tests {
         // Now that we've updated the function, this test should pass
 
         // Create a mock to represent what the function should return
-        let expected_return: (bool, bool, Option<usize>, bool, bool) = (false, false, None, false, false);
+        let expected_return: (bool, bool, Option<usize>, bool, bool) =
+            (false, false, None, false, false);
 
         // Destructure to verify we can handle 5 values
         let (_post_saved, _editing_cancelled, _navigation_index, _retry_requested, _panel_clicked) =

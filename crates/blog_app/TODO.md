@@ -432,15 +432,15 @@ cargo blog-wasm     # Build WASM library only
 - [ ] Add defensive checks for invalid rect dimensions
 - [ ] Test with various '#' input scenarios
 - [ ] Ensure tag autocomplete works without crashes
-- [ ] **Bug report**: Icon after tag's text in search bar after being selected is not supported
+- [ ] **Bug report**: Wrong cross icon in search bar tag chips
   - When a tag is selected in the search bar, it shows as a colored chip with text `#tagname ✕`
-  - Expected: Should show tag icon (🏷️) after the tag text, like `#tagname 🏷️ ✕` or `#tagname 🏷️`
-  - Current: Shows `#tagname ✕` where `✕` is removal icon, missing tag icon
+  - Expected: Should show `#tagname ❌` where `❌` is the correct removal icon
+  - Current: Shows `#tagname ✕` where `✕` is the wrong removal icon
   - Location: `selected_tags_chips()` function in `src/ui/tag_components.rs:84`
-  - Impact: Minor visual inconsistency with other tag displays, easy to fix
-  - Fix: Update `RichText::new(format!("#{tag_name} ✕"))` to include tag icon
+  - Impact: Minor visual inconsistency, easy to fix
+  - Fix: Update `RichText::new(format!("#{tag_name} ✕"))` to `RichText::new(format!("#{tag_name} ❌"))`
 
-**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Needs immediate investigation and fix. Also includes minor visual bug with missing tag icon in search bar chips.
+**Note**: Critical bug causing app crash when typing '#' for tag autocomplete. Needs immediate investigation and fix. Also includes minor visual bug with wrong cross icon in search bar chips.
 
 
 

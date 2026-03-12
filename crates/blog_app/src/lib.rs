@@ -4,14 +4,14 @@
 #[cfg(target_arch = "wasm32")]
 mod web;
 
+pub mod animation;
 pub mod math;
 mod posts;
 mod routing;
-mod tags;
-pub mod typography;
-mod ui;
 pub mod shortcuts;
-pub mod animation;
+pub mod tags;
+pub mod typography;
+pub mod ui;
 
 #[cfg(debug_assertions)]
 mod debug_windows;
@@ -71,7 +71,10 @@ pub struct BlogApp {
     tag_search_state: crate::tags::TagSearchState,
     /// Cached tags with theme-based colors
     #[cfg_attr(feature = "serde", serde(skip))]
-    cached_tags: Option<(crate::ui::components::Theme, std::collections::HashMap<String, crate::tags::Tag>)>,
+    cached_tags: Option<(
+        crate::ui::components::Theme,
+        std::collections::HashMap<String, crate::tags::Tag>,
+    )>,
     /// Selected content type filter (None = show all)
     selected_content_type: Option<crate::posts::ContentType>,
     /// Layout configuration
@@ -132,7 +135,6 @@ pub struct BlogApp {
     /// Whether app was just restored from persistence (to avoid navigation immediately after restore)
     #[cfg_attr(feature = "serde", serde(skip))]
     just_restored: bool,
-
 }
 
 impl Default for BlogApp {
@@ -177,7 +179,6 @@ impl Default for BlogApp {
             cached_tags: None,
             route_restored: false,
             just_restored: false,
-
         }
     }
 }
@@ -191,7 +192,7 @@ impl BlogApp {
         } else {
             Self::default()
         };
-        
+
         #[cfg(feature = "persistence")]
         {
             // If we loaded from storage, mark as just restored
@@ -209,10 +210,11 @@ impl BlogApp {
             app.font_loading_state = FontLoadingState::Loading;
             log::info!("Font configuration initiated, fonts will be available in next frame");
         } else {
-            app.font_loading_state = FontLoadingState::Failed("Font configuration failed".to_owned());
+            app.font_loading_state =
+                FontLoadingState::Failed("Font configuration failed".to_owned());
             log::error!("Font configuration failed");
         }
-        
+
         // Apply theme to context (this will also set up text styles)
         app.theme.apply(&cc.egui_ctx);
         app.previous_theme = app.theme;
@@ -257,9 +259,10 @@ impl BlogApp {
     /// Get cached tags, computing them if necessary
     fn get_cached_tags(&mut self) -> &std::collections::HashMap<String, crate::tags::Tag> {
         // Check if cache is valid (matches current theme)
-        let cache_valid = self.cached_tags.as_ref().is_some_and(|(cached_theme, _)| {
-            *cached_theme == self.theme
-        });
+        let cache_valid = self
+            .cached_tags
+            .as_ref()
+            .is_some_and(|(cached_theme, _)| *cached_theme == self.theme);
 
         if !cache_valid {
             // Compute tags and cache them
@@ -267,15 +270,25 @@ impl BlogApp {
             self.cached_tags = Some((self.theme, tags));
         }
 
-        &self.cached_tags.as_ref().expect("cached_tags should be initialized").1
+        &self
+            .cached_tags
+            .as_ref()
+            .expect("cached_tags should be initialized")
+            .1
     }
 
     /// Navigate to a new route and update browser URL.
     pub fn navigate_to(&mut self, route: Route) {
         use std::backtrace::Backtrace;
         let backtrace = Backtrace::capture();
-        log::debug!("navigate_to called with route: {:?}. Current route: {:?}, selected_post: {}, selected_content_type: {:?}\nBacktrace:\n{}", 
-                   route, self.router.current_route(), self.selected_post, self.selected_content_type, backtrace);
+        log::debug!(
+            "navigate_to called with route: {:?}. Current route: {:?}, selected_post: {}, selected_content_type: {:?}\nBacktrace:\n{}",
+            route,
+            self.router.current_route(),
+            self.selected_post,
+            self.selected_content_type,
+            backtrace
+        );
         let url = self.router.navigate_to(route);
         self.pending_url_update = Some(url);
         self.sync_state_to_route();
@@ -285,9 +298,14 @@ impl BlogApp {
     fn sync_state_to_route(&mut self) {
         use std::backtrace::Backtrace;
         let backtrace = Backtrace::capture();
-        log::debug!("sync_state_to_route called. Current route: {:?}, selected_post before: {}, just_restored: {}\nBacktrace:\n{}", 
-                   self.router.current_route(), self.selected_post, self.just_restored, backtrace);
-        
+        log::debug!(
+            "sync_state_to_route called. Current route: {:?}, selected_post before: {}, just_restored: {}\nBacktrace:\n{}",
+            self.router.current_route(),
+            self.selected_post,
+            self.just_restored,
+            backtrace
+        );
+
         // If we just restored from persistence, skip navigation for any route
         // This prevents unwanted navigation when state is freshly restored
         if self.just_restored {
@@ -295,7 +313,7 @@ impl BlogApp {
             self.just_restored = false;
             return;
         }
-        
+
         match self.router.current_route() {
             Route::Post { slug } | Route::Note { slug } | Route::Review { slug } => {
                 if let Some(index) = self.post_manager.find_post_index_by_slug(slug) {
@@ -325,7 +343,7 @@ impl BlogApp {
                 log::debug!("Route::Home detected in sync_state_to_route");
                 // Reset to default state
                 self.selected_content_type = None; // Show all content types on home
-                
+
                 if self.post_manager.count() > 0 {
                     log::debug!("Setting selected_post = 0 for Route::Home");
                     self.selected_post = 0;
@@ -358,7 +376,7 @@ impl BlogApp {
                 self.pending_url_update = None;
             }
         }
-        
+
         #[cfg(not(target_arch = "wasm32"))]
         let _ = frame; // Mark as unused on native
     }
@@ -381,16 +399,19 @@ impl BlogApp {
     /// Restore saved route if valid
     #[cfg(feature = "persistence")]
     fn restore_route(&mut self) {
-        log::debug!("restore_route called. Current route: {:?}, selected_post before: {}", 
-                   self.router.current_route(), self.selected_post);
+        log::debug!(
+            "restore_route called. Current route: {:?}, selected_post before: {}",
+            self.router.current_route(),
+            self.selected_post
+        );
         self.sync_state_to_route();
     }
-    
+
     /// Unified state restoration with clear precedence
     /// Precedence: Browser URL > Persisted State > Default
     fn restore_state_with_precedence(&mut self, frame: &eframe::Frame) {
         log::debug!("restore_state_with_precedence called");
-        
+
         // Step 1: Check browser URL (highest priority for web)
         #[cfg(target_arch = "wasm32")]
         {
@@ -406,10 +427,10 @@ impl BlogApp {
                 return;
             }
         }
-        
+
         #[cfg(not(target_arch = "wasm32"))]
         let _ = frame; // Mark as unused on native
-        
+
         // Step 2: Use persisted state (if available and not just restored)
         #[cfg(feature = "persistence")]
         {
@@ -420,11 +441,11 @@ impl BlogApp {
                 self.just_restored = false; // Clear just_restored flag for any route
             }
         }
-        
+
         // Step 3: Default state (already set in constructor)
         log::debug!("Using default state");
     }
-    
+
     /// Initialize shortcuts (called from UI loop)
     pub fn initialize_shortcuts(&mut self, _ctx: &egui::Context) {
         if !self.shortcut_integration.initialized {
@@ -465,9 +486,13 @@ impl eframe::App for BlogApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         log::debug!("=== UI FRAME START ===");
-        log::debug!("Current state: route: {:?}, selected_post: {}, route_restored: {}", 
-                   self.router.current_route(), self.selected_post, self.route_restored);
-        
+        log::debug!(
+            "Current state: route: {:?}, selected_post: {}, route_restored: {}",
+            self.router.current_route(),
+            self.selected_post,
+            self.route_restored
+        );
+
         // Check and update font loading state
         // Fonts load asynchronously and are only available in the next frame
         match &self.font_loading_state {
@@ -489,15 +514,21 @@ impl eframe::App for BlogApp {
                 // For now, we'll just log the error
             }
         }
-        
+
         // Unified state restoration with clear precedence
         if !self.route_restored {
             log::debug!("State not restored yet, calling restore_state_with_precedence()");
             self.restore_state_with_precedence(_frame);
-            log::debug!("After restore_state_with_precedence: route: {:?}, selected_post: {}", 
-                       self.router.current_route(), self.selected_post);
+            log::debug!(
+                "After restore_state_with_precedence: route: {:?}, selected_post: {}",
+                self.router.current_route(),
+                self.selected_post
+            );
         } else {
-            log::debug!("State already restored (route_restored: {}), handling URL changes only", self.route_restored);
+            log::debug!(
+                "State already restored (route_restored: {}), handling URL changes only",
+                self.route_restored
+            );
             // Handle URL changes from browser (web target only)
             #[cfg(target_arch = "wasm32")]
             self.handle_url_changes(_frame);
@@ -505,12 +536,15 @@ impl eframe::App for BlogApp {
 
         // Initialize and handle keyboard shortcuts
         self.initialize_shortcuts(ui.ctx());
-        
+
         // Handle keyboard shortcuts - need to avoid borrowing issues
         let shortcut_handled = {
             // Take the integration out, use it, then put it back
             let mut integration = std::mem::take(&mut self.shortcut_integration);
-            log::debug!("Shortcut integration initialized: {}", integration.initialized);
+            log::debug!(
+                "Shortcut integration initialized: {}",
+                integration.initialized
+            );
             log::debug!("Current focused panel: {:?}", self.focused_panel);
             let handled = integration.update(ui.ctx(), self);
             self.shortcut_integration = integration;
@@ -519,40 +553,47 @@ impl eframe::App for BlogApp {
             }
             handled
         };
-        
+
         // Request repaint if shortcut was handled
         if shortcut_handled {
             ui.ctx().request_repaint();
         }
-        
+
         // Mobile auto-collapse logic
         let screen_width = ui.ctx().content_rect().width();
         let is_mobile = screen_width < self.responsive_config.mobile_breakpoint;
-        
+
         if is_mobile && !self.side_panel_collapsed {
-            log::debug!("Mobile screen detected ({}px < {}px), auto-collapsing side panel", 
-                screen_width, self.responsive_config.mobile_breakpoint);
+            log::debug!(
+                "Mobile screen detected ({}px < {}px), auto-collapsing side panel",
+                screen_width,
+                self.responsive_config.mobile_breakpoint
+            );
             self.side_panel_collapsed = true;
         }
-        
+
         // Note: Removed auto-expand logic to give users full control over panel state
         // Users can expand/collapse using hamburger buttons in top panel or side panel
         // Auto-collapse on mobile still works, but auto-expand on desktop is disabled
-        
+
         let current_time = ui.ctx().input(|i| i.time);
-        
+
         // Check if focus changed since last frame
         if self.focused_panel != self.previous_focused_panel {
-            log::debug!("Focus changed from {:?} to {:?}, triggering animation", 
-                self.previous_focused_panel, self.focused_panel);
-            
+            log::debug!(
+                "Focus changed from {:?} to {:?}, triggering animation",
+                self.previous_focused_panel,
+                self.focused_panel
+            );
+
             // Trigger animation for focus change
-            self.focus_animation.on_focus_change(self.focused_panel, current_time);
-            
+            self.focus_animation
+                .on_focus_change(self.focused_panel, current_time);
+
             // Update previous focused panel
             self.previous_focused_panel = self.focused_panel;
         }
-        
+
         // Update animation state every frame
         let animation_config = {
             #[cfg(debug_assertions)]
@@ -568,14 +609,14 @@ impl eframe::App for BlogApp {
 
         // Track if tag search state was modified
         let mut tag_search_was_modified = false;
-        
+
         // Get cached tags once and reuse
         let all_tags = self.get_cached_tags();
         let all_tags_vec: Vec<_> = all_tags.values().cloned().collect();
-        
+
         // Store search state before top panel to detect actual changes
         let search_state_before = self.tag_search_state.clone();
-        
+
         // Top panel
         let mut top_panel_result = ui::layout::TopPanelResult {
             search_changed: false,
@@ -595,32 +636,38 @@ impl eframe::App for BlogApp {
                 #[cfg(debug_assertions)]
                 &mut self.debug_state,
             );
-            
+
             // Only mark search as modified if it actually changed
             if top_panel_result.search_changed {
                 tag_search_was_modified = true;
             }
         });
-        
+
         // Check if theme changed (via UI button or keyboard shortcut) and apply it
         if self.theme != self.previous_theme {
-            log::debug!("Theme changed from {:?} to {:?}, applying to UI", self.previous_theme, self.theme);
+            log::debug!(
+                "Theme changed from {:?} to {:?}, applying to UI",
+                self.previous_theme,
+                self.theme
+            );
             self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
         } else if top_panel_result.theme_changed {
             // This shouldn't happen, but log if it does (theme changed but detection didn't trigger)
             log::warn!("top_panel reported theme changed but self.theme == self.previous_theme");
         }
-        
+
         // Defensive check: Verify search actually changed before navigating
         // This prevents false positives from theme changes or other UI interactions
         if tag_search_was_modified {
-            let search_actually_changed = 
-                search_state_before.search_text != self.tag_search_state.search_text ||
-                search_state_before.selected_tags != self.tag_search_state.selected_tags;
-            
+            let search_actually_changed = search_state_before.search_text
+                != self.tag_search_state.search_text
+                || search_state_before.selected_tags != self.tag_search_state.selected_tags;
+
             if !search_actually_changed {
-                log::debug!("Search marked as modified but no actual change detected (likely theme change), skipping navigation");
+                log::debug!(
+                    "Search marked as modified but no actual change detected (likely theme change), skipping navigation"
+                );
                 tag_search_was_modified = false;
             }
         }
@@ -650,23 +697,31 @@ impl eframe::App for BlogApp {
         // Side panel
         let mut selection_changed = false;
         let mut selected_post_for_nav = None;
-        
+
         // Determine panel width based on collapsed state
         let panel_width = if self.side_panel_collapsed {
             40.0 // Minimal width when collapsed (just enough for hamburger button)
         } else {
             200.0 // Default width when expanded
         };
-        
+
         let _side_panel_response = Panel::left("side_panel")
             .resizable(!self.side_panel_collapsed) // Only resizable when expanded
-            .min_size(if self.side_panel_collapsed { 40.0 } else { 150.0 })
-            .max_size(if self.side_panel_collapsed { 40.0 } else { 500.0 })
+            .min_size(if self.side_panel_collapsed {
+                40.0
+            } else {
+                150.0
+            })
+            .max_size(if self.side_panel_collapsed {
+                40.0
+            } else {
+                500.0
+            })
             .default_size(panel_width)
             .show_inside(ui, |ui| {
                 // Get the full panel rect (will be 0 width when collapsed)
                 let panel_rect = ui.available_rect_before_wrap();
-                
+
                 let (changed, panel_clicked) = ui::layout::side_panel(
                     ui,
                     &self.post_manager,
@@ -693,12 +748,12 @@ impl eframe::App for BlogApp {
                     },
                 );
                 selection_changed = changed;
-            
-            if panel_clicked {
-                log::debug!("Side panel clicked from layout.rs, focusing left panel");
-                self.focused_panel = crate::shortcuts::FocusedPanel::LeftPanel;
-            }
-        });
+
+                if panel_clicked {
+                    log::debug!("Side panel clicked from layout.rs, focusing left panel");
+                    self.focused_panel = crate::shortcuts::FocusedPanel::LeftPanel;
+                }
+            });
 
         if selection_changed {
             self.editing_new_post = false;
@@ -736,7 +791,7 @@ impl eframe::App for BlogApp {
         let _central_panel_response = CentralPanel::default().show_inside(ui, |ui| {
             // Get the full panel rect BEFORE the scroll area
             let panel_rect = ui.available_rect_before_wrap();
-            
+
             let scroll_response = ScrollArea::vertical()
                 .scroll_offset(egui::vec2(0.0, self.scroll_offset))
                 .show(ui, |ui| {
@@ -745,57 +800,59 @@ impl eframe::App for BlogApp {
                         ui.scroll_with_delta(egui::vec2(0.0, delta));
                     }
                     // Use responsive container for optimal reading width
-                ui::responsive::responsive_container(ui, &self.responsive_config, |ui| {
-                    // Create closure first to avoid borrow conflicts
-                    let mut navigate_callback = |route: crate::routing::Route| {
-                        route_to_navigate = Some(route);
-                    };
+                    ui::responsive::responsive_container(ui, &self.responsive_config, |ui| {
+                        // Create closure first to avoid borrow conflicts
+                        let mut navigate_callback = |route: crate::routing::Route| {
+                            route_to_navigate = Some(route);
+                        };
 
-                    let navigation = ui::layout::NavigationContext {
-                        current_route: self.router.current_route(),
-                        on_navigate: &mut navigate_callback,
-                    };
-                    
-                    let state = ui::layout::MainContentState::new(
-                        &self.post_manager,
-                        self.selected_post,
-                        self.editing_new_post,
-                        &mut self.new_post_title,
-                        &mut self.new_post_content,
-                        &self.post_manager_state,
-                        Some(&mut self.math_asset_manager),
-                        navigation,
-                        &mut self.tag_search_state,
-                        &all_tags_vec,
-                    );
-                    let result = ui::layout::main_content(
-                        ui, 
-                        state,
-                        self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
-                        panel_rect,
-                        // Animation parameters
-                        &self.focus_animation,
-                        &animation_config,
-                    );
-                    (
-                        post_saved,
-                        editing_cancelled,
-                        navigation_index,
-                        retry_requested,
-                        panel_clicked,
-                    ) = result;
-                    
-                    if panel_clicked {
-                        log::debug!("Main content clicked from layout.rs, focusing right panel");
-                        self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
-                    }
+                        let navigation = ui::layout::NavigationContext {
+                            current_route: self.router.current_route(),
+                            on_navigate: &mut navigate_callback,
+                        };
+
+                        let state = ui::layout::MainContentState::new(
+                            &self.post_manager,
+                            self.selected_post,
+                            self.editing_new_post,
+                            &mut self.new_post_title,
+                            &mut self.new_post_content,
+                            &self.post_manager_state,
+                            Some(&mut self.math_asset_manager),
+                            navigation,
+                            &mut self.tag_search_state,
+                            &all_tags_vec,
+                        );
+                        let result = ui::layout::main_content(
+                            ui,
+                            state,
+                            self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
+                            panel_rect,
+                            // Animation parameters
+                            &self.focus_animation,
+                            &animation_config,
+                        );
+                        (
+                            post_saved,
+                            editing_cancelled,
+                            navigation_index,
+                            retry_requested,
+                            panel_clicked,
+                        ) = result;
+
+                        if panel_clicked {
+                            log::debug!(
+                                "Main content clicked from layout.rs, focusing right panel"
+                            );
+                            self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
+                        }
+                    });
                 });
-            });
-            
+
             // Update scroll offset from scroll area response
             self.scroll_offset = scroll_response.state.offset.y;
         });
-        
+
         // Draw find dialog if find mode is active
         if self.find_mode_active {
             self.draw_find_dialog(ui.ctx());
@@ -871,18 +928,18 @@ impl crate::shortcuts::ContextProvider for BlogApp {
     fn focused_panel(&self) -> crate::shortcuts::FocusedPanel {
         self.focused_panel
     }
-    
+
     fn search_has_focus(&self, _ctx: &egui::Context) -> bool {
         // TODO: Implement proper focus detection for search bar
         // For now, check if search query is being edited
         false
     }
-    
+
     fn editor_has_focus(&self, _ctx: &egui::Context) -> bool {
         // TODO: Implement proper focus detection for editor
         self.editing_new_post
     }
-    
+
     fn find_mode_active(&self) -> bool {
         self.find_mode_active
     }
@@ -891,8 +948,12 @@ impl crate::shortcuts::ContextProvider for BlogApp {
 // Implement ActionExecutor for BlogApp
 impl crate::shortcuts::ActionExecutor for BlogApp {
     fn execute_action(&mut self, action: &crate::shortcuts::ShortcutAction) -> bool {
-        use crate::shortcuts::ShortcutAction::{NavigatePost, SwitchTab, Scroll, FocusPanel, FocusSearch, FindInContent, FindNext, FindPrevious, ToggleTheme, ShowHelp, BrowserAddress, ToggleSidePanel, CollapseSidePanel, ExpandSidePanel, Custom};
-        
+        use crate::shortcuts::ShortcutAction::{
+            BrowserAddress, CollapseSidePanel, Custom, ExpandSidePanel, FindInContent, FindNext,
+            FindPrevious, FocusPanel, FocusSearch, NavigatePost, Scroll, ShowHelp, SwitchTab,
+            ToggleSidePanel, ToggleTheme,
+        };
+
         match action {
             NavigatePost { direction } => self.navigate_post(*direction),
             SwitchTab { direction } => self.switch_tab(*direction),
@@ -911,66 +972,71 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
             Custom { name } => self.execute_custom(name),
         }
     }
-    
+
     fn navigate_post(&mut self, navigation: crate::shortcuts::PostNavigation) -> bool {
-        use crate::shortcuts::PostNavigation::{Next, Previous, First, Last};
-        
+        use crate::shortcuts::PostNavigation::{First, Last, Next, Previous};
+
         // Get filtered posts using the same logic as the side panel display
         // This includes tag search, sort order, and content type filter
-        let mut posts_to_show = crate::tags::search_posts(
-            self.post_manager.posts(),
-            &self.tag_search_state,
-        );
-        
+        let mut posts_to_show =
+            crate::tags::search_posts(self.post_manager.posts(), &self.tag_search_state);
+
         // Apply content type filter if set
         if let Some(content_type) = self.selected_content_type {
             posts_to_show.retain(|post| post.content_type == content_type);
         }
-        
+
         // Apply sort order
-        posts_to_show.sort_by(|a, b| {
-            match self.layout_config.post_sort_order {
-                crate::ui::layout::PostSortOrder::NewestFirst => b.date.cmp(&a.date),
-                crate::ui::layout::PostSortOrder::OldestFirst => a.date.cmp(&b.date),
-            }
+        posts_to_show.sort_by(|a, b| match self.layout_config.post_sort_order {
+            crate::ui::layout::PostSortOrder::NewestFirst => b.date.cmp(&a.date),
+            crate::ui::layout::PostSortOrder::OldestFirst => a.date.cmp(&b.date),
         });
-        
+
         let posts_to_show: Vec<_> = posts_to_show.into_iter().enumerate().collect();
-        
+
         if posts_to_show.is_empty() {
             return false;
         }
-        
+
         // Find current post in the filtered/displayed list
         let current_post = if self.selected_post < self.post_manager.posts().len() {
             Some(&self.post_manager.posts()[self.selected_post])
         } else {
             None
         };
-        
+
         let current_display_index = if let Some(current_post) = current_post {
-            posts_to_show.iter()
+            posts_to_show
+                .iter()
                 .position(|(_, post)| post.id == current_post.id)
         } else {
             None
         };
-        
+
         // If current post is not in the displayed list, start from first
         let current_index = current_display_index.unwrap_or(0);
-        
+
         let navigation_successful = match navigation {
             Next => {
                 if current_index + 1 < posts_to_show.len() {
                     // Get the original index of the next post in display order
                     let next_post = &posts_to_show[current_index + 1].1;
-                    self.selected_post = self.post_manager.posts()
+                    self.selected_post = self
+                        .post_manager
+                        .posts()
                         .iter()
                         .position(|p| p.id == next_post.id)
                         .unwrap_or(self.selected_post);
-                    log::debug!("Navigated to next post: {} (index {})", next_post.title, self.selected_post);
+                    log::debug!(
+                        "Navigated to next post: {} (index {})",
+                        next_post.title,
+                        self.selected_post
+                    );
                     true
                 } else {
-                    log::debug!("Cannot navigate next: already at last post (index {current_index})");
+                    log::debug!(
+                        "Cannot navigate next: already at last post (index {current_index})"
+                    );
                     false
                 }
             }
@@ -978,101 +1044,128 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
                 if current_index > 0 {
                     // Get the original index of the previous post in display order
                     let prev_post = &posts_to_show[current_index - 1].1;
-                    self.selected_post = self.post_manager.posts()
+                    self.selected_post = self
+                        .post_manager
+                        .posts()
                         .iter()
                         .position(|p| p.id == prev_post.id)
                         .unwrap_or(self.selected_post);
-                    log::debug!("Navigated to previous post: {} (index {})", prev_post.title, self.selected_post);
+                    log::debug!(
+                        "Navigated to previous post: {} (index {})",
+                        prev_post.title,
+                        self.selected_post
+                    );
                     true
                 } else {
-                    log::debug!("Cannot navigate previous: already at first post (index {current_index})");
+                    log::debug!(
+                        "Cannot navigate previous: already at first post (index {current_index})"
+                    );
                     false
                 }
             }
             First => {
                 let first_post = &posts_to_show[0].1;
-                self.selected_post = self.post_manager.posts()
+                self.selected_post = self
+                    .post_manager
+                    .posts()
                     .iter()
                     .position(|p| p.id == first_post.id)
                     .unwrap_or(self.selected_post);
-                log::debug!("Navigated to first post: {} (index {})", first_post.title, self.selected_post);
+                log::debug!(
+                    "Navigated to first post: {} (index {})",
+                    first_post.title,
+                    self.selected_post
+                );
                 true
             }
             Last => {
-                let last_post = &posts_to_show.last().expect("posts_to_show should not be empty").1;
-                self.selected_post = self.post_manager.posts()
+                let last_post = &posts_to_show
+                    .last()
+                    .expect("posts_to_show should not be empty")
+                    .1;
+                self.selected_post = self
+                    .post_manager
+                    .posts()
                     .iter()
                     .position(|p| p.id == last_post.id)
                     .unwrap_or(self.selected_post);
-                log::debug!("Navigated to last post: {} (index {})", last_post.title, self.selected_post);
+                log::debug!(
+                    "Navigated to last post: {} (index {})",
+                    last_post.title,
+                    self.selected_post
+                );
                 true
             }
         };
-        
+
         // Request auto-scroll if navigation was successful
         if navigation_successful {
             self.request_side_panel_auto_scroll = true;
         }
-        
+
         navigation_successful
     }
-    
+
     fn switch_tab(&mut self, direction: crate::shortcuts::TabDirection) -> bool {
+        use crate::posts::ContentType::{Note, Post, Review};
         use crate::shortcuts::TabDirection::{Next, Previous};
-        use crate::posts::ContentType::{Post, Note, Review};
-        
+
         let current = self.selected_content_type;
         let tabs = [None, Some(Post), Some(Note), Some(Review)];
-        
+
         let current_index = tabs.iter().position(|&t| t == current).unwrap_or(0);
         let new_index = match direction {
             Next => (current_index + 1) % tabs.len(),
             Previous => (current_index + tabs.len() - 1) % tabs.len(),
         };
-        
+
         self.selected_content_type = tabs[new_index];
         true
     }
-    
-    fn scroll(&mut self, direction: crate::shortcuts::ScrollDirection, amount: crate::shortcuts::ScrollAmount) -> bool {
+
+    fn scroll(
+        &mut self,
+        direction: crate::shortcuts::ScrollDirection,
+        amount: crate::shortcuts::ScrollAmount,
+    ) -> bool {
         // Calculate scroll amount based on direction and amount type
         let scroll_step = match amount {
             crate::shortcuts::ScrollAmount::Small => 50.0, // Small step
             crate::shortcuts::ScrollAmount::HalfPage => 300.0, // Half page
             crate::shortcuts::ScrollAmount::Page => 600.0, // Full page
         };
-        
+
         let delta = match direction {
-            crate::shortcuts::ScrollDirection::Up => scroll_step,    // Positive = scroll up (content moves down) - FIXED
+            crate::shortcuts::ScrollDirection::Up => scroll_step, // Positive = scroll up (content moves down) - FIXED
             crate::shortcuts::ScrollDirection::Down => -scroll_step, // Negative = scroll down (content moves up) - FIXED
         };
-        
+
         // Store delta to be applied in UI
         self.requested_scroll_delta = Some(delta);
         log::debug!("Scroll requested: {direction:?} {amount:?} (delta: {delta})");
         true
     }
-    
+
     fn focus_panel(&mut self, panel: crate::shortcuts::FocusedPanel) -> bool {
         log::debug!("Focus panel called: {panel:?}");
-        
+
         // If focusing left panel and it's collapsed, expand it first
         if panel == crate::shortcuts::FocusedPanel::LeftPanel && self.side_panel_collapsed {
             log::debug!("Left panel is collapsed, expanding it");
             self.side_panel_collapsed = false;
         }
-        
+
         self.focused_panel = panel;
         true
     }
-    
+
     fn focus_search(&mut self) -> bool {
         // TODO: Implement focus search
         // Need to set focus to search bar widget
         log::debug!("Focus search requested");
         false
     }
-    
+
     fn find_in_content(&mut self) -> bool {
         self.find_mode_active = true;
         self.find_query.clear();
@@ -1080,36 +1173,48 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         self.current_find_match = 0;
         true
     }
-    
+
     fn find_next(&mut self) -> bool {
         if self.find_matches.is_empty() {
             return false;
         }
-        
+
         self.current_find_match = (self.current_find_match + 1) % self.find_matches.len();
-        
+
         // TODO: Scroll to match
         // For now, just log
-        log::debug!("Find next: match {} of {}", self.current_find_match + 1, self.find_matches.len());
+        log::debug!(
+            "Find next: match {} of {}",
+            self.current_find_match + 1,
+            self.find_matches.len()
+        );
         true
     }
-    
+
     fn find_previous(&mut self) -> bool {
         if self.find_matches.is_empty() {
             return false;
         }
-        
-        self.current_find_match = (self.current_find_match + self.find_matches.len() - 1) % self.find_matches.len();
-        
+
+        self.current_find_match =
+            (self.current_find_match + self.find_matches.len() - 1) % self.find_matches.len();
+
         // TODO: Scroll to match
         // For now, just log
-        log::debug!("Find previous: match {} of {}", self.current_find_match + 1, self.find_matches.len());
+        log::debug!(
+            "Find previous: match {} of {}",
+            self.current_find_match + 1,
+            self.find_matches.len()
+        );
         true
     }
-    
+
     fn toggle_theme(&mut self) -> bool {
-        log::debug!("toggle_theme called. Current route: {:?}, selected_post: {}", 
-                   self.router.current_route(), self.selected_post);
+        log::debug!(
+            "toggle_theme called. Current route: {:?}, selected_post: {}",
+            self.router.current_route(),
+            self.selected_post
+        );
         self.theme = match self.theme {
             crate::ui::Theme::CatppuccinLatte => crate::ui::Theme::CatppuccinMacchiato,
             crate::ui::Theme::CatppuccinMacchiato => crate::ui::Theme::CatppuccinLatte,
@@ -1119,12 +1224,12 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         log::debug!("toggle_theme completed. New theme: {:?}", self.theme);
         true
     }
-    
+
     fn show_help(&mut self) -> bool {
         self.shortcut_integration.show_help();
         true
     }
-    
+
     fn browser_address(&mut self) -> bool {
         #[cfg(target_arch = "wasm32")]
         {
@@ -1137,25 +1242,28 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         }
         true
     }
-    
+
     fn toggle_side_panel(&mut self) -> bool {
-        log::debug!("Toggling side panel, current state: {}", self.side_panel_collapsed);
+        log::debug!(
+            "Toggling side panel, current state: {}",
+            self.side_panel_collapsed
+        );
         self.side_panel_collapsed = !self.side_panel_collapsed;
         true
     }
-    
+
     fn collapse_side_panel(&mut self) -> bool {
         log::debug!("Collapsing side panel");
         self.side_panel_collapsed = true;
         true
     }
-    
+
     fn expand_side_panel(&mut self) -> bool {
         log::debug!("Expanding side panel");
         self.side_panel_collapsed = false;
         true
     }
-    
+
     fn execute_custom(&mut self, action: &str) -> bool {
         log::debug!("Custom action requested: {action}");
         false
@@ -1166,7 +1274,7 @@ impl BlogApp {
     /// Draw the find dialog
     fn draw_find_dialog(&mut self, ctx: &egui::Context) {
         use egui::{Align2, Key};
-        
+
         let mut open = self.find_mode_active;
         egui::Window::new("Find in Content")
             .open(&mut open)
@@ -1178,84 +1286,94 @@ impl BlogApp {
                 ui.horizontal(|ui| {
                     ui.label("Find:");
                     let response = ui.text_edit_singleline(&mut self.find_query);
-                    
+
                     // Focus the text input when dialog opens
                     if !self.find_query.is_empty() && self.find_matches.is_empty() {
                         self.update_find_matches();
                     }
-                    
+
                     // Handle Enter key to find next
-                    if response.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))
+                    if response.lost_focus()
+                        && ui.input(|i| i.key_pressed(Key::Enter))
                         && !self.find_matches.is_empty()
                     {
-                        self.current_find_match = (self.current_find_match + 1) % self.find_matches.len();
+                        self.current_find_match =
+                            (self.current_find_match + 1) % self.find_matches.len();
                     }
-                    
+
                     // Handle Escape key to close
                     if ui.input(|i| i.key_pressed(Key::Escape)) {
                         self.find_mode_active = false;
                     }
                 });
-                
+
                 ui.horizontal(|ui| {
                     if ui.button("Find").clicked() {
                         self.update_find_matches();
                     }
-                    
-                    if ui.button("Next").clicked() || ui.input(|i| i.key_pressed(Key::N) && i.modifiers.ctrl) {
+
+                    if ui.button("Next").clicked()
+                        || ui.input(|i| i.key_pressed(Key::N) && i.modifiers.ctrl)
+                    {
                         self.find_next();
                     }
-                    
-                    if ui.button("Previous").clicked() || ui.input(|i| i.key_pressed(Key::P) && i.modifiers.ctrl) {
+
+                    if ui.button("Previous").clicked()
+                        || ui.input(|i| i.key_pressed(Key::P) && i.modifiers.ctrl)
+                    {
                         self.find_previous();
                     }
-                    
+
                     if ui.button("Close").clicked() {
                         self.find_mode_active = false;
                     }
                 });
-                
+
                 // Show match count
                 if !self.find_matches.is_empty() {
-                    ui.label(format!("{} of {}", self.current_find_match + 1, self.find_matches.len()));
+                    ui.label(format!(
+                        "{} of {}",
+                        self.current_find_match + 1,
+                        self.find_matches.len()
+                    ));
                 } else if !self.find_query.is_empty() {
                     ui.label("No matches found");
                 }
             });
-        
+
         self.find_mode_active = open;
     }
-    
+
     /// Update find matches based on current query
     fn update_find_matches(&mut self) {
         self.find_matches.clear();
         self.current_find_match = 0;
-        
+
         if self.find_query.is_empty() {
             return;
         }
-        
+
         // Get current post content
         let posts = self.post_manager.posts();
         if self.selected_post >= posts.len() {
             return;
         }
-        
+
         let post = &posts[self.selected_post];
         let content = &post.content;
         let query = self.find_query.to_lowercase();
-        
+
         // Simple case-insensitive search
         let mut start = 0;
         while let Some(pos) = content[start..].to_lowercase().find(&query) {
             let actual_pos = start + pos;
             let end = actual_pos + query.len();
-            
+
             self.find_matches.push(TextMatch {
                 start: actual_pos,
                 end,
             });
-            
+
             start = end;
         }
     }
@@ -1322,32 +1440,37 @@ mod tests {
     #[test]
     fn test_theme_toggle_does_not_navigate_to_home() {
         let mut app = BlogApp::default();
-        
+
         // Simulate being on a specific post (not home)
         app.selected_post = 2; // Select a non-zero post
         app.route_restored = true; // Route has been restored
-        
+
         // Save initial state
         let initial_selected_post = app.selected_post;
         let initial_route_restored = app.route_restored;
-        
+
         // Toggle theme
         app.toggle_theme();
-        
+
         // Verify theme changed
         assert_ne!(app.theme, crate::ui::Theme::default());
-        
+
         // Simulate persistence save/load cycle
         // When persistence saves and loads, route_restored should remain true
         // and selected_post should not change to 0
         app.route_restored = initial_route_restored; // This would be restored from persistence
-        
+
         // Check that we're still on the same post
-        assert_eq!(app.selected_post, initial_selected_post, 
-                   "Theme toggle should not change selected post from {} to {}", 
-                   initial_selected_post, app.selected_post);
-        
+        assert_eq!(
+            app.selected_post, initial_selected_post,
+            "Theme toggle should not change selected post from {} to {}",
+            initial_selected_post, app.selected_post
+        );
+
         // Check that route_restored is still true (preventing restore_route() call)
-        assert!(app.route_restored, "route_restored should remain true after theme toggle");
+        assert!(
+            app.route_restored,
+            "route_restored should remain true after theme toggle"
+        );
     }
 }

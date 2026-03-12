@@ -64,9 +64,10 @@ impl ShortcutIntegration {
 
         // Draw help overlay if needed
         if self.help_overlay.is_visible()
-            && let Some(config) = self.manager.config() {
-                self.help_overlay.draw(ctx, config);
-            }
+            && let Some(config) = self.manager.config()
+        {
+            self.help_overlay.draw(ctx, config);
+        }
 
         handled
     }
@@ -147,8 +148,7 @@ impl ContextProvider for TestIntegration {
 
 impl ActionExecutor for TestIntegration {
     fn execute_action(&mut self, action: &crate::shortcuts::config::ShortcutAction) -> bool {
-        self.actions_log
-            .push(format!("execute_action: {action:?}"));
+        self.actions_log.push(format!("execute_action: {action:?}"));
         true
     }
 
@@ -159,8 +159,7 @@ impl ActionExecutor for TestIntegration {
     }
 
     fn switch_tab(&mut self, direction: TabDirection) -> bool {
-        self.actions_log
-            .push(format!("switch_tab: {direction:?}"));
+        self.actions_log.push(format!("switch_tab: {direction:?}"));
         true
     }
 

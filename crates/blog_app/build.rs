@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -668,11 +668,15 @@ fn main() -> Result<()> {
                             metadata.baseline_from_top = Some(baseline);
                             metadata.svg_height = Some(height);
                             baseline_extracted_count += 1;
-                            println!("cargo:warning=Extracted baseline data for existing formula: {formula}");
+                            println!(
+                                "cargo:warning=Extracted baseline data for existing formula: {formula}"
+                            );
                         }
                     }
                     Err(e) => {
-                        println!("cargo:warning=Failed to extract baseline for existing formula '{formula}': {e}");
+                        println!(
+                            "cargo:warning=Failed to extract baseline for existing formula '{formula}': {e}"
+                        );
                     }
                 }
             }

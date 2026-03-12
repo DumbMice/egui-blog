@@ -73,7 +73,7 @@ pub use config::{
 pub use context::{ContextDetector, ContextProvider};
 pub use help::HelpOverlay;
 pub use integration::{ShortcutIntegration, TestIntegration};
-pub use loader::{load_shortcuts_config, ShortcutConfigError};
+pub use loader::{ShortcutConfigError, load_shortcuts_config};
 pub use manager::ShortcutManager;
 
 /// Initialize the shortcut system

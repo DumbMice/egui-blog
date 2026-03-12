@@ -4,6 +4,40 @@ use egui::{Color32, Response, RichText, Ui};
 
 use crate::tags::{Tag, TagSearchState};
 
+/// Get cursor position with fallback to prevent NaN crashes in WASM
+/// Always returns a valid position, using fallback if needed
+fn get_dropdown_position(ui: &Ui) -> egui::Pos2 {
+    let cursor_rect = ui.cursor();
+    let mut pos = cursor_rect.left_bottom();
+
+    // Check for NaN or infinite values
+    if pos.x.is_nan() || pos.y.is_nan() || !pos.x.is_finite() || !pos.y.is_finite() {
+        #[cfg(target_arch = "wasm32")]
+        log::warn!("Invalid cursor position in WASM: {:?}, using fallback", pos);
+
+        // Use a fallback position based on the text edit widget area
+        // Get the last widget rect (should be the text edit or clear button)
+        if let Some(last_widget) = ui
+            .ctx()
+            .data(|d| d.get_temp::<egui::Rect>(egui::Id::new("last_search_widget")))
+        {
+            if last_widget.is_positive() {
+                pos = last_widget.right_bottom();
+            } else {
+                // Ultimate fallback: position below search icon
+                pos = ui.cursor().min; // Top-left of current cursor
+                pos.y += 30.0; // Move down a bit
+            }
+        } else {
+            // Fallback: position below search icon
+            pos = ui.cursor().min; // Top-left of current cursor
+            pos.y += 30.0; // Move down a bit
+        }
+    }
+
+    pos
+}
+
 /// Determine text color for good contrast on a background color
 /// Uses Catppuccin theme colors: text color for contrast, falls back to base color if needed
 fn text_color_for_background(bg_color: Color32, ui: &Ui) -> Color32 {
@@ -81,7 +115,7 @@ pub fn selected_tags_chips(
             let text_color = text_color_for_background(tag_color, ui);
             let response = ui.add(
                 egui::Button::new(
-                    RichText::new(format!("#{tag_name} ✕"))
+                    RichText::new(format!("#{tag_name} ❌"))
                         .small()
                         .color(text_color),
                 )
@@ -115,13 +149,26 @@ pub fn tag_search_bar(
         // Selected tags chips
         if !search_state.selected_tags.is_empty() {
             tags_changed = selected_tags_chips(ui, search_state, all_tags);
+        } else {
+            // When no tags, add minimal invisible spacer to maintain consistent layout
+            ui.add_space(4.0);
         }
 
         // Search input
         ui.horizontal(|ui| {
             ui.label("🔍");
 
-            let response = ui.text_edit_singleline(&mut search_state.search_text);
+            let response = ui.add(
+                egui::TextEdit::singleline(&mut search_state.search_text)
+                    .id(egui::Id::new("search_bar_input")), // Stable ID for focus/cursor state
+            );
+
+            // Store the text edit widget rect for dropdown positioning fallback
+            if response.rect.is_positive() {
+                ui.ctx().data_mut(|d| {
+                    d.insert_temp(egui::Id::new("last_search_widget"), response.rect);
+                });
+            }
 
             // Handle tag mode
             if search_state.search_text.ends_with('#') && !search_state.in_tag_mode {
@@ -165,9 +212,12 @@ pub fn tag_search_bar(
 
         // Tag suggestions dropdown
         if search_state.in_tag_mode && !search_state.suggestions.is_empty() {
+            // Get dropdown position with fallback to prevent NaN crashes
+            let cursor_pos = get_dropdown_position(ui);
+
             egui::Area::new(egui::Id::new("tag_autocomplete_dropdown"))
                 .order(egui::Order::Foreground)
-                .fixed_pos(ui.cursor().left_bottom())
+                .fixed_pos(cursor_pos)
                 .show(ui.ctx(), |ui| {
                     egui::Frame::popup(ui.style())
                         .inner_margin(egui::Margin::same(4))
@@ -209,7 +259,7 @@ pub fn tag_search_bar(
 }
 
 /// Update tag suggestions based on current input.
-fn update_tag_suggestions(search_state: &mut TagSearchState, all_tags: &[Tag]) {
+pub fn update_tag_suggestions(search_state: &mut TagSearchState, all_tags: &[Tag]) {
     search_state.suggestions.clear();
 
     if search_state.tag_input.is_empty() {

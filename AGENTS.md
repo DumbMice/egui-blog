@@ -36,6 +36,7 @@ Starts a development server with file watching on http://localhost:8766.
 - **Error handling**: Shows compiler errors in terminal, continues running after failures
 - **Generated file filtering**: Ignores `assets/math/`, `src/math/embedded.rs`, `target/`
 - **User feedback**: Clear messages for rebuild start, success, and failure
+- **IMPORTANT**: Must be run from project root directory
 
 #### Production Server (Optimized)
 ```bash
@@ -45,6 +46,7 @@ Builds optimized WASM with `wasm-opt` and serves from `web_blog/release/`.
 - **Optimized builds**: Uses `wasm-opt -O2 --fast-math` for smaller WASM
 - **No file watching**: Static serving only
 - **Info log level**: Default log level for production
+- **IMPORTANT**: Must be run from project root directory
 
 #### Native Desktop Application
 ```bash
@@ -60,11 +62,13 @@ Builds only, doesn't start server.
 
 ### Cargo Aliases (Simplified Commands)
 ```bash
-cargo blog          # Development server (hot reload)
-cargo blog-release  # Production server (optimized)
+cargo blog          # Development server (hot reload) - MUST be run from project root
+cargo blog-release  # Production server (optimized) - MUST be run from project root
 cargo blog-native   # Native desktop app
 cargo blog-wasm     # Build WASM library only
 ```
+
+**IMPORTANT**: The `cargo blog` and `cargo blog-release` commands MUST be run from the **project root directory** (`/home/ybc/Work/egui-dev`), NOT from `crates/blog_app/`. Running from the wrong directory will cause "No such file or directory" errors.
 
 ### Command Options
 ```bash
@@ -357,6 +361,7 @@ You can invoke functions by writing a "<｜DSML｜function_calls>" block like th
 3. **Ignoring state management**: Always update `PostManagerState` appropriately
 4. **Forgetting tests**: New features need corresponding tests
 5. **Over-complicating UI**: Keep egui immediate-mode simple and declarative
+6. **Wrong working directory**: `cargo blog` and `cargo blog-release` MUST be run from project root, not from `crates/blog_app/`
 
 ## Verification Checklist
 

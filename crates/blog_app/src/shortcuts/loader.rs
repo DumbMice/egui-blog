@@ -1,6 +1,6 @@
 //! Configuration file loading for keyboard shortcuts.
 
-use crate::shortcuts::config::{default_shortcuts, ShortcutConfig};
+use crate::shortcuts::config::{ShortcutConfig, default_shortcuts};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};

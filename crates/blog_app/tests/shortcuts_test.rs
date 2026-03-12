@@ -1,8 +1,8 @@
 //! Tests for the keyboard shortcuts system.
 
 use blog_app::shortcuts::{
-    load_shortcuts_config, ActionExecutor, ContextProvider, FocusedPanel, PostNavigation,
-    ShortcutConfig, ShortcutManager, TabDirection, TestIntegration,
+    ActionExecutor, ContextProvider, FocusedPanel, PostNavigation, ShortcutConfig, ShortcutManager,
+    TabDirection, TestIntegration, load_shortcuts_config,
 };
 use egui::Context;
 

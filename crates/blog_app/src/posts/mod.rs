@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    load_embedded_content, load_post_from_file, load_posts_from_dir, parse_post_content,
-    Frontmatter, LoadError,
+    Frontmatter, LoadError, load_embedded_content, load_post_from_file, load_posts_from_dir,
+    parse_post_content,
 };
 pub use state::PostManagerState; // NEW
 
