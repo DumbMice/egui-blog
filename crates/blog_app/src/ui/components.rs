@@ -199,6 +199,14 @@ pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugStat
 
                 ui.separator();
 
+                // Simple search test button - toggle display
+                if ui.button("Toggle simple search test").clicked() {
+                    debug_state.show_simple_search_test = !debug_state.show_simple_search_test;
+                    interacted = true;
+                }
+
+                ui.separator();
+
                 // Clear cache button
                 if ui.button("Clear cache").clicked() {
                     interacted = true;

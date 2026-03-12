@@ -110,6 +110,8 @@ pub struct TopPanelResult {
     pub search_changed: bool,
     /// Whether the theme was changed
     pub theme_changed: bool,
+    /// Whether search was committed with Enter key (should update URL)
+    pub search_committed: bool,
 }
 
 /// Configuration for the top panel
@@ -128,7 +130,7 @@ impl TopPanelResult {
     /// Returns true if either search or theme changed
     #[expect(dead_code)]
     pub fn any_changed(&self) -> bool {
-        self.search_changed || self.theme_changed
+        self.search_changed || self.theme_changed || self.search_committed
     }
 }
 
@@ -142,6 +144,7 @@ pub fn top_panel(
 ) -> TopPanelResult {
     let mut theme_changed = false;
     let mut search_changed = false;
+    let mut search_committed = false;
 
     ui.horizontal(|ui| {
         // Blog title
@@ -150,10 +153,13 @@ pub fn top_panel(
         ui.separator();
 
         // Search bar with tag support
-        let (search_bar_changed, tags_changed) =
+        let (search_bar_changed, tags_changed, search_committed_flag) =
             crate::ui::tag_components::tag_search_bar(ui, config.tag_search_state, config.all_tags);
         if search_bar_changed || tags_changed {
             search_changed = true;
+        }
+        if search_committed_flag {
+            search_committed = true;
         }
 
         ui.separator();
@@ -190,6 +196,7 @@ pub fn top_panel(
     TopPanelResult {
         search_changed,
         theme_changed,
+        search_committed,
     }
 }
 
@@ -359,25 +366,10 @@ pub fn side_panel(
                 if response.clicked() && !is_selected {
                     interactive_element_clicked = true;
                     *selected_content_type = Some(content_type);
-                    // Find first post of this content type to select
-                    let filtered_posts = crate::tags::search_posts(
-                        post_manager.posts(),
-                        tag_search_state,
-                    )
-                    .into_iter()
-                    .filter(|post| post.content_type == content_type)
-                    .collect::<Vec<_>>();
-                    if let Some(first_post) = filtered_posts.first()
-                        && let Some(index) = post_manager
-                            .posts()
-                            .iter()
-                            .position(|p| p.id == first_post.id)
-                    {
-                        *selected_post_index = index;
-                        selection_changed = true;
-                        on_selection(Some(first_post));
-                        *request_auto_scroll = true;
-                    }
+                    // Tab switching is just a filter, not navigation
+                    // Don't change selected_post_index or call on_selection
+                    // Current post stays visible even if filtered out
+                    log::debug!("Tab switched to {:?} (filter only, no navigation)", content_type);
                 }
             }
         });

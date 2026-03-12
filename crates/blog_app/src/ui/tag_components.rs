@@ -141,9 +141,10 @@ pub fn tag_search_bar(
     ui: &mut Ui,
     search_state: &mut TagSearchState,
     all_tags: &[Tag],
-) -> (bool, bool) {
+) -> (bool, bool, bool) {
     let mut search_changed = false;
     let mut tags_changed = false;
+    let mut search_committed_flag = false;
 
     ui.vertical(|ui| {
         // Selected tags chips
@@ -158,9 +159,11 @@ pub fn tag_search_bar(
         ui.horizontal(|ui| {
             ui.label("🔍");
 
+            // Use TextEdit builder with stable ID and desired width for more reliable cursor handling
             let response = ui.add(
                 egui::TextEdit::singleline(&mut search_state.search_text)
-                    .id(egui::Id::new("search_bar_input")), // Stable ID for focus/cursor state
+                    .id(egui::Id::new("tag_search_input"))
+                    .desired_width(200.0), // Fixed width for more stable layout
             );
 
             // Store the text edit widget rect for dropdown positioning fallback
@@ -170,21 +173,55 @@ pub fn tag_search_bar(
                 });
             }
 
-            // Handle tag mode
-            if search_state.search_text.ends_with('#') && !search_state.in_tag_mode {
+            // Debug: Log when text changes
+            if response.changed() {
+                #[cfg(target_arch = "wasm32")]
+                log::debug!(
+                    "TAG SEARCH text changed: '{}' (len: {}) - in_tag_mode: {}",
+                    search_state.search_text,
+                    search_state.search_text.len(),
+                    search_state.in_tag_mode
+                );
+            }
+
+            // Check for Enter key - indicates search should be committed to URL
+            let enter_pressed =
+                response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            if enter_pressed {
+                #[cfg(target_arch = "wasm32")]
+                log::debug!(
+                    "Enter key pressed in search (search committed): '{}'",
+                    search_state.search_text
+                );
+                // Optionally blur the input field
+                response.surrender_focus();
+                search_committed_flag = true;
+            }
+
+            // Handle tag mode - but buffer updates to avoid interfering with cursor
+            // Process tag logic AFTER text input to prevent cursor corruption
+            let current_text = search_state.search_text.clone();
+            let was_in_tag_mode = search_state.in_tag_mode;
+
+            // Check if we should enter tag mode
+            if current_text.ends_with('#') && !was_in_tag_mode {
                 search_state.in_tag_mode = true;
                 search_state.tag_input.clear();
+                #[cfg(target_arch = "wasm32")]
+                log::debug!("Entered tag mode");
             } else if search_state.in_tag_mode {
-                // Update tag input
-                if search_state.search_text.ends_with(' ') {
+                // Update tag input - but only if text actually contains tag
+                if current_text.ends_with(' ') {
                     // Space ends tag mode
                     search_state.in_tag_mode = false;
                     if !search_state.tag_input.is_empty() {
                         search_state.add_tag(search_state.tag_input.clone());
                         tags_changed = true;
+                        #[cfg(target_arch = "wasm32")]
+                        log::debug!("Added tag from space: {}", search_state.tag_input);
                     }
                     search_state.tag_input.clear();
-                } else if let Some(tag_part) = search_state.search_text.strip_prefix('#') {
+                } else if let Some(tag_part) = current_text.strip_prefix('#') {
                     let new_tag_input: String = tag_part.to_owned();
 
                     // Only update suggestions if tag input actually changed
@@ -193,7 +230,18 @@ pub fn tag_search_bar(
 
                         // Update suggestions
                         update_tag_suggestions(search_state, all_tags);
+
+                        #[cfg(target_arch = "wasm32")]
+                        if !search_state.tag_input.is_empty() {
+                            log::debug!("Tag input updated: '{}'", search_state.tag_input);
+                        }
                     }
+                } else {
+                    // Text doesn't start with # anymore - exit tag mode
+                    search_state.in_tag_mode = false;
+                    search_state.tag_input.clear();
+                    #[cfg(target_arch = "wasm32")]
+                    log::debug!("Exited tag mode (no # prefix)");
                 }
             }
 
@@ -243,10 +291,13 @@ pub fn tag_search_bar(
                                         if response.clicked() {
                                             search_state.add_tag(tag.name.clone());
                                             search_state.in_tag_mode = false;
-                                            search_state.search_text.clear();
+                                            // Don't clear search text - just exit tag mode
+                                            // Clearing text resets cursor position
                                             search_state.tag_input.clear();
                                             tags_changed = true;
                                             search_changed = true;
+                                            #[cfg(target_arch = "wasm32")]
+                                            log::debug!("Tag selected from dropdown: {}", tag.name);
                                         }
                                     }
                                 });
@@ -255,7 +306,7 @@ pub fn tag_search_bar(
         }
     });
 
-    (search_changed, tags_changed)
+    (search_changed, tags_changed, search_committed_flag)
 }
 
 /// Update tag suggestions based on current input.

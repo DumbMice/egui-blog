@@ -344,6 +344,9 @@ impl BlogApp {
                 // Reset to default state
                 self.selected_content_type = None; // Show all content types on home
 
+                // Reset to first post when navigating to Home
+                // Note: just_restored check at beginning prevents this from executing
+                // when restoring from persistence or URL
                 if self.post_manager.count() > 0 {
                     log::debug!("Setting selected_post = 0 for Route::Home");
                     self.selected_post = 0;
@@ -421,9 +424,11 @@ impl BlogApp {
                 if self.router.update_from_hash(hash) {
                     log::debug!("Updated router from browser URL");
                 }
+                // Apply the route to app state
+                self.just_restored = false; // Clear just_restored so sync_state_to_route() executes
+                self.sync_state_to_route();
                 // Browser URL takes precedence, skip persisted state
                 self.route_restored = true;
-                self.just_restored = false;
                 return;
             }
         }
@@ -621,6 +626,7 @@ impl eframe::App for BlogApp {
         let mut top_panel_result = ui::layout::TopPanelResult {
             search_changed: false,
             theme_changed: false,
+            search_committed: false,
         };
         Panel::top("top_panel").show_inside(ui, |ui| {
             top_panel_result = ui::layout::top_panel(
@@ -657,6 +663,17 @@ impl eframe::App for BlogApp {
             log::warn!("top_panel reported theme changed but self.theme == self.previous_theme");
         }
 
+        // Handle search committed with Enter key
+        if top_panel_result.search_committed {
+            log::debug!("Search committed with Enter key, updating URL");
+            // Navigate to search route to update URL
+            let route = crate::routing::Route::Search {
+                query: self.tag_search_state.search_text.clone(),
+                tags: self.tag_search_state.selected_tags.clone(),
+            };
+            self.navigate_to(route);
+        }
+
         // Defensive check: Verify search actually changed before navigating
         // This prevents false positives from theme changes or other UI interactions
         if tag_search_was_modified {
@@ -691,6 +708,11 @@ impl eframe::App for BlogApp {
             // Show animation configuration window if enabled
             if self.debug_state.show_animation_config {
                 crate::debug_windows::show_animation_config_window(ui, &mut self.debug_state);
+            }
+
+            // Show simple search test window if enabled
+            if self.debug_state.show_simple_search_test {
+                crate::debug_windows::show_simple_search_test_window(ui, &mut self.debug_state);
             }
         }
 
@@ -898,18 +920,12 @@ impl eframe::App for BlogApp {
             self.handle_retry();
         }
 
-        // Update URL if tag search was modified
+        // Note: Search state changes no longer automatically update URL
+        // URL updates only happen via explicit actions (Enter key, navigation)
+        // This prevents cursor positioning issues in WASM
         if tag_search_was_modified {
-            if self.tag_search_state.is_active() {
-                let route = crate::routing::Route::Search {
-                    query: self.tag_search_state.search_text.clone(),
-                    tags: self.tag_search_state.selected_tags.clone(),
-                };
-                self.navigate_to(route);
-            } else {
-                // Clear search - navigate to home
-                self.navigate_to(crate::routing::Route::Home);
-            }
+            #[cfg(target_arch = "wasm32")]
+            log::debug!("Search modified but URL not updated (prevent cursor issues)");
         }
 
         // Bottom panel
@@ -1101,6 +1117,22 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         // Request auto-scroll if navigation was successful
         if navigation_successful {
             self.request_side_panel_auto_scroll = true;
+            
+            // Update URL to match the new post selection (consistent with mouse clicks)
+            if let Some(post) = self.post_manager.get(self.selected_post) {
+                let route = match post.content_type {
+                    crate::posts::ContentType::Post => {
+                        crate::routing::Router::route_to_post(&post.slug)
+                    }
+                    crate::posts::ContentType::Note => {
+                        crate::routing::Router::route_to_note(&post.slug)
+                    }
+                    crate::posts::ContentType::Review => {
+                        crate::routing::Router::route_to_review(&post.slug)
+                    }
+                };
+                self.navigate_to(route);
+            }
         }
 
         navigation_successful

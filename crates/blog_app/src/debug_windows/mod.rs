@@ -19,6 +19,10 @@ pub struct DebugState {
     pub show_animation_config: bool,
     /// Animation configuration parameters
     pub animation_config: crate::animation::FocusAnimationConfig,
+    /// Show simple search test window
+    pub show_simple_search_test: bool,
+    /// Simple search test state
+    pub simple_search_test: crate::ui::simple_search_test::SimpleSearchTest,
 }
 
 #[cfg(debug_assertions)]
@@ -33,6 +37,8 @@ impl Default for DebugState {
             last_frame_time: None,
             show_animation_config: false,
             animation_config: crate::animation::FocusAnimationConfig::default(),
+            show_simple_search_test: false,
+            simple_search_test: crate::ui::simple_search_test::SimpleSearchTest::new(),
         }
     }
 }
@@ -432,5 +438,59 @@ pub fn show_animation_config_window(ui: &egui::Ui, debug_state: &mut DebugState)
             ui.label("• Uses Catppuccin blue color from current theme");
             ui.label("• Very short duration (100ms default) - just enough to see");
             ui.label("• No persistent tint - panel returns to normal after flash");
+        });
+}
+
+/// Show simple search test window
+#[cfg(debug_assertions)]
+pub fn show_simple_search_test_window(ui: &egui::Ui, debug_state: &mut DebugState) {
+    egui::Window::new("Simple Search Test")
+        .default_width(400.0)
+        .default_height(300.0)
+        .open(&mut debug_state.show_simple_search_test)
+        .show(ui.ctx(), |ui| {
+            ui.heading("Simple Search Bar Test");
+            ui.label("This tests cursor positioning without tag functionality.");
+            ui.separator();
+
+            ui.label("Test 1: Basic text_edit_singleline()");
+            let (changed1, _) = debug_state.simple_search_test.show(ui);
+            if changed1 {
+                ui.label("✓ Text changed in basic version");
+            }
+
+            ui.separator();
+
+            ui.label("Test 2: TextEdit with stable ID");
+            let (changed2, _) = debug_state.simple_search_test.show_with_id(ui);
+            if changed2 {
+                ui.label("✓ Text changed in ID version");
+            }
+
+            ui.separator();
+
+            ui.label("Debug Info:");
+            ui.label(format!(
+                "Total changes: {}",
+                debug_state.simple_search_test.change_count
+            ));
+            ui.label(format!(
+                "Current text: '{}' (len: {})",
+                debug_state.simple_search_test.search_text,
+                debug_state.simple_search_test.search_text.len()
+            ));
+
+            ui.separator();
+
+            ui.label("Instructions:");
+            ui.label("1. Click in search bar");
+            ui.label("2. Type text at normal speed");
+            ui.label("3. Observe if cursor moves correctly");
+            ui.label("4. Check browser console for debug logs");
+
+            if ui.button("Reset Test").clicked() {
+                debug_state.simple_search_test =
+                    crate::ui::simple_search_test::SimpleSearchTest::new();
+            }
         });
 }

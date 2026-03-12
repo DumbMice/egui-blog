@@ -4,6 +4,7 @@ pub mod components;
 pub mod layout;
 pub mod markdown;
 pub mod responsive;
+pub mod simple_search_test;
 pub mod table_renderer;
 pub mod tag_components;
 
