@@ -1,6 +1,7 @@
 //! Shared utilities for file embedding macros.
 
 use std::env;
+use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -20,10 +21,15 @@ pub struct FileInfo {
 /// # Arguments
 /// * `relative_dir` - Relative path from source file (e.g., "../../assets/math/")
 /// * `pattern` - Glob pattern (e.g., "*.svg")
+/// * `filter` - Optional filter function that takes file content and returns bool
 ///
 /// # Returns
 /// Vector of file information sorted by filename.
-pub fn scan_directory(relative_dir: &str, pattern: &str) -> Result<Vec<FileInfo>> {
+pub fn scan_directory(
+    relative_dir: &str,
+    pattern: &str,
+    filter: Option<&dyn Fn(&str) -> bool>,
+) -> Result<Vec<FileInfo>> {
     // Get the crate root directory
     let manifest_dir = env::var("CARGO_MANIFEST_DIR")
         .context("CARGO_MANIFEST_DIR environment variable not set")?;
@@ -106,6 +112,27 @@ pub fn scan_directory(relative_dir: &str, pattern: &str) -> Result<Vec<FileInfo>
         // Apply glob pattern
         if !glob_pattern.matches(filename) {
             continue;
+        }
+
+        // Apply filter if provided
+        if let Some(filter_fn) = filter {
+            // Read file content to apply filter
+            match fs::read_to_string(path) {
+                Ok(content) => {
+                    if !filter_fn(&content) {
+                        continue; // Skip file based on filter
+                    }
+                }
+                Err(e) => {
+                    // If we can't read the file, skip it (safer than crashing)
+                    eprintln!(
+                        "Warning: Failed to read file {} for filtering: {}",
+                        path.display(),
+                        e
+                    );
+                    continue;
+                }
+            }
         }
 
         // Extract basename (filename without extension)

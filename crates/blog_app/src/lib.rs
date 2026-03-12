@@ -13,6 +13,8 @@ pub mod tags;
 pub mod typography;
 pub mod ui;
 
+mod build_filter;
+
 #[cfg(debug_assertions)]
 mod debug_windows;
 
@@ -729,7 +731,11 @@ impl eframe::App for BlogApp {
 
             // Show math resolution config window if enabled
             if self.debug_state.show_math_resolution_config {
-                crate::debug_windows::show_math_resolution_config_window(ui, &mut self.debug_state, &mut self.math_resolution_scale);
+                crate::debug_windows::show_math_resolution_config_window(
+                    ui,
+                    &mut self.debug_state,
+                    &mut self.math_resolution_scale,
+                );
             }
         }
 
@@ -975,9 +981,9 @@ impl crate::shortcuts::ContextProvider for BlogApp {
         // New post content has ID: egui::Id::new("new_post_content")
         // Find dialog input has ID: egui::Id::new("find_dialog_input")
         ctx.memory(|mem| {
-            mem.has_focus(egui::Id::new("new_post_title")) ||
-            mem.has_focus(egui::Id::new("new_post_content")) ||
-            mem.has_focus(egui::Id::new("find_dialog_input"))
+            mem.has_focus(egui::Id::new("new_post_title"))
+                || mem.has_focus(egui::Id::new("new_post_content"))
+                || mem.has_focus(egui::Id::new("find_dialog_input"))
         })
     }
 
@@ -1142,7 +1148,7 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         // Request auto-scroll if navigation was successful
         if navigation_successful {
             self.request_side_panel_auto_scroll = true;
-            
+
             // Update URL to match the new post selection (consistent with mouse clicks)
             if let Some(post) = self.post_manager.get(self.selected_post) {
                 let route = match post.content_type {
@@ -1344,7 +1350,7 @@ impl BlogApp {
                     ui.label("Find:");
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut self.find_query)
-                            .id(egui::Id::new("find_dialog_input"))
+                            .id(egui::Id::new("find_dialog_input")),
                     );
 
                     // Focus the text input when dialog opens

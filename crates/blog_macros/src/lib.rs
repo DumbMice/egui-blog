@@ -100,7 +100,7 @@ pub fn embed_file_map(input: TokenStream) -> TokenStream {
     }
 
     // Scan directory for matching files
-    let files = match utils::scan_directory(&input.relative_dir, &input.pattern) {
+    let files = match utils::scan_directory(&input.relative_dir, &input.pattern, None) {
         Ok(files) => files,
         Err(e) => {
             return syn::Error::new(proc_macro2::Span::call_site(), e.to_string())
@@ -149,6 +149,8 @@ struct EmbedFileArrayInput {
     relative_dir: String,
     /// Glob pattern (e.g., "*.md")
     pattern: String,
+    /// Optional filter function (returns true to include file)
+    filter: Option<syn::Expr>,
 }
 
 impl syn::parse::Parse for EmbedFileArrayInput {
@@ -170,17 +172,42 @@ impl syn::parse::Parse for EmbedFileArrayInput {
         // Parse pattern string
         let pattern: LitStr = input.parse()?;
 
+        // Check for optional filter parameter
+        let mut filter = None;
+
+        if !input.is_empty() {
+            // Parse comma separator if present
+            let _ = input.parse::<syn::Token![,]>();
+
+            if !input.is_empty() {
+                // Parse "filter = "
+                let filter_ident: syn::Ident = input.parse()?;
+                if filter_ident != "filter" {
+                    return Err(syn::Error::new(
+                        filter_ident.span(),
+                        "expected 'filter' keyword",
+                    ));
+                }
+
+                input.parse::<syn::Token![=]>()?;
+
+                // Parse filter expression
+                filter = Some(input.parse::<syn::Expr>()?);
+            }
+        }
+
         // Ensure no trailing tokens
         if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
-                "unexpected tokens after pattern",
+                "unexpected tokens after filter expression",
             ));
         }
 
         Ok(Self {
             relative_dir: relative_dir.value(),
             pattern: pattern.value(),
+            filter,
         })
     }
 }
@@ -188,20 +215,28 @@ impl syn::parse::Parse for EmbedFileArrayInput {
 /// Embed files from a directory and create an array of file contents as strings.
 ///
 /// # Syntax
-/// `embed_file_array!(relative_dir, pattern = "*.md")`
+/// `embed_file_array!(relative_dir, pattern = "*.md"[, filter = |content| { ... }])`
 ///
 /// # Arguments
 /// - `relative_dir`: Relative path from the source file to the target directory
 ///   (e.g., `"../../posts/"`).
 /// - `pattern`: Glob pattern to match files (e.g., `"*.md"`).
+/// - `filter` (optional): A closure or function that takes `&str` (file content)
+///   and returns `bool` (include file if `true`).
 ///
 /// # Returns
 /// An expression of type `&[&'static str]` containing the file contents.
 ///
-/// # Example
+/// # Examples
 /// ```rust
+/// // Basic usage (no filter)
 /// let post_contents = embed_file_array!("../../posts/", pattern = "*.md");
 /// // post_contents is &[&'static str]
+///
+/// // With filter
+/// let filtered_contents = embed_file_array!("../../posts/", pattern = "*.md", filter = |content| {
+///     !content.contains("#test")
+/// });
 /// ```
 #[proc_macro]
 pub fn embed_file_array(input: TokenStream) -> TokenStream {
@@ -215,7 +250,7 @@ pub fn embed_file_array(input: TokenStream) -> TokenStream {
     }
 
     // Scan directory for matching files
-    let files = match utils::scan_directory(&input.relative_dir, &input.pattern) {
+    let files = match utils::scan_directory(&input.relative_dir, &input.pattern, None) {
         Ok(files) => files,
         Err(e) => {
             return syn::Error::new(proc_macro2::Span::call_site(), e.to_string())
@@ -241,10 +276,33 @@ pub fn embed_file_array(input: TokenStream) -> TokenStream {
             &[]
         }
     } else {
-        quote! {
-            &[
-                #(#include_items)*
-            ]
+        // Generate array with optional filtering
+        if let Some(filter_expr) = &input.filter {
+            // With filter: generate code that filters at runtime
+            quote! {
+                {
+                    const ALL_CONTENTS: &[&str] = &[
+                        #(#include_items)*
+                    ];
+                    // Apply filter and collect into vector
+                    let mut filtered = Vec::new();
+                    for &content in ALL_CONTENTS {
+                        if (#filter_expr)(content) {
+                            filtered.push(content);
+                        }
+                    }
+                    // Convert to static slice (leaked)
+                    // This is acceptable since posts are loaded once at startup
+                    &*filtered.leak()
+                }
+            }
+        } else {
+            // Without filter: direct array
+            quote! {
+                &[
+                    #(#include_items)*
+                ]
+            }
         }
     };
 

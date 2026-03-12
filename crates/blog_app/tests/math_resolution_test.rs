@@ -1,6 +1,6 @@
 //! Tests for math formula resolution scaling feature
 
-use blog_app::math::{find_formulas, MathAssetManager};
+use blog_app::math::{MathAssetManager, find_formulas};
 use egui::ImageSource;
 
 /// Test that resolution scale parameter is accepted and clamped

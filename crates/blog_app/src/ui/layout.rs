@@ -660,7 +660,7 @@ fn main_content_internal_impl(
                 ui.label("Title:");
                 ui.add(
                     egui::TextEdit::singleline(state.new_post_title)
-                        .id(egui::Id::new("new_post_title"))
+                        .id(egui::Id::new("new_post_title")),
                 );
 
                 ui.label("Content (markdown):");

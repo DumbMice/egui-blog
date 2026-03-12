@@ -160,14 +160,22 @@ pub fn load_embedded_content() -> Vec<BlogPost> {
     let mut all_content = Vec::new();
     let mut posts = Vec::new();
 
-    // Load posts from posts directory
-    let post_contents = embed_file_array!("../../posts/", pattern = "*.md");
+    // Load posts from posts directory with test post filtering
+    let post_contents = embed_file_array!(
+        "../../posts/",
+        pattern = "*.md",
+        filter = crate::build_filter::filter_test_posts
+    );
     for (id, content) in post_contents.iter().enumerate() {
         all_content.push((content, id, crate::posts::ContentType::Post));
     }
 
-    // Load notes from notes directory
-    let note_contents = embed_file_array!("../../notes/", pattern = "*.md");
+    // Load notes from notes directory with test post filtering
+    let note_contents = embed_file_array!(
+        "../../notes/",
+        pattern = "*.md",
+        filter = crate::build_filter::filter_test_posts
+    );
     for (id, content) in note_contents.iter().enumerate() {
         all_content.push((
             content,
@@ -176,8 +184,12 @@ pub fn load_embedded_content() -> Vec<BlogPost> {
         ));
     }
 
-    // Load reviews from reviews directory
-    let review_contents = embed_file_array!("../../reviews/", pattern = "*.md");
+    // Load reviews from reviews directory with test post filtering
+    let review_contents = embed_file_array!(
+        "../../reviews/",
+        pattern = "*.md",
+        filter = crate::build_filter::filter_test_posts
+    );
     for (id, content) in review_contents.iter().enumerate() {
         all_content.push((
             content,
