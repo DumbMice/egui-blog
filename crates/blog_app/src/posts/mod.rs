@@ -211,7 +211,7 @@ impl BlogPost {
 
         while existing_ids.contains(&id) {
             counter += 1;
-            id = format!("{}-{}", base_id, counter);
+            id = format!("{base_id}-{counter}");
         }
 
         existing_ids.insert(id.clone());

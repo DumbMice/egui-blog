@@ -45,7 +45,7 @@ pub struct MainContentState<'a> {
 
 impl<'a> MainContentState<'a> {
     /// Create a new state bundle
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         post_manager: &'a PostManager,
         selected_post_index: usize,
@@ -208,7 +208,7 @@ pub fn top_panel(
 }
 
 /// Side panel with post list.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn side_panel(
     ui: &mut Ui,
     post_manager: &PostManager,
@@ -535,7 +535,7 @@ pub fn side_panel(
 }
 
 /// Right panel showing table of contents for the current post.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn right_panel(
     ui: &mut Ui,
     post: Option<&crate::posts::BlogPost>,
@@ -582,7 +582,7 @@ pub fn right_panel(
                 // Panel expand button (when panel is collapsed)
                 // Use « (left-pointing) to indicate expand (points toward content)
                 let button_icon = "«";
-                
+
                 // Add vertical spacing for consistent alignment
                 ui.vertical(|ui| {
                     ui.add_space(4.0); // Same as expanded state
@@ -609,11 +609,11 @@ pub fn right_panel(
                     // Panel collapse button on the left
                     // Use » (right-pointing) to indicate collapse (points away from content)
                     let button_icon = "»";
-                    
+
                     // Add vertical spacing to align button with heading text
                     // Heading text is taller, so we need to push the button down a bit
                     ui.vertical(|ui| {
-                        ui.add_space(4.0); // Adjust this value to align button with heading
+                        ui.add_space(8.0); // Adjust this value to align button with heading
                         let button = ui.button(button_icon);
                         if button.clicked() {
                             interactive_element_clicked = true;
@@ -621,7 +621,7 @@ pub fn right_panel(
                         }
                         button.on_hover_text("Collapse panel");
                     });
-                    
+
                     ui.heading("Table of Contents");
                 });
 
@@ -633,10 +633,10 @@ pub fn right_panel(
                         for heading in &post.headings {
                             // Calculate indentation based on heading level
                             let indent = (heading.level.saturating_sub(1) as f32) * 24.0;
-                            
+
                             ui.horizontal(|ui| {
                                 ui.add_space(indent);
-                                
+
                                 // Add bullet style based on heading level
                                 // Alternating: odd levels = ⚫, even levels = ⚪
                                 let bullet = if heading.level % 2 == 1 {
@@ -645,13 +645,14 @@ pub fn right_panel(
                                     "⚪" // Hollow circle for even levels (2, 4, 6)
                                 };
                                 ui.label(bullet);
-                                
+
                                 // Create clickable heading label with underline on hover
-                                let response = ui.add(egui::Button::new(&heading.text)
-                                    .frame(false) // No button frame
-                                    .fill(egui::Color32::TRANSPARENT) // Transparent background
+                                let response = ui.add(
+                                    egui::Button::new(&heading.text)
+                                        .frame(false) // No button frame
+                                        .fill(egui::Color32::TRANSPARENT), // Transparent background
                                 );
-                                
+
                                 // Add underline on hover
                                 if response.hovered() {
                                     ui.painter().line_segment(
@@ -662,7 +663,7 @@ pub fn right_panel(
                                         ui.visuals().widgets.hovered.fg_stroke,
                                     );
                                 }
-                                
+
                                 if response.clicked() {
                                     interactive_element_clicked = true;
                                     heading_clicked_id = Some(heading.id.clone());

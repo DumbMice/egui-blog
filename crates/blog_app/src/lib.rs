@@ -901,8 +901,8 @@ impl eframe::App for BlogApp {
             });
 
         // Handle heading navigation from TOC
-        if let Some(heading_id) = heading_clicked_id {
-            if let Some(current_post) = self.post_manager.get(self.selected_post) {
+        if let Some(heading_id) = heading_clicked_id
+            && let Some(current_post) = self.post_manager.get(self.selected_post) {
                 // Create route with fragment
                 let route = match current_post.content_type {
                     crate::posts::ContentType::Post => {
@@ -927,7 +927,6 @@ impl eframe::App for BlogApp {
                 
                 self.navigate_to(route);
             }
-        }
 
         // Main content area with scrolling
         let mut post_saved = false;

@@ -150,8 +150,8 @@ fn extract_headings(content: &str) -> Vec<crate::posts::Heading> {
                 current_heading_text.clear();
             }
             Event::End(Tag::Heading(_, _, _)) => {
-                if let Some(level) = current_level.take() {
-                    if !current_heading_text.is_empty() {
+                if let Some(level) = current_level.take()
+                    && !current_heading_text.is_empty() {
                         let id = crate::posts::BlogPost::generate_heading_id(
                             &current_heading_text,
                             &mut existing_ids,
@@ -163,7 +163,6 @@ fn extract_headings(content: &str) -> Vec<crate::posts::Heading> {
                             id,
                         });
                     }
-                }
             }
             Event::Text(text) => {
                 if current_level.is_some() {
