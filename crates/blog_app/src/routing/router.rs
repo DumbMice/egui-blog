@@ -60,6 +60,7 @@ impl Router {
     pub fn route_to_post(slug: &str) -> Route {
         Route::Post {
             slug: slug.to_owned(),
+            fragment: None,
         }
     }
 
@@ -67,6 +68,7 @@ impl Router {
     pub fn route_to_note(slug: &str) -> Route {
         Route::Note {
             slug: slug.to_owned(),
+            fragment: None,
         }
     }
 
@@ -74,6 +76,7 @@ impl Router {
     pub fn route_to_review(slug: &str) -> Route {
         Route::Review {
             slug: slug.to_owned(),
+            fragment: None,
         }
     }
 
@@ -259,7 +262,9 @@ mod tests {
     fn test_router_from_hash() {
         let router = Router::from_hash("#/post/my-post");
         assert!(router.initialized);
-        assert!(matches!(router.current_route(), Route::Post { slug } if slug == "my-post"));
+        assert!(
+            matches!(router.current_route(), Route::Post { slug, fragment: None } if slug == "my-post")
+        );
     }
 
     #[test]
@@ -269,7 +274,9 @@ mod tests {
         let route = Router::route_to_post("my-post");
         let url = router.navigate_to(route);
         assert_eq!(url, "#/posts/my-post");
-        assert!(matches!(router.current_route(), Route::Post { slug } if slug == "my-post"));
+        assert!(
+            matches!(router.current_route(), Route::Post { slug, fragment: None } if slug == "my-post")
+        );
 
         let route = Router::route_home();
         let url = router.navigate_to(route);
@@ -282,12 +289,16 @@ mod tests {
         let mut router = Router::new();
 
         assert!(router.update_from_hash("#/posts/my-post"));
-        assert!(matches!(router.current_route(), Route::Post { slug } if slug == "my-post"));
+        assert!(
+            matches!(router.current_route(), Route::Post { slug, fragment: None } if slug == "my-post")
+        );
 
         // Test backward compatibility - need to reset router first
         let mut router2 = Router::new();
         assert!(router2.update_from_hash("#/post/my-post"));
-        assert!(matches!(router2.current_route(), Route::Post { slug } if slug == "my-post"));
+        assert!(
+            matches!(router2.current_route(), Route::Post { slug, fragment: None } if slug == "my-post")
+        );
     }
 
     #[test]
@@ -321,7 +332,8 @@ mod tests {
         assert_eq!(
             deserialized.current_route(),
             &Route::Post {
-                slug: "my-post".to_string()
+                slug: "my-post".to_string(),
+                fragment: None,
             }
         );
         assert_eq!(
@@ -346,7 +358,8 @@ mod tests {
         assert_eq!(
             deserialized.current_route(),
             &Route::Post {
-                slug: "old-post".to_string()
+                slug: "old-post".to_string(),
+                fragment: None,
             }
         );
         assert_eq!(

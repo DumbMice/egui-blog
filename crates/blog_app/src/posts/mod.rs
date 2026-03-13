@@ -5,8 +5,8 @@ mod state; // NEW
 
 #[expect(unused_imports)]
 pub use loader::{
-    Frontmatter, LoadError, load_embedded_content, load_post_from_file, load_posts_from_dir,
-    parse_post_content,
+    load_embedded_content, load_post_from_file, load_posts_from_dir, parse_post_content,
+    Frontmatter, LoadError,
 };
 pub use state::PostManagerState; // NEW
 
@@ -62,6 +62,17 @@ impl ContentType {
     }
 }
 
+/// A heading in a blog post for table of contents.
+#[derive(Debug, Clone)]
+pub struct Heading {
+    /// Heading level (1-6 for h1-h6)
+    pub level: u8,
+    /// Heading text
+    pub text: String,
+    /// URL-friendly ID for fragment navigation
+    pub id: String,
+}
+
 /// A content item (post, note, or review).
 #[derive(Clone, Debug)]
 pub struct BlogPost {
@@ -81,6 +92,8 @@ pub struct BlogPost {
     pub tags: Vec<String>,
     /// Cached processed content with math placeholders
     cached_processed_content: Option<String>,
+    /// Table of contents headings
+    pub headings: Vec<Heading>,
 }
 
 impl BlogPost {
@@ -113,12 +126,19 @@ impl BlogPost {
             date: date.to_owned(),
             tags: Vec::new(),
             cached_processed_content: Some(processed_content),
+            headings: Vec::new(), // Will be populated by parse_post_content
         }
     }
 
     /// Create a new blog post with tags.
     pub fn with_tags(mut self, tags: &[&str]) -> Self {
         self.tags = tags.iter().map(ToString::to_string).collect();
+        self
+    }
+
+    /// Create a new blog post with headings.
+    pub fn with_headings(mut self, headings: Vec<Heading>) -> Self {
+        self.headings = headings;
         self
     }
 
@@ -152,6 +172,50 @@ impl BlogPost {
         }
 
         slug
+    }
+
+    /// Generate a URL-friendly ID from heading text with name mangling for duplicates.
+    /// Example: "Introduction" -> "introduction", "Getting Started" -> "getting-started"
+    /// For duplicates: "Introduction" -> "introduction-2", "Introduction" -> "introduction-3"
+    pub fn generate_heading_id(
+        base_text: &str,
+        existing_ids: &mut std::collections::HashSet<String>,
+    ) -> String {
+        let mut id = String::new();
+        let mut last_was_dash = false;
+
+        // First pass: create base ID
+        for c in base_text.chars() {
+            if c.is_alphanumeric() {
+                id.push(c.to_ascii_lowercase());
+                last_was_dash = false;
+            } else if (c.is_whitespace() || c == '-') && !last_was_dash && !id.is_empty() {
+                id.push('-');
+                last_was_dash = true;
+            }
+        }
+
+        // Trim trailing dash
+        if id.ends_with('-') {
+            id.pop();
+        }
+
+        // Ensure ID is not empty
+        if id.is_empty() {
+            id = "section".to_owned();
+        }
+
+        // Handle duplicates with name mangling
+        let base_id = id.clone();
+        let mut counter = 1;
+
+        while existing_ids.contains(&id) {
+            counter += 1;
+            id = format!("{}-{}", base_id, counter);
+        }
+
+        existing_ids.insert(id.clone());
+        id
     }
 
     /// Get the first paragraph of the content as a description.

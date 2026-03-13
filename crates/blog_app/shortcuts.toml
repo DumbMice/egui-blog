@@ -203,3 +203,25 @@ description = "Expand side panel (vim: conceal open)"
 contexts = ["Global", "LeftPanel", "RightPanel"]
 keys = [{ modifiers = [], sequence = ["z", "o"] }]
 action = { type = "ExpandSidePanel" }
+
+# Vim-style right panel (TOC) controls
+[[shortcuts]]
+name = "toggle_right_panel"
+description = "Toggle right panel (TOC)"
+contexts = ["Global", "LeftPanel", "RightPanel"]
+keys = [{ modifiers = ["Control"], sequence = ["z", "i"] }]
+action = { type = "ToggleRightPanel" }
+
+[[shortcuts]]
+name = "collapse_right_panel"  
+description = "Collapse right panel (TOC)"
+contexts = ["Global", "LeftPanel", "RightPanel"]
+keys = [{ modifiers = ["Control"], sequence = ["z", "m"] }]
+action = { type = "CollapseRightPanel" }
+
+[[shortcuts]]
+name = "expand_right_panel"
+description = "Expand right panel (TOC)"
+contexts = ["Global", "LeftPanel", "RightPanel"]
+keys = [{ modifiers = ["Control"], sequence = ["z", "o"] }]
+action = { type = "ExpandRightPanel" }

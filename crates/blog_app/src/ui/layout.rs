@@ -39,6 +39,8 @@ pub struct MainContentState<'a> {
     pub all_tags: &'a [crate::tags::Tag],
     /// Math formula resolution scaling factor
     pub math_resolution_scale: f32,
+    /// Optional fragment ID to scroll to in the content
+    pub fragment_to_scroll_to: Option<&'a str>,
 }
 
 impl<'a> MainContentState<'a> {
@@ -56,6 +58,7 @@ impl<'a> MainContentState<'a> {
         tag_search_state: &'a mut crate::tags::TagSearchState,
         all_tags: &'a [crate::tags::Tag],
         math_resolution_scale: f32,
+        fragment_to_scroll_to: Option<&'a str>,
     ) -> Self {
         Self {
             post_manager,
@@ -69,6 +72,7 @@ impl<'a> MainContentState<'a> {
             tag_search_state,
             all_tags,
             math_resolution_scale,
+            fragment_to_scroll_to,
         }
     }
 }
@@ -530,6 +534,187 @@ pub fn side_panel(
     (selection_changed, panel_clicked)
 }
 
+/// Right panel showing table of contents for the current post.
+#[allow(clippy::too_many_arguments)]
+pub fn right_panel(
+    ui: &mut Ui,
+    post: Option<&crate::posts::BlogPost>,
+    is_focused: bool,
+    panel_rect: egui::Rect,
+    scroll_offset: &mut f32,
+    // Animation parameters
+    animation_state: &crate::animation::FocusAnimationState,
+    animation_config: &crate::animation::FocusAnimationConfig,
+    // Panel state
+    panel_collapsed: bool,
+    mut on_toggle_panel: impl FnMut(),
+) -> (bool, Option<String>) {
+    let mut panel_clicked = false;
+    let mut heading_clicked_id = None;
+    let mut interactive_element_clicked = false;
+
+    // Save the initial rect for click detection
+    let _initial_rect = ui.available_rect_before_wrap();
+
+    // Use the provided panel_rect for click detection (full panel area)
+    let click_rect = panel_rect;
+
+    // Draw animated focus indicator if panel is focused
+    if is_focused {
+        let current_time = ui.ctx().input(|i| i.time);
+
+        FocusRenderer::draw_focus_indicator(
+            ui.painter(),
+            panel_rect,
+            is_focused,
+            animation_state,
+            animation_config,
+            current_time,
+            ui,
+        );
+    }
+
+    // Handle collapsed state - show only hamburger button
+    if panel_collapsed {
+        log::debug!("Right panel is COLLAPSED, showing expand button");
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                // Panel expand button (when panel is collapsed)
+                // Use « (left-pointing) to indicate expand (points toward content)
+                let button_icon = "«";
+                
+                // Add vertical spacing for consistent alignment
+                ui.vertical(|ui| {
+                    ui.add_space(4.0); // Same as expanded state
+                    let button = ui.button(button_icon);
+                    if button.clicked() {
+                        interactive_element_clicked = true;
+                        on_toggle_panel();
+                    }
+                    button.on_hover_text("Expand panel");
+                });
+            });
+        });
+
+        return (panel_clicked, heading_clicked_id);
+    }
+
+    // Expanded panel - show table of contents
+    let scroll_response = egui::ScrollArea::vertical()
+        .scroll_offset(egui::vec2(0.0, *scroll_offset))
+        .show(ui, |ui| {
+            ui.vertical(|ui| {
+                // Panel header with title and collapse button
+                ui.horizontal(|ui| {
+                    // Panel collapse button on the left
+                    // Use » (right-pointing) to indicate collapse (points away from content)
+                    let button_icon = "»";
+                    
+                    // Add vertical spacing to align button with heading text
+                    // Heading text is taller, so we need to push the button down a bit
+                    ui.vertical(|ui| {
+                        ui.add_space(4.0); // Adjust this value to align button with heading
+                        let button = ui.button(button_icon);
+                        if button.clicked() {
+                            interactive_element_clicked = true;
+                            on_toggle_panel();
+                        }
+                        button.on_hover_text("Collapse panel");
+                    });
+                    
+                    ui.heading("Table of Contents");
+                });
+
+                ui.separator();
+
+                // Show TOC content if we have a post with headings
+                if let Some(post) = post {
+                    if !post.headings.is_empty() {
+                        for heading in &post.headings {
+                            // Calculate indentation based on heading level
+                            let indent = (heading.level.saturating_sub(1) as f32) * 24.0;
+                            
+                            ui.horizontal(|ui| {
+                                ui.add_space(indent);
+                                
+                                // Add bullet style based on heading level
+                                // Alternating: odd levels = ⚫, even levels = ⚪
+                                let bullet = if heading.level % 2 == 1 {
+                                    "⚫" // Solid circle for odd levels (1, 3, 5)
+                                } else {
+                                    "⚪" // Hollow circle for even levels (2, 4, 6)
+                                };
+                                ui.label(bullet);
+                                
+                                // Create clickable heading label with underline on hover
+                                let response = ui.add(egui::Button::new(&heading.text)
+                                    .frame(false) // No button frame
+                                    .fill(egui::Color32::TRANSPARENT) // Transparent background
+                                );
+                                
+                                // Add underline on hover
+                                if response.hovered() {
+                                    ui.painter().line_segment(
+                                        [
+                                            response.rect.left_bottom() - egui::vec2(0.0, 1.0),
+                                            response.rect.right_bottom() - egui::vec2(0.0, 1.0),
+                                        ],
+                                        ui.visuals().widgets.hovered.fg_stroke,
+                                    );
+                                }
+                                
+                                if response.clicked() {
+                                    interactive_element_clicked = true;
+                                    heading_clicked_id = Some(heading.id.clone());
+                                }
+                                response.on_hover_text(format!("Jump to: {}", heading.text));
+                            });
+                        }
+                    }
+                } else {
+                    ui.label("No post selected");
+                }
+            });
+        });
+
+    // Update scroll offset from scroll area response
+    *scroll_offset = scroll_response.state.offset.y;
+
+    // Check for clicks on the panel at the end (after all widgets are drawn)
+    // This ensures we detect clicks even on widgets
+    let pointer = ui.ctx().input(|i| i.pointer.clone());
+
+    // Try multiple ways to detect clicks/presses
+    let detected_click =
+        // Method 1: Check for primary click at interact position
+        if let Some(click_pos) = pointer.interact_pos()
+            && click_rect.contains(click_pos) && pointer.primary_clicked()
+        {
+            true
+        }
+        // Method 2: Check for primary press origin (where mouse was pressed down)
+        else if let Some(press_origin) = pointer.press_origin()
+            && click_rect.contains(press_origin) && pointer.primary_down()
+        {
+            true
+        }
+        // Method 3: Check latest position if primary is down
+        else if let Some(latest_pos) = pointer.latest_pos()
+            && click_rect.contains(latest_pos) && pointer.primary_down()
+        {
+            true
+        }
+        else {
+            false
+        };
+
+    if detected_click && !interactive_element_clicked {
+        panel_clicked = true;
+    }
+
+    (panel_clicked, heading_clicked_id)
+}
+
 /// Main content area showing a post or editor with math support.
 pub fn main_content(
     ui: &mut Ui,
@@ -706,6 +891,7 @@ fn main_content_internal_impl(
                             content,
                             state.math_asset_manager,
                             state.math_resolution_scale,
+                            state.fragment_to_scroll_to,
                         );
                     } else {
                         ui.label("Error: Post content not available");

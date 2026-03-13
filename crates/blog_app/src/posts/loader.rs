@@ -98,6 +98,9 @@ pub fn parse_post_content(
     let processed_content =
         crate::ui::markdown::extract_and_replace_math_formulas(markdown_content, manifest);
 
+    // Extract headings for table of contents
+    let headings = extract_headings(markdown_content);
+
     Ok(BlogPost {
         id,
         content_type,
@@ -107,6 +110,7 @@ pub fn parse_post_content(
         date: frontmatter.date,
         tags: frontmatter.tags,
         cached_processed_content: Some(processed_content),
+        headings,
     })
 }
 
@@ -118,6 +122,71 @@ pub fn load_post_from_file(
 ) -> Result<BlogPost, LoadError> {
     let content = fs::read_to_string(path)?;
     parse_post_content(&content, id, default_content_type)
+}
+
+/// Extract headings from markdown content for table of contents.
+fn extract_headings(content: &str) -> Vec<crate::posts::Heading> {
+    use pulldown_cmark::{Event, HeadingLevel, Parser, Tag};
+    use std::collections::HashSet;
+
+    let mut headings = Vec::new();
+    let mut current_heading_text = String::new();
+    let mut current_level: Option<u8> = None;
+    let mut existing_ids = HashSet::new();
+
+    let parser = Parser::new(content);
+
+    for event in parser {
+        match event {
+            Event::Start(Tag::Heading(level, _, _)) => {
+                current_level = Some(match level {
+                    HeadingLevel::H1 => 1,
+                    HeadingLevel::H2 => 2,
+                    HeadingLevel::H3 => 3,
+                    HeadingLevel::H4 => 4,
+                    HeadingLevel::H5 => 5,
+                    HeadingLevel::H6 => 6,
+                });
+                current_heading_text.clear();
+            }
+            Event::End(Tag::Heading(_, _, _)) => {
+                if let Some(level) = current_level.take() {
+                    if !current_heading_text.is_empty() {
+                        let id = crate::posts::BlogPost::generate_heading_id(
+                            &current_heading_text,
+                            &mut existing_ids,
+                        );
+
+                        headings.push(crate::posts::Heading {
+                            level,
+                            text: current_heading_text.clone(),
+                            id,
+                        });
+                    }
+                }
+            }
+            Event::Text(text) => {
+                if current_level.is_some() {
+                    current_heading_text.push_str(&text);
+                }
+            }
+            Event::Code(code) => {
+                if current_level.is_some() {
+                    current_heading_text.push('`');
+                    current_heading_text.push_str(&code);
+                    current_heading_text.push('`');
+                }
+            }
+            Event::SoftBreak => {
+                if current_level.is_some() {
+                    current_heading_text.push(' ');
+                }
+            }
+            _ => {}
+        }
+    }
+
+    headings
 }
 
 /// Load all posts from a directory.
@@ -234,11 +303,9 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(
-            missing_delimiter
-                .to_string()
-                .contains("Missing frontmatter delimiter")
-        );
+        assert!(missing_delimiter
+            .to_string()
+            .contains("Missing frontmatter delimiter"));
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

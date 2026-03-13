@@ -90,6 +90,8 @@ pub struct BlogApp {
     responsive_config: ResponsiveConfig,
     /// Side panel collapsed state
     side_panel_collapsed: bool,
+    /// Right panel (TOC) collapsed state
+    right_panel_collapsed: bool,
     /// Math asset manager for rendering formula SVGs
     #[cfg_attr(feature = "serde", serde(skip))]
     math_asset_manager: MathAssetManager,
@@ -133,6 +135,8 @@ pub struct BlogApp {
     scroll_offset: f32,
     /// Scroll offset for side panel
     side_panel_scroll_offset: f32,
+    /// Scroll offset for right panel (TOC)
+    right_panel_scroll_offset: f32,
     /// Flag to request auto-scroll to selected post in side panel
     request_side_panel_auto_scroll: bool,
     /// Requested scroll delta for main content panel (set by shortcuts, applied in UI)
@@ -148,6 +152,9 @@ pub struct BlogApp {
     /// Whether app was just restored from persistence (to avoid navigation immediately after restore)
     #[cfg_attr(feature = "serde", serde(skip))]
     just_restored: bool,
+    /// Fragment to scroll to in current post (from URL or TOC click)
+    #[cfg_attr(feature = "serde", serde(skip))]
+    fragment_to_scroll_to: Option<String>,
 }
 
 impl Default for BlogApp {
@@ -169,6 +176,7 @@ impl Default for BlogApp {
             layout_config: LayoutConfig::default(),
             responsive_config: ResponsiveConfig::default(),
             side_panel_collapsed: false,
+            right_panel_collapsed: false, // Expanded by default
             math_asset_manager: MathAssetManager::default(),
             math_resolution_scale: default_math_resolution_scale(),
             font_loading_state: FontLoadingState::Loading,
@@ -184,6 +192,7 @@ impl Default for BlogApp {
             focus_animation: crate::animation::FocusAnimationState::new(),
             scroll_offset: 0.0,
             side_panel_scroll_offset: 0.0,
+            right_panel_scroll_offset: 0.0,
             request_side_panel_auto_scroll: false,
             requested_scroll_delta: None,
             find_query: String::new(),
@@ -193,6 +202,7 @@ impl Default for BlogApp {
             cached_tags: None,
             route_restored: false,
             just_restored: false,
+            fragment_to_scroll_to: None,
         }
     }
 }
@@ -329,7 +339,7 @@ impl BlogApp {
         }
 
         match self.router.current_route() {
-            Route::Post { slug } | Route::Note { slug } | Route::Review { slug } => {
+            Route::Post { slug, fragment } | Route::Note { slug, fragment } | Route::Review { slug, fragment } => {
                 if let Some(index) = self.post_manager.find_post_index_by_slug(slug) {
                     self.selected_post = index;
                     self.editing_new_post = false;
@@ -337,6 +347,9 @@ impl BlogApp {
                     self.request_side_panel_auto_scroll = true;
                     // Don't update selected_content_type when navigating to a post
                     // This allows staying in "All" tab mode when clicking posts
+                    
+                    // Store fragment for scrolling
+                    self.fragment_to_scroll_to = fragment.clone();
                 } else {
                     // Post not found - show 404
                     self.router.navigate_to(Route::NotFound);
@@ -590,6 +603,15 @@ impl eframe::App for BlogApp {
             );
             self.side_panel_collapsed = true;
         }
+        
+        if is_mobile && !self.right_panel_collapsed {
+            log::debug!(
+                "Mobile screen detected ({}px < {}px), auto-collapsing right panel",
+                screen_width,
+                self.responsive_config.mobile_breakpoint
+            );
+            self.right_panel_collapsed = true;
+        }
 
         // Note: Removed auto-expand logic to give users full control over panel state
         // Users can expand/collapse using hamburger buttons in top panel or side panel
@@ -823,6 +845,90 @@ impl eframe::App for BlogApp {
             }
         }
 
+        // Right panel (Table of Contents)
+        let mut heading_clicked_id = None;
+
+        // Determine panel width based on collapsed state
+        let right_panel_width = if self.right_panel_collapsed {
+            40.0 // Minimal width when collapsed
+        } else {
+            250.0 // Wider than left panel for TOC
+        };
+
+        let _right_panel_response = Panel::right("right_panel")
+            .resizable(!self.right_panel_collapsed) // Only resizable when expanded
+            .min_size(if self.right_panel_collapsed {
+                40.0
+            } else {
+                150.0
+            })
+            .max_size(if self.right_panel_collapsed {
+                40.0
+            } else {
+                400.0
+            })
+            .default_size(right_panel_width)
+            .show_inside(ui, |ui| {
+                // Get the full panel rect
+                let panel_rect = ui.available_rect_before_wrap();
+                
+                // Get current post for TOC
+                let current_post = self.post_manager.get(self.selected_post);
+                
+                let (panel_clicked, clicked_heading_id) = ui::layout::right_panel(
+                    ui,
+                    current_post,
+                    self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
+                    panel_rect,
+                    &mut self.right_panel_scroll_offset,
+                    // Animation parameters
+                    &self.focus_animation,
+                    &animation_config,
+                    // Panel state
+                    self.right_panel_collapsed,
+                    || {
+                        self.right_panel_collapsed = !self.right_panel_collapsed;
+                    },
+                );
+                
+                if panel_clicked {
+                    self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
+                }
+                
+                if let Some(heading_id) = clicked_heading_id {
+                    heading_clicked_id = Some(heading_id);
+                }
+            });
+
+        // Handle heading navigation from TOC
+        if let Some(heading_id) = heading_clicked_id {
+            if let Some(current_post) = self.post_manager.get(self.selected_post) {
+                // Create route with fragment
+                let route = match current_post.content_type {
+                    crate::posts::ContentType::Post => {
+                        crate::routing::Route::Post {
+                            slug: current_post.slug.clone(),
+                            fragment: Some(heading_id),
+                        }
+                    }
+                    crate::posts::ContentType::Note => {
+                        crate::routing::Route::Note {
+                            slug: current_post.slug.clone(),
+                            fragment: Some(heading_id),
+                        }
+                    }
+                    crate::posts::ContentType::Review => {
+                        crate::routing::Route::Review {
+                            slug: current_post.slug.clone(),
+                            fragment: Some(heading_id),
+                        }
+                    }
+                };
+                
+                self.navigate_to(route);
+            }
+        }
+
         // Main content area with scrolling
         let mut post_saved = false;
         let mut editing_cancelled = false;
@@ -868,6 +974,7 @@ impl eframe::App for BlogApp {
                             &mut self.tag_search_state,
                             &all_tags_vec,
                             self.math_resolution_scale,
+                            self.fragment_to_scroll_to.as_deref(),
                         );
                         let result = ui::layout::main_content(
                             ui,
@@ -952,6 +1059,12 @@ impl eframe::App for BlogApp {
             log::debug!("Search modified but URL not updated (prevent cursor issues)");
         }
 
+        // Clear fragment after it's been used for scrolling
+        // This prevents continuous scrolling attempts every frame
+        if self.fragment_to_scroll_to.is_some() {
+            self.fragment_to_scroll_to = None;
+        }
+
         // Bottom panel
         Panel::bottom("bottom_panel").show_inside(ui, |ui| {
             ui::layout::bottom_panel(ui);
@@ -996,9 +1109,10 @@ impl crate::shortcuts::ContextProvider for BlogApp {
 impl crate::shortcuts::ActionExecutor for BlogApp {
     fn execute_action(&mut self, action: &crate::shortcuts::ShortcutAction) -> bool {
         use crate::shortcuts::ShortcutAction::{
-            BrowserAddress, CollapseSidePanel, Custom, ExpandSidePanel, FindInContent, FindNext,
-            FindPrevious, FocusPanel, FocusSearch, NavigatePost, Scroll, ShowHelp, SwitchTab,
-            ToggleSidePanel, ToggleTheme,
+            BrowserAddress, CollapseRightPanel, CollapseSidePanel, Custom, ExpandRightPanel,
+            ExpandSidePanel, FindInContent, FindNext, FindPrevious, FocusPanel, FocusSearch,
+            NavigatePost, Scroll, ShowHelp, SwitchTab, ToggleRightPanel, ToggleSidePanel,
+            ToggleTheme,
         };
 
         match action {
@@ -1016,6 +1130,9 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
             ToggleSidePanel => self.toggle_side_panel(),
             CollapseSidePanel => self.collapse_side_panel(),
             ExpandSidePanel => self.expand_side_panel(),
+            ToggleRightPanel => self.toggle_right_panel(),
+            CollapseRightPanel => self.collapse_right_panel(),
+            ExpandRightPanel => self.expand_right_panel(),
             Custom { name } => self.execute_custom(name),
         }
     }
@@ -1324,6 +1441,27 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
     fn expand_side_panel(&mut self) -> bool {
         log::debug!("Expanding side panel");
         self.side_panel_collapsed = false;
+        true
+    }
+
+    fn toggle_right_panel(&mut self) -> bool {
+        log::debug!(
+            "Toggling right panel, current state: {}",
+            self.right_panel_collapsed
+        );
+        self.right_panel_collapsed = !self.right_panel_collapsed;
+        true
+    }
+
+    fn collapse_right_panel(&mut self) -> bool {
+        log::debug!("Collapsing right panel");
+        self.right_panel_collapsed = true;
+        true
+    }
+
+    fn expand_right_panel(&mut self) -> bool {
+        log::debug!("Expanding right panel");
+        self.right_panel_collapsed = false;
         true
     }
 

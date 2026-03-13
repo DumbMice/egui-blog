@@ -421,6 +421,12 @@ pub enum ShortcutAction {
     CollapseSidePanel,
     /// Expand side panel
     ExpandSidePanel,
+    /// Toggle right panel (TOC)
+    ToggleRightPanel,
+    /// Collapse right panel (TOC)
+    CollapseRightPanel,
+    /// Expand right panel (TOC)
+    ExpandRightPanel,
     /// Custom action (for extensibility)
     Custom {
         name: String,

@@ -225,6 +225,21 @@ impl ActionExecutor for TestIntegration {
         true
     }
 
+    fn toggle_right_panel(&mut self) -> bool {
+        self.actions_log.push("toggle_right_panel".to_owned());
+        true
+    }
+
+    fn collapse_right_panel(&mut self) -> bool {
+        self.actions_log.push("collapse_right_panel".to_owned());
+        true
+    }
+
+    fn expand_right_panel(&mut self) -> bool {
+        self.actions_log.push("expand_right_panel".to_owned());
+        true
+    }
+
     fn execute_custom(&mut self, action: &str) -> bool {
         self.actions_log.push(format!("execute_custom: {action}"));
         true

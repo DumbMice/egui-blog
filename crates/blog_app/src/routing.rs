@@ -12,11 +12,20 @@ pub enum Route {
     /// Home page - shows all posts
     Home,
     /// Specific blog post
-    Post { slug: String },
+    Post {
+        slug: String,
+        fragment: Option<String>,
+    },
     /// Specific note
-    Note { slug: String },
+    Note {
+        slug: String,
+        fragment: Option<String>,
+    },
     /// Specific review
-    Review { slug: String },
+    Review {
+        slug: String,
+        fragment: Option<String>,
+    },
     /// Search results page
     Search { query: String, tags: Vec<String> },
     /// Posts with a specific tag
@@ -35,8 +44,12 @@ impl Route {
         // Remove leading # and optional leading /
         let path = hash.trim_start_matches('#').trim_start_matches('/');
 
-        // Split path and query
-        let (path_part, query_part) = path.split_once('?').unwrap_or((path, ""));
+        // Split path, query, and fragment
+        // Format: #/posts/slug#fragment?query=value
+        let (path_with_fragment, query_part) = path.split_once('?').unwrap_or((path, ""));
+        let (path_part, fragment) = path_with_fragment
+            .split_once('#')
+            .unwrap_or((path_with_fragment, ""));
         let query_params = parse_query_params(query_part);
 
         match path_part {
@@ -48,6 +61,11 @@ impl Route {
                 } else {
                     Self::Post {
                         slug: url_decode(&slug),
+                        fragment: if fragment.is_empty() {
+                            None
+                        } else {
+                            Some(fragment.to_owned())
+                        },
                     }
                 }
             }
@@ -58,6 +76,11 @@ impl Route {
                 } else {
                     Self::Note {
                         slug: url_decode(&slug),
+                        fragment: if fragment.is_empty() {
+                            None
+                        } else {
+                            Some(fragment.to_owned())
+                        },
                     }
                 }
             }
@@ -68,6 +91,11 @@ impl Route {
                 } else {
                     Self::Review {
                         slug: url_decode(&slug),
+                        fragment: if fragment.is_empty() {
+                            None
+                        } else {
+                            Some(fragment.to_owned())
+                        },
                     }
                 }
             }
@@ -79,6 +107,11 @@ impl Route {
                 } else {
                     Self::Post {
                         slug: url_decode(&slug),
+                        fragment: if fragment.is_empty() {
+                            None
+                        } else {
+                            Some(fragment.to_owned())
+                        },
                     }
                 }
             }
@@ -112,9 +145,27 @@ impl Route {
     pub fn to_hash(&self) -> String {
         match self {
             Self::Home => "#/".to_owned(),
-            Self::Post { slug } => format!("#/posts/{slug}"),
-            Self::Note { slug } => format!("#/notes/{slug}"),
-            Self::Review { slug } => format!("#/reviews/{slug}"),
+            Self::Post { slug, fragment } => {
+                let mut url = format!("#/posts/{}", url_encode(slug));
+                if let Some(frag) = fragment {
+                    url.push_str(&format!("#{}", url_encode(frag)));
+                }
+                url
+            }
+            Self::Note { slug, fragment } => {
+                let mut url = format!("#/notes/{}", url_encode(slug));
+                if let Some(frag) = fragment {
+                    url.push_str(&format!("#{}", url_encode(frag)));
+                }
+                url
+            }
+            Self::Review { slug, fragment } => {
+                let mut url = format!("#/reviews/{}", url_encode(slug));
+                if let Some(frag) = fragment {
+                    url.push_str(&format!("#{}", url_encode(frag)));
+                }
+                url
+            }
             Self::Search { query, tags } => {
                 let mut query_parts = Vec::new();
                 if !query.is_empty() {
@@ -224,28 +275,64 @@ mod tests {
         assert_eq!(
             Route::from_hash("#/posts/my-post"),
             Route::Post {
-                slug: "my-post".to_string()
+                slug: "my-post".to_string(),
+                fragment: None,
             }
         );
         // Post route (backward compatibility)
         assert_eq!(
             Route::from_hash("#/post/my-post"),
             Route::Post {
-                slug: "my-post".to_string()
+                slug: "my-post".to_string(),
+                fragment: None,
+            }
+        );
+        // Post route with fragment
+        assert_eq!(
+            Route::from_hash("#/posts/my-post#introduction"),
+            Route::Post {
+                slug: "my-post".to_string(),
+                fragment: Some("introduction".to_string()),
+            }
+        );
+        // Post route with fragment and query
+        assert_eq!(
+            Route::from_hash("#/posts/my-post#getting-started?q=rust"),
+            Route::Post {
+                slug: "my-post".to_string(),
+                fragment: Some("getting-started".to_string()),
             }
         );
         // Note route
         assert_eq!(
             Route::from_hash("#/notes/my-note"),
             Route::Note {
-                slug: "my-note".to_string()
+                slug: "my-note".to_string(),
+                fragment: None,
+            }
+        );
+        // Note route with fragment
+        assert_eq!(
+            Route::from_hash("#/notes/my-note#section-1"),
+            Route::Note {
+                slug: "my-note".to_string(),
+                fragment: Some("section-1".to_string()),
             }
         );
         // Review route
         assert_eq!(
             Route::from_hash("#/reviews/my-review"),
             Route::Review {
-                slug: "my-review".to_string()
+                slug: "my-review".to_string(),
+                fragment: None,
+            }
+        );
+        // Review route with fragment
+        assert_eq!(
+            Route::from_hash("#/reviews/my-review#conclusion"),
+            Route::Review {
+                slug: "my-review".to_string(),
+                fragment: Some("conclusion".to_string()),
             }
         );
 
@@ -287,26 +374,65 @@ mod tests {
         // Post
         assert_eq!(
             Route::Post {
-                slug: "my-post".to_string()
+                slug: "my-post".to_string(),
+                fragment: None,
             }
             .to_url(),
             "#/posts/my-post"
         );
+        // Post with fragment
+        assert_eq!(
+            Route::Post {
+                slug: "my-post".to_string(),
+                fragment: Some("introduction".to_string()),
+            }
+            .to_url(),
+            "#/posts/my-post#introduction"
+        );
+        // Post with fragment containing spaces
+        assert_eq!(
+            Route::Post {
+                slug: "my-post".to_string(),
+                fragment: Some("getting started".to_string()),
+            }
+            .to_url(),
+            "#/posts/my-post#getting+started"
+        );
         // Note
         assert_eq!(
             Route::Note {
-                slug: "my-note".to_string()
+                slug: "my-note".to_string(),
+                fragment: None,
             }
             .to_url(),
             "#/notes/my-note"
         );
+        // Note with fragment
+        assert_eq!(
+            Route::Note {
+                slug: "my-note".to_string(),
+                fragment: Some("section-1".to_string()),
+            }
+            .to_url(),
+            "#/notes/my-note#section-1"
+        );
         // Review
         assert_eq!(
             Route::Review {
-                slug: "my-review".to_string()
+                slug: "my-review".to_string(),
+                fragment: None,
             }
             .to_url(),
             "#/reviews/my-review"
+        );
+        // Review with fragment
+        assert_eq!(
+            Route::Review {
+                slug: "my-review".to_string(),
+                fragment: Some("conclusion".to_string()),
+            }
+            .to_url(),
+            "#/reviews/my-review#conclusion"
         );
 
         // Search

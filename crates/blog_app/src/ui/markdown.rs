@@ -1,11 +1,11 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
+use egui::{vec2, Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{MathAssetManager, ui::table_renderer};
+use crate::{ui::table_renderer, MathAssetManager};
 
 /// Get the bold variant of a text style
 /// Since egui's `.strong()` only changes color, not font weight,
@@ -394,6 +394,7 @@ pub fn render_preprocessed_markdown(
     preprocessed_markdown: &str,
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
     math_resolution_scale: f32,
+    fragment_to_scroll_to: Option<&str>,
 ) {
     render_markdown_impl(
         ui,
@@ -401,6 +402,7 @@ pub fn render_preprocessed_markdown(
         math_asset_manager,
         true,
         math_resolution_scale,
+        fragment_to_scroll_to,
     );
 }
 
@@ -410,6 +412,7 @@ fn render_markdown_impl(
     mut math_asset_manager: Option<&mut crate::math::MathAssetManager>,
     is_preprocessed: bool,
     math_resolution_scale: f32,
+    fragment_to_scroll_to: Option<&str>,
 ) {
     let protected_text = if is_preprocessed {
         // Content is already preprocessed with math placeholders
@@ -433,6 +436,10 @@ fn render_markdown_impl(
 
     // Simplified margin collapsing: track previous element's bottom margin
     let mut previous_bottom_margin = 0.0;
+
+    // Track heading IDs for duplicate detection and scrolling
+    let mut heading_ids = std::collections::HashSet::new();
+    let mut scroll_to_heading_requested = false;
 
     // Helper function to add bottom margin and track it
     fn add_bottom_margin(ui: &mut Ui, previous_bottom: &mut f32, margin: f32) {
@@ -482,6 +489,17 @@ fn render_markdown_impl(
                         // Apply margin collapsing for heading top margin
                         add_top_margin_with_collapsing(ui, &previous_bottom_margin, top_margin);
 
+                        // Generate heading ID
+                        let heading_id = crate::posts::BlogPost::generate_heading_id(
+                            &heading_text,
+                            &mut heading_ids,
+                        );
+
+                        // Check if we should scroll to this heading
+                        let should_scroll_to_heading = fragment_to_scroll_to
+                            .map(|fragment| fragment == heading_id)
+                            .unwrap_or(false);
+
                         // Process text with math placeholders
                         let paragraph_content = process_text_with_math(
                             &heading_text,
@@ -500,8 +518,22 @@ fn render_markdown_impl(
                             HeadingLevel::H6 => TextStyle::Name("ContentHeading6".into()),
                         };
 
-                        // Render heading content (already uses bold font, no need for .strong() color)
-                        render_paragraph_content_vec(ui, &paragraph_content, &text_style);
+                        // Create a heading area with the ID
+                        let mut heading_response = ui.vertical(|ui| {
+                            render_paragraph_content_vec(ui, &paragraph_content, &text_style);
+                        });
+
+                        // Store the heading ID in the response for potential scrolling
+                        heading_response.response.id = heading_id.clone().into();
+
+                        // Scroll to this heading if requested
+                        if should_scroll_to_heading && !scroll_to_heading_requested {
+                            ui.scroll_to_rect(
+                                heading_response.response.rect,
+                                Some(egui::Align::Center),
+                            );
+                            scroll_to_heading_requested = true;
+                        }
 
                         // Add bottom border for h1 and h2 (GitHub style)
                         match level {
@@ -1869,7 +1901,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
+                                           // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;
