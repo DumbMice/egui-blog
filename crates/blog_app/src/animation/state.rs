@@ -6,6 +6,7 @@ use crate::shortcuts::FocusedPanel;
 
 /// Current phase of the focus animation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 pub enum AnimationPhase {
     /// No panel is focused or animation is idle.
     Idle,
@@ -17,6 +18,7 @@ pub enum AnimationPhase {
 ///
 /// Tracks which panel is focused, when focus changed, and current animation phase.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 pub struct FocusAnimationState {
     /// Currently focused panel (or `FocusedPanel::None` if no panel focused).
     pub focused_panel: FocusedPanel,

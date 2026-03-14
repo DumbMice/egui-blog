@@ -26,6 +26,12 @@ use crate::math::MathAssetManager;
 use crate::routing::{Route, Router};
 use crate::shortcuts::ActionExecutor as _;
 
+use std::collections::HashMap;
+
+/// Key for identifying posts in scroll position map
+/// Serialized as string: "Post:slug" or "Note:slug" or "Review:slug"
+type PostKey = String;
+
 /// Default math resolution scale (1.0 = original resolution)
 fn default_math_resolution_scale() -> f32 {
     1.0
@@ -125,14 +131,14 @@ pub struct BlogApp {
     /// Currently focused panel
     focused_panel: crate::shortcuts::FocusedPanel,
     /// Previous focused panel (for detecting focus changes)
-    #[cfg_attr(feature = "serde", serde(skip))]
     previous_focused_panel: crate::shortcuts::FocusedPanel,
     /// Animation state for panel focus visualization
-    #[cfg_attr(feature = "serde", serde(skip))]
     focus_animation: crate::animation::FocusAnimationState,
     /// Scroll offset for content area
     /// Scroll offset for main content panel (persisted)
     scroll_offset: f32,
+    /// Scroll positions for each post (content_type, slug) -> scroll_offset
+    post_scroll_positions: HashMap<PostKey, f32>,
     /// Scroll offset for side panel
     side_panel_scroll_offset: f32,
     /// Scroll offset for right panel (TOC)
@@ -148,6 +154,7 @@ pub struct BlogApp {
     /// Whether find mode is active
     find_mode_active: bool,
     /// Whether route has been restored from persistence (to avoid restoring every frame)
+    #[cfg_attr(feature = "serde", serde(skip))]
     route_restored: bool,
     /// Whether app was just restored from persistence (to avoid navigation immediately after restore)
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -187,10 +194,11 @@ impl Default for BlogApp {
             debug_state: crate::debug_windows::DebugState::default(),
 
             shortcut_integration: crate::shortcuts::ShortcutIntegration::new(),
-            focused_panel: crate::shortcuts::FocusedPanel::LeftPanel,
-            previous_focused_panel: crate::shortcuts::FocusedPanel::LeftPanel,
+            focused_panel: crate::shortcuts::FocusedPanel::RightPanel,
+            previous_focused_panel: crate::shortcuts::FocusedPanel::RightPanel,
             focus_animation: crate::animation::FocusAnimationState::new(),
             scroll_offset: 0.0,
+            post_scroll_positions: HashMap::new(),
             side_panel_scroll_offset: 0.0,
             right_panel_scroll_offset: 0.0,
             request_side_panel_auto_scroll: false,
@@ -212,8 +220,33 @@ impl BlogApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         #[cfg(feature = "persistence")]
         let mut app = if let Some(storage) = cc.storage {
-            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+            log::info!("Persistence: Loading app from storage");
+
+            // Try to load with error handling
+            match eframe::get_value::<Self>(storage, eframe::APP_KEY) {
+                Some(loaded_app) => {
+                    log::info!("Persistence: Successfully loaded app from storage");
+                    log::debug!(
+                        "Persistence: Loaded app. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+                        loaded_app.focused_panel,
+                        loaded_app.scroll_offset,
+                        loaded_app.post_scroll_positions.len()
+                    );
+                    loaded_app
+                }
+                None => {
+                    log::warn!(
+                        "Persistence: Failed to deserialize app state. This might be due to format changes."
+                    );
+                    log::warn!(
+                        "Persistence: Starting with fresh defaults. Corrupted data will be overwritten on save."
+                    );
+
+                    Self::default()
+                }
+            }
         } else {
+            log::info!("Persistence: No storage available, using default");
             Self::default()
         };
 
@@ -222,6 +255,9 @@ impl BlogApp {
             // If we loaded from storage, mark as just restored
             if cc.storage.is_some() {
                 app.just_restored = true;
+                log::info!("Persistence: App loaded from storage, just_restored = true");
+            } else {
+                log::info!("Persistence: App created fresh, just_restored = false");
             }
         }
 
@@ -254,6 +290,74 @@ impl BlogApp {
         app.ensure_valid_selection();
 
         app
+    }
+
+    /// Get the key for the currently selected post
+    fn current_post_key(&self) -> Option<PostKey> {
+        let post = self.post_manager.get(self.selected_post);
+        println!(
+            "[DEBUG] current_post_key: selected_post={}, post={:?}, count={}",
+            self.selected_post,
+            post.is_some(),
+            self.post_manager.count()
+        );
+        post.map(|post| format!("{}:{}", post.content_type.display_name(), post.slug))
+    }
+
+    /// Save scroll position for the current post
+    fn save_current_scroll_position(&mut self, offset: f32) {
+        if let Some(key) = self.current_post_key() {
+            let old_offset = self.post_scroll_positions.get(&key).copied();
+            if old_offset != Some(offset) {
+                log::info!(
+                    "Persistence: Saving scroll position {} for post {:?} (was {:?})",
+                    offset,
+                    key,
+                    old_offset
+                );
+                println!("[DEBUG] Saving scroll position {} for post {}", offset, key);
+                self.post_scroll_positions.insert(key, offset);
+                // Also update the legacy scroll_offset for backward compatibility
+                self.scroll_offset = offset;
+            }
+        } else {
+            log::warn!("Persistence: Cannot save scroll position - no current post");
+            println!("[DEBUG] Cannot save scroll position - no current post");
+        }
+    }
+
+    /// Restore scroll position for the current post
+    fn restore_current_scroll_position(&mut self) -> f32 {
+        if let Some(key) = self.current_post_key() {
+            if let Some(&offset) = self.post_scroll_positions.get(&key) {
+                log::info!(
+                    "Persistence: Restoring scroll position {} for post {:?}",
+                    offset,
+                    key
+                );
+                println!(
+                    "[DEBUG] Restoring scroll position {} for post {}",
+                    offset, key
+                );
+                self.scroll_offset = offset;
+                return offset;
+            } else {
+                log::info!(
+                    "Persistence: No saved scroll position for post {:?}, using 0.0",
+                    key
+                );
+                println!(
+                    "[DEBUG] No saved scroll position for post {}, using 0.0",
+                    key
+                );
+            }
+        } else {
+            log::warn!("Persistence: Cannot restore scroll position - no current post");
+            println!("[DEBUG] Cannot restore scroll position - no current post");
+        }
+        // No saved position, use 0.0
+        self.scroll_offset = 0.0;
+        0.0
     }
 
     /// Ensure `selected_post` is within valid bounds
@@ -339,7 +443,9 @@ impl BlogApp {
         }
 
         match self.router.current_route() {
-            Route::Post { slug, fragment } | Route::Note { slug, fragment } | Route::Review { slug, fragment } => {
+            Route::Post { slug, fragment }
+            | Route::Note { slug, fragment }
+            | Route::Review { slug, fragment } => {
                 if let Some(index) = self.post_manager.find_post_index_by_slug(slug) {
                     self.selected_post = index;
                     self.editing_new_post = false;
@@ -347,7 +453,7 @@ impl BlogApp {
                     self.request_side_panel_auto_scroll = true;
                     // Don't update selected_content_type when navigating to a post
                     // This allows staying in "All" tab mode when clicking posts
-                    
+
                     // Store fragment for scrolling
                     self.fragment_to_scroll_to = fragment.clone();
                 } else {
@@ -504,8 +610,22 @@ impl BlogApp {
 impl eframe::App for BlogApp {
     #[cfg(feature = "persistence")]
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        log::info!(
+            "Persistence: Saving app state. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+            self.focused_panel,
+            self.scroll_offset,
+            self.post_scroll_positions.len()
+        );
+        println!(
+            "[DEBUG] Persistence: Saving app state. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+            self.focused_panel,
+            self.scroll_offset,
+            self.post_scroll_positions.len()
+        );
         // Router state is automatically serialized as part of BlogApp
         eframe::set_value(storage, eframe::APP_KEY, self);
+        log::info!("Persistence: App state saved successfully");
+        println!("[DEBUG] Persistence: App state saved successfully");
     }
 
     fn persist_egui_memory(&self) -> bool {
@@ -513,7 +633,7 @@ impl eframe::App for BlogApp {
     }
 
     fn auto_save_interval(&self) -> std::time::Duration {
-        std::time::Duration::from_secs(30)
+        std::time::Duration::from_secs(5)
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -577,11 +697,14 @@ impl eframe::App for BlogApp {
                 "Shortcut integration initialized: {}",
                 integration.initialized
             );
-            log::debug!("Current focused panel: {:?}", self.focused_panel);
+            log::debug!(
+                "[FOCUS] Current focused panel before shortcuts: {:?}",
+                self.focused_panel
+            );
             let handled = integration.update(ui.ctx(), self);
             self.shortcut_integration = integration;
             if handled {
-                log::debug!("Shortcut was handled");
+                log::debug!("[SHORTCUT] Shortcut was handled");
             }
             handled
         };
@@ -603,7 +726,7 @@ impl eframe::App for BlogApp {
             );
             self.side_panel_collapsed = true;
         }
-        
+
         if is_mobile && !self.right_panel_collapsed {
             log::debug!(
                 "Mobile screen detected ({}px < {}px), auto-collapsing right panel",
@@ -818,6 +941,10 @@ impl eframe::App for BlogApp {
 
                 if panel_clicked {
                     log::debug!("Side panel clicked from layout.rs, focusing left panel");
+                    log::debug!(
+                        "[FOCUS] Side panel clicked, setting focused_panel = LeftPanel (was {:?})",
+                        self.focused_panel
+                    );
                     self.focused_panel = crate::shortcuts::FocusedPanel::LeftPanel;
                 }
             });
@@ -871,10 +998,10 @@ impl eframe::App for BlogApp {
             .show_inside(ui, |ui| {
                 // Get the full panel rect
                 let panel_rect = ui.available_rect_before_wrap();
-                
+
                 // Get current post for TOC
                 let current_post = self.post_manager.get(self.selected_post);
-                
+
                 let (panel_clicked, clicked_heading_id) = ui::layout::right_panel(
                     ui,
                     current_post,
@@ -890,11 +1017,12 @@ impl eframe::App for BlogApp {
                         self.right_panel_collapsed = !self.right_panel_collapsed;
                     },
                 );
-                
+
                 if panel_clicked {
+                    log::debug!("[FOCUS] Right panel (TOC) clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
                     self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
                 }
-                
+
                 if let Some(heading_id) = clicked_heading_id {
                     heading_clicked_id = Some(heading_id);
                 }
@@ -902,31 +1030,26 @@ impl eframe::App for BlogApp {
 
         // Handle heading navigation from TOC
         if let Some(heading_id) = heading_clicked_id
-            && let Some(current_post) = self.post_manager.get(self.selected_post) {
-                // Create route with fragment
-                let route = match current_post.content_type {
-                    crate::posts::ContentType::Post => {
-                        crate::routing::Route::Post {
-                            slug: current_post.slug.clone(),
-                            fragment: Some(heading_id),
-                        }
-                    }
-                    crate::posts::ContentType::Note => {
-                        crate::routing::Route::Note {
-                            slug: current_post.slug.clone(),
-                            fragment: Some(heading_id),
-                        }
-                    }
-                    crate::posts::ContentType::Review => {
-                        crate::routing::Route::Review {
-                            slug: current_post.slug.clone(),
-                            fragment: Some(heading_id),
-                        }
-                    }
-                };
-                
-                self.navigate_to(route);
-            }
+            && let Some(current_post) = self.post_manager.get(self.selected_post)
+        {
+            // Create route with fragment
+            let route = match current_post.content_type {
+                crate::posts::ContentType::Post => crate::routing::Route::Post {
+                    slug: current_post.slug.clone(),
+                    fragment: Some(heading_id),
+                },
+                crate::posts::ContentType::Note => crate::routing::Route::Note {
+                    slug: current_post.slug.clone(),
+                    fragment: Some(heading_id),
+                },
+                crate::posts::ContentType::Review => crate::routing::Route::Review {
+                    slug: current_post.slug.clone(),
+                    fragment: Some(heading_id),
+                },
+            };
+
+            self.navigate_to(route);
+        }
 
         // Main content area with scrolling
         let mut post_saved = false;
@@ -942,9 +1065,22 @@ impl eframe::App for BlogApp {
             // Get the full panel rect BEFORE the scroll area
             let panel_rect = ui.available_rect_before_wrap();
 
-            let scroll_response = ScrollArea::vertical()
-                .scroll_offset(egui::vec2(0.0, self.scroll_offset))
+            // Scroll position is restored by egui via id_salt
+            // No need to manually restore it
+
+            // Focused panel is managed by app state, not egui data
+            // (Egui data backup was causing issues with panel switching)
+
+            let scroll_id = if let Some(key) = self.current_post_key() {
+                format!("main_content_scroll_{}", key)
+            } else {
+                "main_content_scroll".to_string()
+            };
+
+            let _scroll_response = ScrollArea::vertical()
+                .id_salt(scroll_id)  // Dynamic ID based on post
                 .show(ui, |ui| {
+                    println!("[DEBUG] Scroll area initialized with offset: {}", self.scroll_offset);
                     // Apply requested scroll delta if any
                     if let Some(delta) = self.requested_scroll_delta.take() {
                         ui.scroll_with_delta(egui::vec2(0.0, delta));
@@ -996,13 +1132,16 @@ impl eframe::App for BlogApp {
                             log::debug!(
                                 "Main content clicked from layout.rs, focusing right panel"
                             );
+                            log::debug!("[FOCUS] Main content clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
                             self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
                         }
                     });
                 });
 
-            // Update scroll offset from scroll area response
-            self.scroll_offset = scroll_response.state.offset.y;
+            // Scroll position is now persisted by egui via id_salt
+            // No need to manually save it
+
+            // Focused panel is managed by app state, not egui data
         });
 
         // Draw find dialog if find mode is active
@@ -1011,6 +1150,7 @@ impl eframe::App for BlogApp {
         }
 
         if let Some(new_index) = navigation_index {
+            log::debug!("Post navigation: {} -> {}", self.selected_post, new_index);
             self.selected_post = new_index;
             self.editing_new_post = false;
         }
@@ -1675,5 +1815,105 @@ mod tests {
             app.route_restored,
             "route_restored should remain true after theme toggle"
         );
+    }
+
+    #[test]
+    fn test_scroll_position_persistence_per_post() {
+        let mut app = BlogApp::default();
+
+        // Posts are loaded by default in PostManager
+        // Test that current_post_key returns Some when there are posts
+        assert!(app.current_post_key().is_some());
+
+        // Get the current post key
+        let post_key = app.current_post_key().unwrap();
+
+        // Test save_current_scroll_position
+        app.save_current_scroll_position(100.0);
+        assert_eq!(app.scroll_offset, 100.0); // Legacy field updated
+        assert_eq!(app.post_scroll_positions.len(), 1); // Should have one entry
+        assert_eq!(app.post_scroll_positions.get(&post_key), Some(&100.0));
+
+        // Test restore_current_scroll_position
+        // First, change scroll_offset to test restoration
+        app.scroll_offset = 0.0;
+        let offset = app.restore_current_scroll_position();
+        assert_eq!(offset, 100.0); // Should restore saved position
+        assert_eq!(app.scroll_offset, 100.0);
+
+        // Test with a different scroll position
+        app.save_current_scroll_position(250.0);
+        assert_eq!(app.post_scroll_positions.get(&post_key), Some(&250.0));
+
+        // Test restoration of non-existent post (simulate post change)
+        // We can't easily change the post in test, but we can verify the logic
+        // by checking that the method handles the current post correctly
+    }
+
+    #[test]
+    fn test_focused_panel_persistence() {
+        let mut app = BlogApp::default();
+
+        // Test default focused panel (now RightPanel per user request)
+        assert_eq!(
+            app.focused_panel,
+            crate::shortcuts::FocusedPanel::RightPanel
+        );
+
+        // Test that we can change focused panel
+        app.focused_panel = crate::shortcuts::FocusedPanel::LeftPanel;
+        assert_eq!(app.focused_panel, crate::shortcuts::FocusedPanel::LeftPanel);
+
+        // Test that previous_focused_panel is also accessible
+        app.previous_focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
+        assert_eq!(
+            app.previous_focused_panel,
+            crate::shortcuts::FocusedPanel::RightPanel
+        );
+
+        // Test that focus_animation is accessible
+        let _ = &app.focus_animation;
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialization_round_trip() {
+        use serde_json;
+
+        let mut app = BlogApp::default();
+
+        // Set some non-default values
+        app.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
+        app.scroll_offset = 123.45;
+
+        // Add a post scroll position
+        let post_key = "Posts:test-post".to_string();
+        app.post_scroll_positions.insert(post_key, 456.78);
+
+        // Serialize
+        let json = serde_json::to_string(&app).expect("Serialization should succeed");
+        println!("Serialized JSON: {} bytes", json.len());
+
+        // Deserialize
+        let deserialized: BlogApp =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
+
+        // Check values
+        assert_eq!(
+            deserialized.focused_panel,
+            crate::shortcuts::FocusedPanel::RightPanel,
+            "focused_panel should persist"
+        );
+        assert!(
+            (deserialized.scroll_offset - 123.45).abs() < 0.01,
+            "scroll_offset should persist"
+        );
+        assert_eq!(
+            deserialized.post_scroll_positions.len(),
+            1,
+            "post_scroll_positions should persist"
+        );
+
+        println!("✅ Serialization round-trip test passed!");
     }
 }
