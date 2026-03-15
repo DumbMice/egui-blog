@@ -268,7 +268,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
                 let status_str = output.status.to_string();
                 if status_str.contains("SIGSEGV") || status_str.contains("signal: 11") {
                     // SIGSEGV (segmentation fault) - wasm-opt bug
-                    println!("⚠️  wasm-opt crashed (SIGSEGV) - known issue with version 116");
+                    println!("⚠️  wasm-opt crashed (SIGSEGV) - known issue with wasm-opt");
                     println!("⚠️  WASM will be unoptimized but still functional");
                 } else {
                     println!("⚠️  wasm-opt failed with status: {}", status_str);
