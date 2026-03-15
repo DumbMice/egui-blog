@@ -1,5 +1,16 @@
 # Blog App TODO List
 
+## Recent Fixes (2026-03-15)
+✅ **Priority 21: Panel Focus and Scroll Position Persistence**
+- Fixed RON serialization by adding `#[serde(skip)]` to `route_restored` field
+- Added `Serialize`/`Deserialize` derives to `FocusAnimationState` and `AnimationPhase`
+- Changed default focused panel from `LeftPanel` to `RightPanel` as requested
+- Scroll position persistence now uses egui's `id_salt()` with dynamic post-based IDs
+- Improved main content click detection with multiple methods
+- Handle corrupted LocalStorage data gracefully with fallback to defaults
+- Fixed all clippy warnings (replace `println!` with `log::debug!`)
+- All tests pass
+
 ## Recent Fixes (2026-03-12)
 ✅ **Priority 18: Search Bar Crash with '#' Character and Tag Icon Bug**
 - Fixed WASM crash when typing '#' in search bar (get_dropdown_position with fallback)
@@ -513,21 +524,34 @@ cargo blog-wasm     # Build WASM library only
 - **Safe**: Parsing failures don't cause posts to be excluded
 - **Tested**: All existing tests pass, new unit tests for filtering logic
 
-## Priority 20: Table of Contents in Collapsible Right Panel
-- [ ] Add TOC data structure to `BlogPost` with hierarchical heading support
-- [ ] Parse headings during post loading in `parse_post_content()` with URL-friendly ID generation
-- [ ] Extend `Route` enum to support heading fragments: `Post { slug: String, fragment: Option<String> }`
-- [ ] Update router to parse `#/posts/slug#heading-id` format and handle fragment navigation
-- [ ] Add `right_panel_collapsed: bool` to `BlogApp` with persistence support
-- [ ] Create `right_panel()` function in `layout.rs` with TOC rendering
-- [ ] Implement click-to-scroll navigation using `ui.scroll_to_cursor()`
-- [ ] Add collapsible sections with `CollapsingHeader` for nested headings
-- [ ] Handle URL/LocalStorage conflicts (fragment IDs vs SPA routing hash)
-- [ ] Test TOC with various heading structures and nesting levels
+## Priority 20: Table of Contents in Collapsible Right Panel ✅ COMPLETED 2026-03-15
+- [x] Add TOC data structure to `BlogPost` with hierarchical heading support
+- [x] Parse headings during post loading in `parse_post_content()` with URL-friendly ID generation
+- [x] Extend `Route` enum to support heading fragments: `Post { slug: String, fragment: Option<String> }`
+- [x] Update router to parse `#/posts/slug#heading-id` format and handle fragment navigation
+- [x] Add `right_panel_collapsed: bool` to `BlogApp` with persistence support
+- [x] Create `right_panel()` function in `layout.rs` with TOC rendering
+- [x] Implement click-to-scroll navigation using `ui.scroll_to_cursor()`
+- [x] Add collapsible sections with `CollapsingHeader` for nested headings
+- [x] Handle URL/LocalStorage conflicts (fragment IDs vs SPA routing hash)
+- [x] Test TOC with various heading structures and nesting levels
 
 **Note**: Interactive table of contents with heading navigation and URL fragment support. Shows all headings with nested indentation and collapsible sub-levels. Clicking TOC items scrolls to corresponding heading and updates URL with fragment. Basic functionality includes TOC generation, right panel UI, and fragment navigation. Advanced features (scroll tracking, keyboard shortcuts) are optional enhancements.
 
-## Priority 21: Dynamic Content Loading (Low Priority)
+## Priority 21: Fix Panel Focus and Scroll Position Persistence ✅ COMPLETED 2026-03-15
+- [x] Fix RON serialization by adding `#[serde(skip)]` to `route_restored` field
+- [x] Add `Serialize`/`Deserialize` derives to `FocusAnimationState` and `AnimationPhase`
+- [x] Change default focused panel from `LeftPanel` to `RightPanel` as requested
+- [x] Update `test_focused_panel_persistence` test to expect `RightPanel` default
+- [x] Scroll position persistence now uses egui's `id_salt()` with dynamic post-based IDs
+- [x] Improved main content click detection with multiple methods (`interact_pos`, `press_origin`, `latest_pos`)
+- [x] Handle corrupted LocalStorage data gracefully with fallback to defaults
+- [x] Remove unused `save_current_scroll_position` and `restore_current_scroll_position` methods
+- [x] Fix all clippy warnings (replace `println!` with `log::debug!`, suppress intentional `eprintln!`)
+
+**Note**: Fixed urgent bug where panel focus and scroll position were not restored after browser refresh. Scroll position persistence now uses egui's built-in `id_salt()` mechanism with dynamic IDs per post (`main_content_scroll_{post_key}`). Panel focus persistence fixed by correcting RON serialization issues. When corrupted LocalStorage data exists, app falls back to defaults and overwrites with correct data on next save.
+
+## Priority 22: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture

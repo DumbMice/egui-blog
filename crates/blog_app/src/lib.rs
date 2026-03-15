@@ -137,7 +137,7 @@ pub struct BlogApp {
     /// Scroll offset for content area
     /// Scroll offset for main content panel (persisted)
     scroll_offset: f32,
-    /// Scroll positions for each post (content_type, slug) -> scroll_offset
+    /// Scroll positions for each post (`content_type`, slug) -> `scroll_offset`
     post_scroll_positions: HashMap<PostKey, f32>,
     /// Scroll offset for side panel
     side_panel_scroll_offset: f32,
@@ -223,27 +223,24 @@ impl BlogApp {
             log::info!("Persistence: Loading app from storage");
 
             // Try to load with error handling
-            match eframe::get_value::<Self>(storage, eframe::APP_KEY) {
-                Some(loaded_app) => {
-                    log::info!("Persistence: Successfully loaded app from storage");
-                    log::debug!(
-                        "Persistence: Loaded app. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
-                        loaded_app.focused_panel,
-                        loaded_app.scroll_offset,
-                        loaded_app.post_scroll_positions.len()
-                    );
-                    loaded_app
-                }
-                None => {
-                    log::warn!(
-                        "Persistence: Failed to deserialize app state. This might be due to format changes."
-                    );
-                    log::warn!(
-                        "Persistence: Starting with fresh defaults. Corrupted data will be overwritten on save."
-                    );
+            if let Some(loaded_app) = eframe::get_value::<Self>(storage, eframe::APP_KEY) {
+                log::info!("Persistence: Successfully loaded app from storage");
+                log::debug!(
+                    "Persistence: Loaded app. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+                    loaded_app.focused_panel,
+                    loaded_app.scroll_offset,
+                    loaded_app.post_scroll_positions.len()
+                );
+                loaded_app
+            } else {
+                log::warn!(
+                    "Persistence: Failed to deserialize app state. This might be due to format changes."
+                );
+                log::warn!(
+                    "Persistence: Starting with fresh defaults. Corrupted data will be overwritten on save."
+                );
 
-                    Self::default()
-                }
+                Self::default()
             }
         } else {
             log::info!("Persistence: No storage available, using default");
@@ -295,8 +292,8 @@ impl BlogApp {
     /// Get the key for the currently selected post
     fn current_post_key(&self) -> Option<PostKey> {
         let post = self.post_manager.get(self.selected_post);
-        println!(
-            "[DEBUG] current_post_key: selected_post={}, post={:?}, count={}",
+        log::debug!(
+            "current_post_key: selected_post={}, post={:?}, count={}",
             self.selected_post,
             post.is_some(),
             self.post_manager.count()
@@ -304,61 +301,7 @@ impl BlogApp {
         post.map(|post| format!("{}:{}", post.content_type.display_name(), post.slug))
     }
 
-    /// Save scroll position for the current post
-    fn save_current_scroll_position(&mut self, offset: f32) {
-        if let Some(key) = self.current_post_key() {
-            let old_offset = self.post_scroll_positions.get(&key).copied();
-            if old_offset != Some(offset) {
-                log::info!(
-                    "Persistence: Saving scroll position {} for post {:?} (was {:?})",
-                    offset,
-                    key,
-                    old_offset
-                );
-                println!("[DEBUG] Saving scroll position {} for post {}", offset, key);
-                self.post_scroll_positions.insert(key, offset);
-                // Also update the legacy scroll_offset for backward compatibility
-                self.scroll_offset = offset;
-            }
-        } else {
-            log::warn!("Persistence: Cannot save scroll position - no current post");
-            println!("[DEBUG] Cannot save scroll position - no current post");
-        }
-    }
 
-    /// Restore scroll position for the current post
-    fn restore_current_scroll_position(&mut self) -> f32 {
-        if let Some(key) = self.current_post_key() {
-            if let Some(&offset) = self.post_scroll_positions.get(&key) {
-                log::info!(
-                    "Persistence: Restoring scroll position {} for post {:?}",
-                    offset,
-                    key
-                );
-                println!(
-                    "[DEBUG] Restoring scroll position {} for post {}",
-                    offset, key
-                );
-                self.scroll_offset = offset;
-                return offset;
-            } else {
-                log::info!(
-                    "Persistence: No saved scroll position for post {:?}, using 0.0",
-                    key
-                );
-                println!(
-                    "[DEBUG] No saved scroll position for post {}, using 0.0",
-                    key
-                );
-            }
-        } else {
-            log::warn!("Persistence: Cannot restore scroll position - no current post");
-            println!("[DEBUG] Cannot restore scroll position - no current post");
-        }
-        // No saved position, use 0.0
-        self.scroll_offset = 0.0;
-        0.0
-    }
 
     /// Ensure `selected_post` is within valid bounds
     fn ensure_valid_selection(&mut self) {
@@ -616,8 +559,8 @@ impl eframe::App for BlogApp {
             self.scroll_offset,
             self.post_scroll_positions.len()
         );
-        println!(
-            "[DEBUG] Persistence: Saving app state. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+        log::debug!(
+            "Persistence: Saving app state. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
             self.focused_panel,
             self.scroll_offset,
             self.post_scroll_positions.len()
@@ -625,7 +568,7 @@ impl eframe::App for BlogApp {
         // Router state is automatically serialized as part of BlogApp
         eframe::set_value(storage, eframe::APP_KEY, self);
         log::info!("Persistence: App state saved successfully");
-        println!("[DEBUG] Persistence: App state saved successfully");
+        log::debug!("Persistence: App state saved successfully");
     }
 
     fn persist_egui_memory(&self) -> bool {
@@ -1072,15 +1015,15 @@ impl eframe::App for BlogApp {
             // (Egui data backup was causing issues with panel switching)
 
             let scroll_id = if let Some(key) = self.current_post_key() {
-                format!("main_content_scroll_{}", key)
+                format!("main_content_scroll_{key}")
             } else {
-                "main_content_scroll".to_string()
+                "main_content_scroll".to_owned()
             };
 
             let _scroll_response = ScrollArea::vertical()
                 .id_salt(scroll_id)  // Dynamic ID based on post
                 .show(ui, |ui| {
-                    println!("[DEBUG] Scroll area initialized with offset: {}", self.scroll_offset);
+                    log::debug!("Scroll area initialized with offset: {}", self.scroll_offset);
                     // Apply requested scroll delta if any
                     if let Some(delta) = self.requested_scroll_delta.take() {
                         ui.scroll_with_delta(egui::vec2(0.0, delta));

@@ -93,20 +93,20 @@ impl KeySequenceHandler {
     }
 
     /// Clear the sequence buffer
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn clear(&mut self) {
         self.buffer.clear();
         self.last_key_time = None;
     }
 
     /// Get the current sequence buffer (for debugging)
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn buffer(&self) -> &VecDeque<KeyboardShortcut> {
         &self.buffer
     }
 
     /// Set the timeout duration
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn set_timeout_ms(&mut self, timeout_ms: u64) {
         self.timeout_seconds = timeout_ms as f64 / 1000.0;
     }

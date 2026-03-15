@@ -14,11 +14,11 @@ pub struct Router {
     query_params: HashMap<String, String>,
     /// Whether the route has been initialized from URL
     #[cfg_attr(feature = "serde", serde(skip))]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     initialized: bool,
     /// Serialization version for backward compatibility
     #[cfg_attr(feature = "serde", serde(skip))]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     version: u32,
 }
 
@@ -34,7 +34,7 @@ impl Router {
     }
 
     /// Create a router from a URL hash.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn from_hash(hash: &str) -> Self {
         let route = Route::from_hash(hash);
         let query_params = Self::extract_query_params(hash);
@@ -84,7 +84,7 @@ impl Router {
     }
 
     /// Create a route to search with query.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn route_to_search(query: &str) -> Route {
         Route::Search {
             query: query.to_owned(),
@@ -93,7 +93,7 @@ impl Router {
     }
 
     /// Create a route to tag page.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn route_to_tag(tag: &str) -> Route {
         Route::Tag {
             tag: tag.to_owned(),
@@ -101,7 +101,7 @@ impl Router {
     }
 
     /// Create a route to home page.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn route_home() -> Route {
         Route::Home
     }
@@ -136,7 +136,7 @@ impl Router {
     }
 
     /// Generate URL with current query parameters.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn current_url(&self) -> String {
         let base_url = self.current_route.to_hash();
 
