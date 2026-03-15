@@ -27,7 +27,7 @@ impl Router {
     }
 
     /// Create a router from a URL hash.
-    #[expect(dead_code)]
+    #[cfg(test)]
     pub fn from_hash(hash: &str) -> Self {
         let current_route = Route::from_hash(hash);
 
@@ -73,30 +73,8 @@ impl Router {
         }
     }
 
-    /// Create a route to search with query.
-    #[expect(dead_code)]
-    pub fn route_to_search(query: &str) -> Route {
-        Route::Search {
-            query: query.to_owned(),
-            tags: Vec::new(),
-        }
-    }
-
-    /// Create a route to tag page.
-    #[expect(dead_code)]
-    pub fn route_to_tag(tag: &str) -> Route {
-        Route::Tag {
-            tag: tag.to_owned(),
-        }
-    }
-
-    /// Create a route to home page.
-    #[expect(dead_code)]
-    pub fn route_home() -> Route {
-        Route::Home
-    }
-
     /// Update from URL hash (for browser navigation).
+    #[cfg(any(target_arch = "wasm32", test))]
     pub fn update_from_hash(&mut self, hash: &str) -> bool {
         let new_route = Route::from_hash(hash);
         let route_changed = self.current_route != new_route;
@@ -213,7 +191,7 @@ mod tests {
             matches!(router.current_route(), Route::Post { slug, fragment: None } if slug == "my-post")
         );
 
-        let route = Router::route_home();
+        let route = Route::Home;
         let url = router.navigate_to(route);
         assert_eq!(url, "#/");
         assert!(matches!(router.current_route(), Route::Home));

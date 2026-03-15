@@ -151,18 +151,19 @@ fn extract_headings(content: &str) -> Vec<crate::posts::Heading> {
             }
             Event::End(Tag::Heading(_, _, _)) => {
                 if let Some(level) = current_level.take()
-                    && !current_heading_text.is_empty() {
-                        let id = crate::posts::BlogPost::generate_heading_id(
-                            &current_heading_text,
-                            &mut existing_ids,
-                        );
+                    && !current_heading_text.is_empty()
+                {
+                    let id = crate::posts::BlogPost::generate_heading_id(
+                        &current_heading_text,
+                        &mut existing_ids,
+                    );
 
-                        headings.push(crate::posts::Heading {
-                            level,
-                            text: current_heading_text.clone(),
-                            id,
-                        });
-                    }
+                    headings.push(crate::posts::Heading {
+                        level,
+                        text: current_heading_text.clone(),
+                        id,
+                    });
+                }
             }
             Event::Text(text) => {
                 if current_level.is_some() {
@@ -302,9 +303,11 @@ mod tests {
         assert!(io_error.to_string().contains("IO error"));
         assert!(yaml_error.to_string().contains("YAML parsing error"));
         assert!(format_error.to_string().contains("Invalid file format"));
-        assert!(missing_delimiter
-            .to_string()
-            .contains("Missing frontmatter delimiter"));
+        assert!(
+            missing_delimiter
+                .to_string()
+                .contains("Missing frontmatter delimiter")
+        );
         assert!(file_not_found.to_string().contains("File not found"));
         assert!(dir_not_found.to_string().contains("Directory not found"));
     }

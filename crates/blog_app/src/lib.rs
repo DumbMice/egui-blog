@@ -1760,38 +1760,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_scroll_position_persistence_per_post() {
-        let mut app = BlogApp::default();
-
-        // Posts are loaded by default in PostManager
-        // Test that current_post_key returns Some when there are posts
-        assert!(app.current_post_key().is_some());
-
-        // Get the current post key
-        let post_key = app.current_post_key().unwrap();
-
-        // Test save_current_scroll_position
-        app.save_current_scroll_position(100.0);
-        assert_eq!(app.scroll_offset, 100.0); // Legacy field updated
-        assert_eq!(app.post_scroll_positions.len(), 1); // Should have one entry
-        assert_eq!(app.post_scroll_positions.get(&post_key), Some(&100.0));
-
-        // Test restore_current_scroll_position
-        // First, change scroll_offset to test restoration
-        app.scroll_offset = 0.0;
-        let offset = app.restore_current_scroll_position();
-        assert_eq!(offset, 100.0); // Should restore saved position
-        assert_eq!(app.scroll_offset, 100.0);
-
-        // Test with a different scroll position
-        app.save_current_scroll_position(250.0);
-        assert_eq!(app.post_scroll_positions.get(&post_key), Some(&250.0));
-
-        // Test restoration of non-existent post (simulate post change)
-        // We can't easily change the post in test, but we can verify the logic
-        // by checking that the method handles the current post correctly
-    }
+    // Note: test_scroll_position_persistence_per_post was removed because
+    // save_current_scroll_position and restore_current_scroll_position methods
+    // were removed. Scroll position persistence now uses egui's built-in
+    // id_salt() mechanism with dynamic IDs per post.
 
     #[test]
     fn test_focused_panel_persistence() {

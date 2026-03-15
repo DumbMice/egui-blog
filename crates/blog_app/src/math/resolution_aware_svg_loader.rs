@@ -7,15 +7,15 @@
 use std::{
     mem::size_of,
     sync::{
-        Arc,
         atomic::{AtomicU64, Ordering::Relaxed},
+        Arc,
     },
 };
 
 use egui::{
-    ColorImage,
     load::{BytesPoll, ImageLoadResult, ImageLoader, ImagePoll, LoadError, SizeHint},
     mutex::Mutex,
+    ColorImage,
 };
 use egui_extras;
 use std::collections::HashMap;
@@ -187,7 +187,9 @@ impl ImageLoader for ResolutionAwareSvgLoader {
         let cache = self.cache.lock();
         let mut total = 0;
 
+        #[expect(clippy::iter_over_hash_type)]
         for bucket in cache.values() {
+            #[expect(clippy::iter_over_hash_type)]
             for entry in bucket.values() {
                 total += size_of::<Entry>();
                 if let Ok(image) = &entry.result {
