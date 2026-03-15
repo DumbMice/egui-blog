@@ -1,7 +1,5 @@
 //! Router struct that encapsulates routing state and logic.
 
-use std::collections::HashMap;
-
 use super::Route;
 
 /// Router that manages URL routing state and operations.
@@ -10,11 +8,7 @@ use super::Route;
 pub struct Router {
     /// Current route
     current_route: Route,
-    /// Query parameters for the current route
-    query_params: HashMap<String, String>,
-    /// Whether the route has been initialized from URL
-    #[cfg_attr(feature = "serde", serde(skip))]
-    #[expect(dead_code)]
+    /// Whether router has been initialized (set to true after first navigation)
     initialized: bool,
     /// Serialization version for backward compatibility
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -27,7 +21,6 @@ impl Router {
     pub fn new() -> Self {
         Self {
             current_route: Route::Home,
-            query_params: HashMap::new(),
             initialized: false,
             version: 1,
         }
@@ -36,12 +29,10 @@ impl Router {
     /// Create a router from a URL hash.
     #[expect(dead_code)]
     pub fn from_hash(hash: &str) -> Self {
-        let route = Route::from_hash(hash);
-        let query_params = Self::extract_query_params(hash);
+        let current_route = Route::from_hash(hash);
 
         Self {
-            current_route: route,
-            query_params,
+            current_route,
             initialized: true,
             version: 1,
         }
@@ -55,7 +46,6 @@ impl Router {
     /// Navigate to a new route.
     pub fn navigate_to(&mut self, route: Route) -> String {
         self.current_route = route;
-        self.query_params.clear();
         self.current_route.to_hash()
     }
 
@@ -113,69 +103,10 @@ impl Router {
 
         if route_changed {
             self.current_route = new_route;
-            self.query_params = Self::extract_query_params(hash);
             self.initialized = true;
         }
 
         route_changed
-    }
-
-    /// Get query parameter value.
-    #[allow(dead_code)]
-    pub fn get_query_param(&self, key: &str) -> Option<&String> {
-        self.query_params.get(key)
-    }
-
-    /// Set query parameter (doesn't update URL until navigation).
-    #[allow(dead_code)]
-    pub fn set_query_param(&mut self, key: String, value: String) {
-        self.query_params.insert(key, value);
-    }
-
-    /// Get all query parameters.
-    #[allow(dead_code)]
-    pub fn query_params(&self) -> &HashMap<String, String> {
-        &self.query_params
-    }
-
-    /// Generate URL with current query parameters.
-    #[expect(dead_code)]
-    pub fn current_url(&self) -> String {
-        let base_url = self.current_route.to_hash();
-
-        // If we have additional query params beyond what the route handles,
-        // we need to append them
-        if self.query_params.is_empty() {
-            return base_url;
-        }
-
-        // For now, just return the base URL
-        // TODO: Handle merging route query params with additional params
-        base_url
-    }
-
-    /// Extract query parameters from URL hash.
-    fn extract_query_params(hash: &str) -> HashMap<String, String> {
-        let path = hash.trim_start_matches('#').trim_start_matches('/');
-        let (_, query_part) = path.split_once('?').unwrap_or((path, ""));
-
-        if query_part.is_empty() {
-            return HashMap::new();
-        }
-
-        let mut params = HashMap::new();
-        for pair in query_part.split('&') {
-            let mut parts = pair.splitn(2, '=');
-            if let Some(key) = parts.next() {
-                if let Some(value) = parts.next() {
-                    params.insert(key.to_owned(), super::url_decode(value));
-                } else {
-                    params.insert(key.to_owned(), String::new());
-                }
-            }
-        }
-
-        params
     }
 }
 
@@ -201,7 +132,7 @@ impl<'de> serde::Deserialize<'de> for Router {
             type Value = Router;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("a Router struct with current_route and query_params")
+                formatter.write_str("a Router struct with current_route")
             }
 
             fn visit_map<M>(self, mut map: M) -> Result<Router, M::Error>
@@ -209,7 +140,6 @@ impl<'de> serde::Deserialize<'de> for Router {
                 M: MapAccess<'de>,
             {
                 let mut current_route = None;
-                let mut query_params = None;
                 let mut version = None;
 
                 while let Some(key) = map.next_key::<String>()? {
@@ -217,13 +147,10 @@ impl<'de> serde::Deserialize<'de> for Router {
                         "current_route" => {
                             current_route = Some(map.next_value()?);
                         }
-                        "query_params" => {
-                            query_params = Some(map.next_value()?);
-                        }
                         "version" => {
                             version = Some(map.next_value()?);
                         }
-                        // Ignore unknown fields (like "initialized" which is skipped in serialization)
+                        // Ignore unknown fields (like "query_params" from old format, "initialized" which is skipped in serialization)
                         _ => {
                             let _: serde::de::IgnoredAny = map.next_value()?;
                         }
@@ -231,17 +158,15 @@ impl<'de> serde::Deserialize<'de> for Router {
                 }
 
                 let current_route = current_route.unwrap_or(Route::Home);
-                let query_params = query_params.unwrap_or_default();
                 let version = version.unwrap_or(0); // Default to version 0 for old saved states
 
                 // Handle version-specific migrations if needed
                 match version {
                     0 | 1 => {
-                        // Version 0: Old format without version field
+                        // Version 0: Old format without version field (may have query_params)
                         // Version 1: Current format
                         Ok(Router {
                             current_route,
-                            query_params,
                             initialized: false, // Always reset on deserialization
                             version: 1,         // Always set to current version
                         })
@@ -311,15 +236,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_query_params() {
-        let router = Router::from_hash("#/search?q=rust&sort=date");
-
-        assert_eq!(router.get_query_param("q"), Some(&"rust".to_string()));
-        assert_eq!(router.get_query_param("sort"), Some(&"date".to_string()));
-        assert_eq!(router.get_query_param("nonexistent"), None);
-    }
-
     #[cfg(feature = "serde")]
     #[test]
     fn test_router_serialization() {
@@ -327,15 +243,11 @@ mod tests {
 
         let mut router = Router::new();
         router.navigate_to(Router::route_to_post("my-post"));
-        router.set_query_param("key".to_string(), "value".to_string());
 
         // Serialize
         let json = serde_json::to_string(&router).unwrap();
         assert!(json.contains("current_route"));
-        assert!(json.contains("query_params"));
         assert!(json.contains("my-post"));
-        assert!(json.contains("key"));
-        assert!(json.contains("value"));
 
         // Deserialize
         let deserialized: Router = serde_json::from_str(&json).unwrap();
@@ -345,10 +257,6 @@ mod tests {
                 slug: "my-post".to_string(),
                 fragment: None,
             }
-        );
-        assert_eq!(
-            deserialized.get_query_param("key"),
-            Some(&"value".to_string())
         );
         assert!(!deserialized.initialized); // Should be reset on deserialize
     }
@@ -360,8 +268,7 @@ mod tests {
 
         // Test deserialization of old format (without version field)
         let old_json = r#"{
-            "current_route": {"Post": {"slug": "old-post"}},
-            "query_params": {"old": "value"}
+            "current_route": {"Post": {"slug": "old-post"}}
         }"#;
 
         let deserialized: Router = serde_json::from_str(old_json).unwrap();
@@ -372,10 +279,6 @@ mod tests {
                 fragment: None,
             }
         );
-        assert_eq!(
-            deserialized.get_query_param("old"),
-            Some(&"value".to_string())
-        );
         assert!(!deserialized.initialized);
     }
 
@@ -385,16 +288,10 @@ mod tests {
         use serde_json;
 
         // Test deserialization with missing current_route (should default to Home)
-        let json = r#"{
-            "query_params": {"test": "value"}
-        }"#;
+        let json = r#"{}"#;
 
         let deserialized: Router = serde_json::from_str(json).unwrap();
         assert_eq!(deserialized.current_route(), &Route::Home);
-        assert_eq!(
-            deserialized.get_query_param("test"),
-            Some(&"value".to_string())
-        );
     }
 
     #[cfg(feature = "serde")]
@@ -407,6 +304,5 @@ mod tests {
 
         let deserialized: Router = serde_json::from_str(json).unwrap();
         assert_eq!(deserialized.current_route(), &Route::Home);
-        assert!(deserialized.query_params().is_empty());
     }
 }
