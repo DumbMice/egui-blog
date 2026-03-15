@@ -121,16 +121,19 @@ impl Router {
     }
 
     /// Get query parameter value.
+    #[allow(dead_code)]
     pub fn get_query_param(&self, key: &str) -> Option<&String> {
         self.query_params.get(key)
     }
 
     /// Set query parameter (doesn't update URL until navigation).
+    #[allow(dead_code)]
     pub fn set_query_param(&mut self, key: String, value: String) {
         self.query_params.insert(key, value);
     }
 
     /// Get all query parameters.
+    #[allow(dead_code)]
     pub fn query_params(&self) -> &HashMap<String, String> {
         &self.query_params
     }

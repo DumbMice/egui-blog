@@ -8,7 +8,7 @@
 //! Use `cargo run --bin <binary_name>` to run a specific binary.
 
 fn main() {
-    #[allow(clippy::print_stderr)]
+    #[expect(clippy::print_stderr)]
     {
         eprintln!("Blog App - Available binaries:");
         eprintln!();
