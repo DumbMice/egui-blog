@@ -4,10 +4,10 @@ date: "2026-03-03"
 tags: ["llm", "memory", "ai"]
 ---
 
-The quadratic scaling of computation with sequence length presents a fundamental challenge for deploying LLMs as general-purpose agents requiring long-term context.
+The quadratic scaling of computation with sequence length poses a fundamental challenge for deploying LLMs as general-purpose agents requiring long-term context.
 
 This post establishes the mathematical foundations of self-attention, which is essential for understanding memory constraints in transformers.
-We'll cover the core mechanics first, then in a follow-up post discuss how these fundamentals create memory bottlenecks.
+We'll cover the core mechanics first; a follow-up post will discuss how these fundamentals create memory bottlenecks.
 
 ## Introduction to Self-Attention
 
@@ -24,7 +24,7 @@ To provide a complete mathematical treatment of self-attention,
 we employ tensor notation for multi-dimensional arrays, representing a token sequence as $x equiv [bold(x)_1, dots, bold(x)_T]$ with components $x_(mu t)$ where $1<=t<=T$ indexes positions and $1<=mu<=d_"tok"$ indexes features.
 
 From now on, we will use Greek letters, e.g. $mu, nu, tau$, for feature indices and Latin letters, e.g. $t, s, u$, for positional indices.
-For example, in GPT-3, $d_"tok"=768$ while $d=12288$ (attention dimension).
+For example, in GPT-3 (175B parameter model), $d_"tok"=12288$ with 96 attention heads, resulting in $d=128$ per-head attention dimension (since $d_"tok" = N_"head" dot.c d$).
 
 The core innovation of attention is representing directional relationships between tokens.
 
@@ -54,14 +54,17 @@ where  $R$ could be represented as
 $ R= Q^tack.b K <=> R^(nu tau) = Q^(mu nu) lr(K_mu)^tau = Q^( tack.b nu mu)  lr(K_mu)^tau. $
 
 The query score function $r(dot.c, dot.c)$ constitutes a _bilinear form_ $RR^d times RR^d -> RR$ with matrix $R$.
-Since $Q$ and $K$ are independent learnable matrices, $R$ is generally asymmetric, endowing the bilinear form with directional properties.
+Since $Q$ and $K$ are independent learnable matrices, $R$ is generally _asymmetric_, endowing the bilinear form with directional properties.
+
+Furthermore, learning a low-rank matrix as $Q^tack.b K$ instead of a full $d_"tok" times d_"tok"$ matrix is more memory and computation efficient for $d < d_"tok"$.
+After we discuss multi-head attention, this point is reiterated since each attention head focuses on only one "aspect", eliminating the need for a full $d_"tok" times d_"tok"$ matrix.
 
 With query scores defined, we need to convert them into a probability distribution.
 
 ### Ensemble on Tokens
 
-With the simple notion of _query score_ as a bilinear score between tokens, we can interpret self-attention of expectation of a linear operator upon a distribution/ ensemble induced by query score.
-This interpretation helps us rethink the computational cost and how possibly it could be reduced.
+With the simple notion of _query score_ as a bilinear score between tokens, we can interpret self-attention as the expectation of a linear operator over a distribution or ensemble induced by query scores.
+This interpretation helps us rethink the computational cost and how it could potentially be reduced.
 
 #### Detour to Physics
 
@@ -69,7 +72,7 @@ This formulation connects to statistical physics through the Boltzmann distribut
 
 $ p_i = (e^(-E_i / (k_B T)))/Z $
 
-where $Z equiv sum_i e^(-E_i/(k_B T))$ is the partition function, which normalizes the distribution, and $k_B$ is called Boltzmann coefficient.
+where $Z equiv sum_i e^(-E_i/(k_B T))$ is the partition function, which normalizes the distribution, and $k_B$ is the Boltzmann constant.
 
 Similar exponential weighting appears in quantum mechanics, where each path $bold(x)$ contributes a phase factor in the path integral formulation:
 
@@ -167,22 +170,23 @@ The summation over $j$ reveals the $O(T)$ computational complexity of each indiv
 
 #### Multi-head Self-attention
 
-With self-attention, we can extract infos $bold(y)_i$ from other tokens.
-In practice, _multi-head self-attention_ is exploited to compute $N_"head"$ parallel self-attentions on $x$.
-This multi-headedness does not involve computational complexity that we focus on, but we mention it nevertheless for completeness.
+With self-attention, we can extract information $bold(y)_i$ from other tokens.
+In practice, _multi-head self-attention_ employs $N_"head"$ parallel self-attention operations on $x$.
+This multi-headedness operates in parallel to the computational complexity we focus on, but we mention it for completeness.
 
 For each head $1<=h<=N_"head"$, there is a set of learnable parameters ${Q_h, K_h, V_h}$.
-Therefore, we can obtain $N_"head"$ outputs for each head ${bold(y)^h_i}$.
-These outputs are then concatenated on the feature dimension into a single output with dimension $N_"head" dot.c d$.
+Each head defines a distinct relationship or focuses on one aspect among tokens.
+Therefore, we obtain $N_"head"$ outputs for each head ${bold(y)^h_i}$.
+These outputs are concatenated along the feature dimension into a single output with dimension $N_"head" dot.c d$.
 In practice, it is often chosen such that $d_"tok" = N_"head" dot.c d$
 
-Normally, there will be one extra learnable matrix that mix different head featrues $W_o in RR^d times RR^d$.
-But this main involves mixing of information inside feature channel, and do not take important role in the computational complexity.
+Normally, an extra learnable matrix $W_o in RR^(N_"head" dot d) times RR^(N_"head" dot d)$ mixes features from different heads.
+This mainly involves mixing information within feature channels and does not play an important role in the computational complexity.
 
 ### Causal Structure on Tokens
 
 Decoder-only autoregressive transformers incorporate causal masking into self-attention.
-During inference, models generate tokens sequentially using preceding context, necessitating that training likewise restricts attention to historical tokens.
+During inference, models generate tokens sequentially using preceding context, necessitating that training also restricts attention to historical tokens.
 
 This causal structure requires the ensemble contribution from the future to be zero,
 
