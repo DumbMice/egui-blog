@@ -48,6 +48,7 @@ impl KeySequenceHandler {
             } = event
             {
                 let shortcut = KeyboardShortcut::new(modifiers, key);
+                log::debug!("Key pressed: {:?} (modifiers: {:?})", key, modifiers);
                 self.buffer.push_back(shortcut);
                 self.last_key_time = Some(current_time);
 
@@ -70,6 +71,7 @@ impl KeySequenceHandler {
 
         // Check if buffer ends with the sequence
         if self.buffer.len() < sequence.len() {
+            log::debug!("Sequence check failed: buffer len {} < sequence len {}", self.buffer.len(), sequence.len());
             return false;
         }
 
@@ -82,13 +84,18 @@ impl KeySequenceHandler {
             .copied()
             .collect();
 
+        log::debug!("Checking sequence: buffer={:?}, recent={:?}, sequence={:?}", 
+                   self.buffer, recent, sequence);
+
         if recent == sequence {
+            log::debug!("Sequence matched!");
             // Clear buffer on successful match
             self.buffer.clear();
             self.last_key_time = None;
             return true;
         }
 
+        log::debug!("Sequence did not match");
         false
     }
 

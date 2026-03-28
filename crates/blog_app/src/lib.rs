@@ -162,6 +162,7 @@ pub struct BlogApp {
     /// Fragment to scroll to in current post (from URL or TOC click)
     #[cfg_attr(feature = "serde", serde(skip))]
     fragment_to_scroll_to: Option<String>,
+
 }
 
 impl Default for BlogApp {
@@ -225,9 +226,14 @@ impl BlogApp {
             // Try to load with error handling
             if let Some(loaded_app) = eframe::get_value::<Self>(storage, eframe::APP_KEY) {
                 log::info!("Persistence: Successfully loaded app from storage");
+                log::info!(
+                    "Persistence: Loaded theme: {:?}, previous_theme: {:?}, focused_panel: {:?}",
+                    loaded_app.theme,
+                    loaded_app.previous_theme,
+                    loaded_app.focused_panel
+                );
                 log::debug!(
-                    "Persistence: Loaded app. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
-                    loaded_app.focused_panel,
+                    "Persistence: Loaded app. scroll_offset: {}, post_scroll_positions count: {}",
                     loaded_app.scroll_offset,
                     loaded_app.post_scroll_positions.len()
                 );
@@ -240,7 +246,16 @@ impl BlogApp {
                     "Persistence: Starting with fresh defaults. Corrupted data will be overwritten on save."
                 );
 
-                Self::default()
+                // Try to load just the theme separately as fallback
+                let mut default_app = Self::default();
+                if let Some(saved_theme) = eframe::get_value::<Theme>(storage, "blog_app_theme") {
+                    log::info!("Persistence: Loaded theme separately: {:?}", saved_theme);
+                    default_app.theme = saved_theme;
+                    default_app.previous_theme = saved_theme;
+                } else {
+                    log::info!("Persistence: No separate theme saved, using default theme");
+                }
+                default_app
             }
         } else {
             log::info!("Persistence: No storage available, using default");
@@ -273,8 +288,23 @@ impl BlogApp {
         }
 
         // Apply theme to context (this will also set up text styles)
+        log::info!("Persistence: Applying theme in constructor: {:?}", app.theme);
         app.theme.apply(&cc.egui_ctx);
-        app.previous_theme = app.theme;
+        // Don't overwrite previous_theme if we loaded from storage
+        // It should already be set from the saved state
+        // Only set it if we're creating a fresh app
+        #[cfg(feature = "persistence")]
+        if cc.storage.is_none() {
+            app.previous_theme = app.theme;
+            log::info!("Persistence: Fresh app, set previous_theme to: {:?}", app.previous_theme);
+        } else {
+            log::info!("Persistence: Loaded from storage, previous_theme is: {:?}", app.previous_theme);
+        }
+        #[cfg(not(feature = "persistence"))]
+        {
+            app.previous_theme = app.theme;
+            log::info!("Persistence: No persistence feature, set previous_theme to: {:?}", app.previous_theme);
+        }
 
         // Migration: Convert old search_query to new tag_search_state
         #[cfg(feature = "persistence")]
@@ -554,21 +584,25 @@ impl eframe::App for BlogApp {
     #[cfg(feature = "persistence")]
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         log::info!(
-            "Persistence: Saving app state. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+            "Persistence: Saving app state. theme: {:?}, focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+            self.theme,
             self.focused_panel,
             self.scroll_offset,
             self.post_scroll_positions.len()
         );
         log::debug!(
-            "Persistence: Saving app state. focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+            "Persistence: Saving app state. theme: {:?}, focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
+            self.theme,
             self.focused_panel,
             self.scroll_offset,
             self.post_scroll_positions.len()
         );
         // Router state is automatically serialized as part of BlogApp
         eframe::set_value(storage, eframe::APP_KEY, self);
-        log::info!("Persistence: App state saved successfully");
-        log::debug!("Persistence: App state saved successfully");
+        // Also save theme separately as backup
+        eframe::set_value(storage, "blog_app_theme", &self.theme);
+        log::info!("Persistence: App state saved successfully (theme: {:?})", self.theme);
+        log::debug!("Persistence: App state saved successfully (theme: {:?})", self.theme);
     }
 
     fn persist_egui_memory(&self) -> bool {
@@ -609,6 +643,8 @@ impl eframe::App for BlogApp {
                 // For now, we'll just log the error
             }
         }
+
+
 
         // Unified state restoration with clear precedence
         if !self.route_restored {
@@ -753,16 +789,22 @@ impl eframe::App for BlogApp {
 
         // Check if theme changed (via UI button or keyboard shortcut) and apply it
         if self.theme != self.previous_theme {
-            log::debug!(
-                "Theme changed from {:?} to {:?}, applying to UI",
-                self.previous_theme,
-                self.theme
-            );
+            log::info!("[THEME DEBUG] Theme changed from {:?} to {:?}, applying to UI", 
+                      self.previous_theme, self.theme);
             self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
+            log::info!("[THEME DEBUG] Set previous_theme to: {:?}", self.previous_theme);
+            
+            // Save immediately when theme changes
+            if let Some(storage) = _frame.storage_mut() {
+                log::info!("[THEME DEBUG] Saving app state immediately after theme change");
+                eframe::set_value(storage, eframe::APP_KEY, self);
+                // Also save theme separately as backup
+                eframe::set_value(storage, "blog_app_theme", &self.theme);
+            }
         } else if top_panel_result.theme_changed {
             // This shouldn't happen, but log if it does (theme changed but detection didn't trigger)
-            log::warn!("top_panel reported theme changed but self.theme == self.previous_theme");
+            log::warn!("[THEME DEBUG] top_panel reported theme changed but self.theme == self.previous_theme");
         }
 
         // Handle search committed with Enter key
@@ -1472,18 +1514,15 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
     }
 
     fn toggle_theme(&mut self) -> bool {
-        log::debug!(
-            "toggle_theme called. Current route: {:?}, selected_post: {}",
-            self.router.current_route(),
-            self.selected_post
-        );
+        let old_theme = self.theme;
         self.theme = match self.theme {
             crate::ui::Theme::CatppuccinLatte => crate::ui::Theme::CatppuccinMacchiato,
             crate::ui::Theme::CatppuccinMacchiato => crate::ui::Theme::CatppuccinLatte,
         };
+        log::info!("[THEME DEBUG] toggle_theme: {:?} -> {:?}", old_theme, self.theme);
+        log::info!("[THEME DEBUG] previous_theme before toggle: {:?}", self.previous_theme);
         // Invalidate tag cache since theme changed
         self.cached_tags = None;
-        log::debug!("toggle_theme completed. New theme: {:?}", self.theme);
         true
     }
 
@@ -1716,12 +1755,7 @@ mod tests {
         app.handle_retry();
     }
 
-    #[test]
-    fn test_blog_app_passes_state_to_side_panel() {
-        let app = BlogApp::default();
-        // Verify app compiles with updated side panel call
-        let _ = app;
-    }
+
 
     #[test]
     fn test_theme_toggle_does_not_navigate_to_home() {
@@ -1766,6 +1800,75 @@ mod tests {
     // id_salt() mechanism with dynamic IDs per post.
 
     #[test]
+    fn test_theme_persistence_serialization() {
+        use crate::ui::components::Theme;
+        
+        println!("Testing Theme enum serialization...");
+        
+        // Test CatppuccinLatte
+        let theme_latte = Theme::CatppuccinLatte;
+        let json_latte = serde_json::to_string(&theme_latte).expect("Failed to serialize CatppuccinLatte");
+        println!("CatppuccinLatte serialized: {}", json_latte);
+        
+        let deserialized_latte: Theme = serde_json::from_str(&json_latte).expect("Failed to deserialize CatppuccinLatte");
+        println!("CatppuccinLatte deserialized: {:?}", deserialized_latte);
+        assert_eq!(theme_latte, deserialized_latte);
+        
+        // Test CatppuccinMacchiato
+        let theme_macchiato = Theme::CatppuccinMacchiato;
+        let json_macchiato = serde_json::to_string(&theme_macchiato).expect("Failed to serialize CatppuccinMacchiato");
+        println!("CatppuccinMacchiato serialized: {}", json_macchiato);
+        
+        let deserialized_macchiato: Theme = serde_json::from_str(&json_macchiato).expect("Failed to deserialize CatppuccinMacchiato");
+        println!("CatppuccinMacchiato deserialized: {:?}", deserialized_macchiato);
+        assert_eq!(theme_macchiato, deserialized_macchiato);
+        
+        // Test default
+        let default_theme = Theme::default();
+        assert_eq!(default_theme, Theme::CatppuccinLatte);
+        
+        println!("✅ Theme serialization/deserialization test passed!");
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_theme_persistence_save_load_cycle() {
+        use serde_json;
+        
+        println!("Testing theme persistence in save/load cycle...");
+        
+        // Create app with dark theme
+        let mut app = BlogApp::default();
+        app.theme = crate::ui::components::Theme::CatppuccinMacchiato;
+        app.previous_theme = crate::ui::components::Theme::CatppuccinMacchiato;
+        
+        println!("Initial app: theme={:?}, previous_theme={:?}", app.theme, app.previous_theme);
+        
+        // Simulate save
+        let json = serde_json::to_string(&app).expect("Failed to serialize app");
+        println!("Serialized app: {} bytes", json.len());
+        
+        // Simulate load
+        let loaded_app: BlogApp = serde_json::from_str(&json).expect("Failed to deserialize app");
+        
+        println!("Loaded app: theme={:?}, previous_theme={:?}", loaded_app.theme, loaded_app.previous_theme);
+        
+        // Check that theme persisted
+        assert_eq!(
+            loaded_app.theme,
+            crate::ui::components::Theme::CatppuccinMacchiato,
+            "Theme should persist through save/load cycle"
+        );
+        assert_eq!(
+            loaded_app.previous_theme,
+            crate::ui::components::Theme::CatppuccinMacchiato,
+            "Previous theme should also persist"
+        );
+        
+        println!("✅ Theme persistence save/load cycle test passed!");
+    }
+
+    #[test]
     fn test_focused_panel_persistence() {
         let mut app = BlogApp::default();
 
@@ -1800,6 +1903,7 @@ mod tests {
         // Set some non-default values
         app.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
         app.scroll_offset = 123.45;
+        app.theme = crate::ui::components::Theme::CatppuccinMacchiato; // Set to dark theme
 
         // Add a post scroll position
         let post_key = "Posts:test-post".to_string();
@@ -1827,6 +1931,11 @@ mod tests {
             deserialized.post_scroll_positions.len(),
             1,
             "post_scroll_positions should persist"
+        );
+        assert_eq!(
+            deserialized.theme,
+            crate::ui::components::Theme::CatppuccinMacchiato,
+            "theme should persist"
         );
 
         println!("✅ Serialization round-trip test passed!");

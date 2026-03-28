@@ -111,14 +111,22 @@ impl ShortcutManager {
     /// Handle keyboard input and execute shortcuts
     pub fn handle_input<A: ActionExecutor>(&mut self, ctx: &Context, app: &mut A) -> bool {
         if !self.enabled {
+            log::debug!("Shortcuts disabled");
             return false;
         }
 
         // Get config and shortcuts before mutable operations
         let (shortcuts, contexts_enabled, active_context) = {
             let Some(config) = &self.config else {
+                log::debug!("No config loaded");
                 return false;
             };
+
+            log::debug!(
+                "Checking shortcuts in context: {:?} (total shortcuts: {})",
+                self.active_context,
+                config.shortcuts.len()
+            );
 
             // Extract what we need
             (
@@ -135,13 +143,30 @@ impl ShortcutManager {
         for shortcut in &shortcuts {
             // Check if shortcut is active in current context
             if !shortcut.contexts.contains(&active_context) {
+                log::debug!(
+                    "  Skipping shortcut {} - not in context {:?}",
+                    shortcut.name,
+                    active_context
+                );
                 continue;
             }
 
             // Check if context is enabled
             if matches!(contexts_enabled.get(&active_context), Some(false)) {
+                log::debug!(
+                    "  Skipping shortcut {} - context {:?} disabled",
+                    shortcut.name,
+                    active_context
+                );
                 continue;
             }
+
+            log::debug!(
+                "  Checking shortcut: {} (keys: {:?}, alternate: {:?})",
+                shortcut.name,
+                shortcut.keys,
+                shortcut.alternate_keys
+            );
 
             // Check primary keys
             for key_seq in &shortcut.keys {
@@ -158,6 +183,11 @@ impl ShortcutManager {
             // Check alternate keys
             for key_seq in &shortcut.alternate_keys {
                 if self.check_sequence(ctx, key_seq) {
+                    log::debug!(
+                        "Alternate shortcut sequence matched: {} - {:?}",
+                        shortcut.name,
+                        key_seq
+                    );
                     return Self::execute_shortcut(app, shortcut);
                 }
             }

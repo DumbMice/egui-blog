@@ -105,6 +105,9 @@ pub fn responsive_container<R>(
     let left_margin = (available_width - content_width) / 2.0;
     let left_margin = left_margin.max(margins);
 
+    // Calculate right margin (same as left for symmetry)
+    let right_margin = left_margin;
+
     // Create a horizontal layout with calculated width
     let response = ui.horizontal(|ui| {
         ui.add_space(left_margin);
@@ -114,6 +117,9 @@ pub fn responsive_container<R>(
             ui.set_width(content_width);
             add_contents(ui)
         });
+
+        // Add right margin
+        ui.add_space(right_margin);
 
         response.inner
     });
@@ -135,6 +141,9 @@ pub fn max_width_container<R>(
     let left_margin = (available_width - content_width) / 2.0;
     let left_margin = left_margin.max(margins);
 
+    // Calculate right margin (same as left for symmetry)
+    let right_margin = left_margin;
+
     // Create a horizontal layout with max width
     let response = ui.horizontal(|ui| {
         ui.add_space(left_margin);
@@ -144,6 +153,9 @@ pub fn max_width_container<R>(
             ui.set_width(content_width);
             add_contents(ui)
         });
+
+        // Add right margin
+        ui.add_space(right_margin);
 
         response.inner
     });

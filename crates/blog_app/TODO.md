@@ -266,20 +266,22 @@ cargo blog-wasm     # Build WASM library only
 
 ## Priority 11: Keyboard Shortcuts & Vim Navigation ✅ COMPLETED 2026-03-05
 - [x] Basic navigation (arrow keys, Home/End) - via configurable shortcuts
-- [x] Vim navigation (j/k for up/down, gg/G for top/bottom) - via configurable shortcuts
+- [x] Vim navigation (j/k for up/down) - via configurable shortcuts
 - [x] `/` for page content search (not post search) - Ctrl+F or `/` for find in content
 - [x] Alt+D to focus browser address bar (web only) - via configurable shortcuts
 - [x] Always-on vim mode (not toggleable) - vim_mode_enabled = true in config
 - [x] Configurable via TOML file (shortcuts.toml) - more flexible than hardcoded
+- [ ] **BUG**: `gg` and `G` shortcuts don't work (see Priority 25)
 
 **Note**: Modular keyboard shortcut system with:
 - Panel-based navigation (Ctrl+H/L to switch between left/right panels)
-- Vim-style shortcuts (j/k for scrolling, gg/G for navigation, h/l for tab switching)
+- Vim-style shortcuts (j/k for scrolling, h/l for tab switching)
 - Configurable via TOML file (required, no defaults)
 - Always-on vim mode
 - Help overlay with `?` shortcut
 - Focus state persistence across sessions
 - Find-in-content functionality with dialog
+- **Missing**: `gg` and `G` shortcuts for top/bottom navigation (to be implemented in Priority 25)
 
 ## Priority 12: Animated Focus Indicators ✅ COMPLETED 2026-03-05
 - [x] Replace ugly blue border with animated focus indicator
@@ -551,7 +553,50 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Fixed urgent bug where panel focus and scroll position were not restored after browser refresh. Scroll position persistence now uses egui's built-in `id_salt()` mechanism with dynamic IDs per post (`main_content_scroll_{post_key}`). Panel focus persistence fixed by correcting RON serialization issues. When corrupted LocalStorage data exists, app falls back to defaults and overwrites with correct data on next save.
 
-## Priority 22: Dynamic Content Loading (Low Priority)
+## Priority 22: Fix Theme Persistence Bug
+- [ ] Selected theme is not persisted over refresh - page always goes to bright theme after refresh
+- [ ] Investigate why theme state is not being saved/restored correctly
+- [ ] Check serialization/deserialization of Theme enum
+- [ ] Verify LocalStorage save/restore logic for theme preference
+- [ ] Test theme persistence across browser refreshes
+
+**Note**: Users report that after refreshing the page, the theme always resets to bright theme instead of preserving the selected theme.
+
+## Priority 23: Fix Math Formula Replacement Logic for Parentheses
+- [ ] Typst math formulas originally wrapped inside parentheses are not replaced with rendered SVG
+- [ ] Root cause: Replacement logic error - should detect innermost `(xxxx.typ)` and replace with SVG image
+- [ ] Current issue: `($x$)` transforms to `((xxxx.typ))` instead of `(xxxx.typ)` → SVG
+- [ ] Fix regex or replacement logic to handle parentheses correctly
+- [ ] Test formulas in various contexts with parentheses
+- [ ] Ensure all math formulas render correctly regardless of surrounding syntax
+
+**Note**: Math formulas inside parentheses show as `(xxxx.typ)` placeholders instead of rendered SVGs due to incorrect replacement logic.
+
+## Priority 24: Fix Main Content Panel Scroll Area Margins
+- [ ] The scroll area in the main panel/content panel should include the margins on both sides
+- [ ] Current issue: Scroll area doesn't include responsive margins, causing content to appear cut off
+- [ ] Investigate ScrollArea configuration and container nesting
+- [ ] Ensure responsive margins are applied within the scrollable region
+- [ ] Test scrolling behavior with various content widths
+- [ ] Fix layout so content scrolls with proper margins on both sides
+
+**Note**: The main content scroll area doesn't include the responsive margins, making content appear incorrectly positioned during scrolling.
+
+## Priority 25: Implement gg and G Keyboard Shortcuts
+- [ ] Add vim-like `gg` and `G` keyboard shortcuts for scrolling/navigation
+- [ ] Context-sensitive behavior:
+  - `gg` in LeftPanel (post list) → navigate to first post
+  - `gg` in RightPanel (content) → scroll to top of current post
+  - `G` (Shift+g) in LeftPanel → navigate to last post  
+  - `G` (Shift+g) in RightPanel → scroll to bottom of current post
+- [ ] Keep existing `Home`/`End` keys for post navigation
+- [ ] Ensure shortcuts work without requiring mouse movement (app should repaint to check for keyboard input)
+- [ ] Test both web (WASM) and native targets
+- [ ] Add to shortcuts.toml configuration
+
+**Note**: Vim-style navigation shortcuts for quick top/bottom navigation and scrolling. Different behavior based on which panel has focus.
+
+## Priority 26: Dynamic Content Loading (Low Priority)
 - [ ] Evaluate dynamic loading benefits vs complexity
 - [ ] Research HTTP fetching with ehttp crate
 - [ ] Design async loading architecture

@@ -1,11 +1,11 @@
 //! Markdown rendering for blog posts.
 
-use egui::{Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2};
-use egui_extras::syntax_highlighting::{CodeTheme, highlight};
+use egui::{vec2, Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{MathAssetManager, ui::table_renderer};
+use crate::{ui::table_renderer, MathAssetManager};
 
 /// Get the bold variant of a text style
 /// Since egui's `.strong()` only changes color, not font weight,
@@ -353,18 +353,9 @@ pub fn extract_and_replace_math_formulas(
                 if !formula.is_empty() {
                     // Look up hash in manifest
                     if let Some(hash) = manifest.find_hash(formula, is_display) {
-                        // Check if we're inside parentheses: ($x$)
-                        // If char before $ is '(' and char after $ is ')', don't add extra parentheses
-                        let before_is_open_paren = i > 0 && chars[i - 1] == '(';
-                        let after_is_close_paren = j + 1 < chars.len() && chars[j + 1] == ')';
-
-                        if before_is_open_paren && after_is_close_paren {
-                            // We're inside parentheses, use hash.typ without extra parentheses
-                            result.push_str(&format!("{hash}.typ"));
-                        } else {
-                            // Normal case: add parentheses around placeholder
-                            result.push_str(&format!("({hash}.typ)"));
-                        }
+                        // Always add parentheses around placeholder for consistent parsing
+                        // The rendering logic will handle nested parentheses
+                        result.push_str(&format!("({hash}.typ)"));
 
                         i = j + 1;
                         continue;
@@ -1083,36 +1074,73 @@ fn render_markdown_impl(
                         if let Some(end) = remaining[start..].find(')') {
                             let placeholder = &remaining[start..=start + end];
 
-                            // Check if this is a math placeholder: (hash.typ)
-                            if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
-                                // Extract hash: remove '(' and '.typ)'
-                                let hash = &placeholder[1..placeholder.len() - 5];
+                            // Check if this is a math placeholder: contains (hash.typ)
+                            // It could be nested like ((hash.typ)), so we need to find the .typ) pattern
+                            if let Some(typ_start) = placeholder.find(".typ)") {
+                                // Extract the part from the opening '(' before .typ) to the end
+                                // Find the '(' that starts the math placeholder
+                                let mut paren_start = typ_start;
+                                while paren_start > 0
+                                    && placeholder.chars().nth(paren_start - 1) != Some('(')
+                                {
+                                    paren_start -= 1;
+                                }
 
-                                // Look up metadata in manifest
-                                if let Some(metadata) = manifest.get_metadata(hash) {
-                                    if let Some(_asset_manager) = &mut math_asset_manager {
-                                        // Try to render as SVG using hash with resolution scale
-                                        if let Some(image_source) =
-                                            MathAssetManager::get_image_source_for_hash_with_resolution(
-                                                hash,
-                                                math_resolution_scale,
-                                            )
-                                        {
-                                            // Get the SVG's intrinsic size
-                                            let svg_size = MathAssetManager::get_svg_size(hash);
+                                if paren_start > 0
+                                    && placeholder.chars().nth(paren_start - 1) == Some('(')
+                                {
+                                    // We found the opening '(' for the math placeholder
+                                    // Render any text before the math placeholder (e.g., the first '(' in "((hash.typ))")
+                                    if paren_start - 1 > 0 {
+                                        let before_math = &placeholder[..paren_start - 1];
+                                        render_text_with_latex(
+                                            ui,
+                                            before_math,
+                                            &mut math_asset_manager,
+                                            math_resolution_scale,
+                                        );
+                                    }
 
-                                            if let Some(size) = svg_size {
-                                                // Size stays the same - resolution scale affects rasterization quality, not display size
+                                    let math_placeholder =
+                                        &placeholder[paren_start - 1..=typ_start + 4]; // +4 for ".typ)"
+                                    let hash = &math_placeholder[1..math_placeholder.len() - 5]; // Remove '(' and '.typ)'
 
-                                                if metadata.is_display {
-                                                    // Display math: center with spacing
-                                                    ui.add_space(8.0);
-                                                    ui.horizontal(|ui| {
-                                                        ui.add_space(
-                                                            (ui.available_width() - size.x)
-                                                                / 2.0,
-                                                        );
+                                    // Look up metadata in manifest
+                                    if let Some(metadata) = manifest.get_metadata(hash) {
+                                        if let Some(_asset_manager) = &mut math_asset_manager {
+                                            // Try to render as SVG using hash with resolution scale
+                                            if let Some(image_source) =
+                                                MathAssetManager::get_image_source_for_hash_with_resolution(
+                                                    hash,
+                                                    math_resolution_scale,
+                                                )
+                                            {
+                                                // Get the SVG's intrinsic size
+                                                let svg_size = MathAssetManager::get_svg_size(hash);
 
+                                                if let Some(size) = svg_size {
+                                                    // Size stays the same - resolution scale affects rasterization quality, not display size
+
+                                                    if metadata.is_display {
+                                                        // Display math: center with spacing
+                                                        ui.add_space(8.0);
+                                                        ui.horizontal(|ui| {
+                                                            ui.add_space(
+                                                                (ui.available_width() - size.x)
+                                                                    / 2.0,
+                                                            );
+
+                                                            // Create image with crisp rendering using SVG's intrinsic size
+                                                            let image = egui::Image::new(image_source)
+                                                                .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                                                .fit_to_exact_size(size)
+                                                                .corner_radius(0.0); // No rounding for crisp edges
+
+                                                            ui.add(image);
+                                                        });
+                                                        ui.add_space(8.0);
+                                                    } else {
+                                                        // Inline math: render at SVG's intrinsic size
                                                         // Create image with crisp rendering using SVG's intrinsic size
                                                         let image = egui::Image::new(image_source)
                                                             .tint(ui.visuals().text_color()) // Theme-aware tinting
@@ -1120,49 +1148,46 @@ fn render_markdown_impl(
                                                             .corner_radius(0.0); // No rounding for crisp edges
 
                                                         ui.add(image);
-                                                    });
-                                                    ui.add_space(8.0);
+                                                    }
                                                 } else {
-                                                    // Inline math: render at SVG's intrinsic size
-                                                    // Create image with crisp rendering using SVG's intrinsic size
-                                                    let image = egui::Image::new(image_source)
-                                                        .tint(ui.visuals().text_color()) // Theme-aware tinting
-                                                        .fit_to_exact_size(size)
-                                                        .corner_radius(0.0); // No rounding for crisp edges
+                                                    // Fallback: use reasonable default size if SVG size not available
 
-                                                    ui.add(image);
-                                                }
-                                            } else {
-                                                // Fallback: use reasonable default size if SVG size not available
-
-                                                if metadata.is_display {
-                                                    // Display math: reasonable default
-                                                    let display_size = egui::vec2(200.0, 50.0);
-                                                    ui.add_space(8.0);
-                                                    ui.horizontal(|ui| {
-                                                        ui.add_space(
-                                                            (ui.available_width() - display_size.x)
-                                                                / 2.0,
-                                                        );
+                                                    if metadata.is_display {
+                                                        // Display math: reasonable default
+                                                        let display_size = egui::vec2(200.0, 50.0);
+                                                        ui.add_space(8.0);
+                                                        ui.horizontal(|ui| {
+                                                            ui.add_space(
+                                                                (ui.available_width() - display_size.x)
+                                                                    / 2.0,
+                                                            );
+                                                            let image = egui::Image::new(image_source)
+                                                                .tint(ui.visuals().text_color()) // Theme-aware tinting
+                                                                .fit_to_exact_size(display_size)
+                                                                .corner_radius(0.0);
+                                                            ui.add(image);
+                                                        });
+                                                        ui.add_space(8.0);
+                                                    } else {
+                                                        // Inline math: reasonable default
+                                                        let inline_size = egui::vec2(100.0, 20.0);
                                                         let image = egui::Image::new(image_source)
                                                             .tint(ui.visuals().text_color()) // Theme-aware tinting
-                                                            .fit_to_exact_size(display_size)
+                                                            .fit_to_exact_size(inline_size)
                                                             .corner_radius(0.0);
                                                         ui.add(image);
-                                                    });
-                                                    ui.add_space(8.0);
-                                                } else {
-                                                    // Inline math: reasonable default
-                                                    let inline_size = egui::vec2(100.0, 20.0);
-                                                    let image = egui::Image::new(image_source)
-                                                        .tint(ui.visuals().text_color()) // Theme-aware tinting
-                                                        .fit_to_exact_size(inline_size)
-                                                        .corner_radius(0.0);
-                                                    ui.add(image);
+                                                    }
                                                 }
+                                            } else {
+                                                // Fallback: render as code block
+                                                render_math_as_code(
+                                                    ui,
+                                                    &format!("Math formula: {hash}"),
+                                                    metadata.is_display,
+                                                );
                                             }
                                         } else {
-                                            // Fallback: render as code block
+                                            // No asset manager, render as code block
                                             render_math_as_code(
                                                 ui,
                                                 &format!("Math formula: {hash}"),
@@ -1170,24 +1195,23 @@ fn render_markdown_impl(
                                             );
                                         }
                                     } else {
-                                        // No asset manager, render as code block
-                                        render_math_as_code(
-                                            ui,
-                                            &format!("Math formula: {hash}"),
-                                            metadata.is_display,
-                                        );
+                                        // Hash not found in manifest, render placeholder as text
+                                        ui.label(placeholder);
                                     }
+
+                                    // Skip past the placeholder
+                                    remaining = &remaining[start + end + 1..];
                                 } else {
-                                    // Hash not found in manifest, render placeholder as text
+                                    // Couldn't find opening '(' for math placeholder
+                                    // Not a math placeholder, render as normal text
                                     ui.label(placeholder);
+                                    remaining = &remaining[start + end + 1..];
                                 }
                             } else {
                                 // Not a math placeholder, render as normal text
                                 ui.label(placeholder);
+                                remaining = &remaining[start + end + 1..];
                             }
-
-                            // Skip past the placeholder
-                            remaining = &remaining[start + end + 1..];
                         } else {
                             // No closing ')', render the '(' and continue
                             ui.label("(");
@@ -1756,65 +1780,90 @@ fn process_text_with_math(
         if let Some(end) = remaining[start..].find(')') {
             let placeholder = &remaining[start..=start + end];
 
-            // Check if this is a math placeholder: (hash.typ)
-            if placeholder.ends_with(".typ)") && placeholder.len() > 6 {
-                // Extract hash: remove '(' and '.typ)'
-                let hash = &placeholder[1..placeholder.len() - 5];
+            // Check if this is a math placeholder: contains (hash.typ)
+            // It could be nested like ((hash.typ)), so we need to find the .typ) pattern
+            if let Some(typ_start) = placeholder.find(".typ)") {
+                // Extract the part from the opening '(' before .typ) to the end
+                // Find the '(' that starts the math placeholder
+                let mut paren_start = typ_start;
+                while paren_start > 0 && placeholder.chars().nth(paren_start - 1) != Some('(') {
+                    paren_start -= 1;
+                }
 
-                // Look up metadata in manifest
-                if let Some(metadata) = manifest.get_metadata(hash) {
-                    // Inline math - accumulate in paragraph content
-                    if let Some(_asset_manager) = math_asset_manager {
-                        // Try to get SVG using hash with resolution scale
-                        if let Some(image_source) =
-                            MathAssetManager::get_image_source_for_hash_with_resolution(
-                                hash,
-                                math_resolution_scale,
-                            )
-                        {
-                            // Get the SVG's intrinsic size
-                            let svg_size = MathAssetManager::get_svg_size(hash);
+                if paren_start > 0 && placeholder.chars().nth(paren_start - 1) == Some('(') {
+                    // We found the opening '(' for the math placeholder
+                    // Add any text before the math placeholder (e.g., the first '(' in "((hash.typ))")
+                    if paren_start - 1 > 0 {
+                        let before_math = &placeholder[..paren_start - 1];
+                        if !before_math.is_empty() {
+                            paragraph_content.push(ParagraphContent::Text(before_math.to_owned()));
+                        }
+                    }
 
-                            if let Some(size) = svg_size {
-                                // Size stays the same - resolution scale affects rasterization quality, not display size
-                                paragraph_content.push(ParagraphContent::MathImage {
-                                    image_source,
-                                    size,
-                                    is_display: metadata.is_display,
-                                    baseline_from_top: metadata.baseline_from_top,
-                                });
+                    let math_placeholder = &placeholder[paren_start - 1..=typ_start + 4]; // +4 for ".typ)"
+                    let hash = &math_placeholder[1..math_placeholder.len() - 5]; // Remove '(' and '.typ)'
+
+                    // Look up metadata in manifest
+                    if let Some(metadata) = manifest.get_metadata(hash) {
+                        // Inline math - accumulate in paragraph content
+                        if let Some(_asset_manager) = math_asset_manager {
+                            // Try to get SVG using hash with resolution scale
+                            if let Some(image_source) =
+                                MathAssetManager::get_image_source_for_hash_with_resolution(
+                                    hash,
+                                    math_resolution_scale,
+                                )
+                            {
+                                // Get the SVG's intrinsic size
+                                let svg_size = MathAssetManager::get_svg_size(hash);
+
+                                if let Some(size) = svg_size {
+                                    // Size stays the same - resolution scale affects rasterization quality, not display size
+                                    paragraph_content.push(ParagraphContent::MathImage {
+                                        image_source,
+                                        size,
+                                        is_display: metadata.is_display,
+                                        baseline_from_top: metadata.baseline_from_top,
+                                    });
+                                } else {
+                                    // Fallback: use code rendering
+                                    paragraph_content.push(ParagraphContent::MathCode {
+                                        content: format!("Math formula: {hash}"),
+                                        is_display: metadata.is_display,
+                                    });
+                                }
                             } else {
-                                // Fallback: use code rendering
+                                // Fallback: render as code
                                 paragraph_content.push(ParagraphContent::MathCode {
                                     content: format!("Math formula: {hash}"),
                                     is_display: metadata.is_display,
                                 });
                             }
                         } else {
-                            // Fallback: render as code
+                            // No asset manager, render as code
                             paragraph_content.push(ParagraphContent::MathCode {
                                 content: format!("Math formula: {hash}"),
                                 is_display: metadata.is_display,
                             });
                         }
                     } else {
-                        // No asset manager, render as code
-                        paragraph_content.push(ParagraphContent::MathCode {
-                            content: format!("Math formula: {hash}"),
-                            is_display: metadata.is_display,
-                        });
+                        // Hash not found in manifest, add placeholder as text
+                        paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
                     }
+
+                    // Skip past the placeholder
+                    remaining = &remaining[start + end + 1..];
                 } else {
-                    // Hash not found in manifest, add placeholder as text
+                    // Couldn't find opening '(' for math placeholder
+                    // Not a math placeholder, add as normal text
                     paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
+                    remaining = &remaining[start + end + 1..];
                 }
             } else {
                 // Not a math placeholder, add as normal text
                 paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
+                remaining = &remaining[start + end + 1..];
             }
-
-            // Skip past the placeholder
-            remaining = &remaining[start + end + 1..];
         } else {
             // No closing ')', add the '(' and continue
             paragraph_content.push(ParagraphContent::Text("(".to_owned()));
@@ -1901,7 +1950,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
+                                           // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;
