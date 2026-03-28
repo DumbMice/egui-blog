@@ -84,7 +84,18 @@ impl ResponsiveConfig {
             // Reduce width proportionally with available space
             let scale = available_width / optimal_pixels;
             let scaled_width = optimal_pixels * scale;
-            scaled_width.clamp(self.min_width, available_width * 0.9)
+
+            // Account for margins on both sides (like calculate_content_width does)
+            let max_width_with_margins = available_width * (1.0 - 2.0 * self.margin_percent);
+            let max_width = max_width_with_margins.max(available_width * 0.9); // Keep backward compatibility
+
+            // Ensure max_width is at least as large as min_width for valid clamp
+            if max_width < self.min_width {
+                // If max width is less than min width, use max width (it's all that fits)
+                max_width
+            } else {
+                scaled_width.clamp(self.min_width, max_width)
+            }
         }
     }
 }
@@ -101,11 +112,19 @@ pub fn responsive_container<R>(
     let content_width = config.calculate_adaptive_width(available_width);
     let margins = config.get_margins(available_width);
 
-    // Calculate left margin to center content, but ensure minimum margin
-    let left_margin = (available_width - content_width) / 2.0;
-    let left_margin = left_margin.max(margins);
+    // Check if we have enough space for content with symmetrical margins
+    // If not, use zero margins (content is more important than margins)
+    let effective_margins = if content_width + 2.0 * margins > available_width {
+        0.0
+    } else {
+        margins
+    };
 
-    // Calculate right margin (same as left for symmetry)
+    // Calculate left margin to center content, but ensure at least effective_margins
+    let left_margin = (available_width - content_width) / 2.0;
+    let left_margin = left_margin.max(effective_margins);
+
+    // For symmetry, use the same margin on both sides
     let right_margin = left_margin;
 
     // Create a horizontal layout with calculated width
@@ -137,18 +156,26 @@ pub fn max_width_container<R>(
     let content_width = config.max_width.min(available_width);
     let margins = config.get_margins(available_width);
 
-    // Calculate left margin to center content
-    let left_margin = (available_width - content_width) / 2.0;
-    let left_margin = left_margin.max(margins);
+    // Check if we have enough space for content with symmetrical margins
+    // If not, use zero margins (content is more important than margins)
+    let effective_margins = if content_width + 2.0 * margins > available_width {
+        0.0
+    } else {
+        margins
+    };
 
-    // Calculate right margin (same as left for symmetry)
+    // Calculate left margin to center content, but ensure at least effective_margins
+    let left_margin = (available_width - content_width) / 2.0;
+    let left_margin = left_margin.max(effective_margins);
+
+    // For symmetry, use the same margin on both sides
     let right_margin = left_margin;
 
     // Create a horizontal layout with max width
     let response = ui.horizontal(|ui| {
         ui.add_space(left_margin);
 
-        // Create vertical container with fixed width
+        // Create vertical container with max width
         let response = ui.vertical(|ui| {
             ui.set_width(content_width);
             add_contents(ui)

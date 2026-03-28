@@ -519,7 +519,8 @@ impl BlogApp {
     /// Unified state restoration with clear precedence
     /// Precedence: Browser URL > Persisted State > Default
     fn restore_state_with_precedence(&mut self, frame: &eframe::Frame) {
-        log::debug!("restore_state_with_precedence called");
+        // Debug logging removed for performance
+        // log::debug!("restore_state_with_precedence called");
 
         // Step 1: Check browser URL (highest priority for web)
         #[cfg(target_arch = "wasm32")]
@@ -583,26 +584,10 @@ impl BlogApp {
 impl eframe::App for BlogApp {
     #[cfg(feature = "persistence")]
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        log::info!(
-            "Persistence: Saving app state. theme: {:?}, focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
-            self.theme,
-            self.focused_panel,
-            self.scroll_offset,
-            self.post_scroll_positions.len()
-        );
-        log::debug!(
-            "Persistence: Saving app state. theme: {:?}, focused_panel: {:?}, scroll_offset: {}, post_scroll_positions count: {}",
-            self.theme,
-            self.focused_panel,
-            self.scroll_offset,
-            self.post_scroll_positions.len()
-        );
         // Router state is automatically serialized as part of BlogApp
         eframe::set_value(storage, eframe::APP_KEY, self);
         // Also save theme separately as backup
         eframe::set_value(storage, "blog_app_theme", &self.theme);
-        log::info!("Persistence: App state saved successfully (theme: {:?})", self.theme);
-        log::debug!("Persistence: App state saved successfully (theme: {:?})", self.theme);
     }
 
     fn persist_egui_memory(&self) -> bool {
@@ -614,13 +599,14 @@ impl eframe::App for BlogApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        log::debug!("=== UI FRAME START ===");
-        log::debug!(
-            "Current state: route: {:?}, selected_post: {}, route_restored: {}",
-            self.router.current_route(),
-            self.selected_post,
-            self.route_restored
-        );
+        // Debug logging removed for performance
+        // log::debug!("=== UI FRAME START ===");
+        // log::debug!(
+        //     "Current state: route: {:?}, selected_post: {}, route_restored: {}",
+        //     self.router.current_route(),
+        //     self.selected_post,
+        //     self.route_restored
+        // );
 
         // Check and update font loading state
         // Fonts load asynchronously and are only available in the next frame
@@ -631,7 +617,8 @@ impl eframe::App for BlogApp {
                     log::info!("Fonts are now ready for use");
                     self.font_loading_state = FontLoadingState::Ready;
                 } else {
-                    log::debug!("Fonts still loading, waiting for next frame");
+                    // Debug logging removed for performance
+                    // log::debug!("Fonts still loading, waiting for next frame");
                 }
             }
             FontLoadingState::Ready => {
@@ -648,18 +635,21 @@ impl eframe::App for BlogApp {
 
         // Unified state restoration with clear precedence
         if !self.route_restored {
-            log::debug!("State not restored yet, calling restore_state_with_precedence()");
+            // Debug logging removed for performance
+            // log::debug!("State not restored yet, calling restore_state_with_precedence()");
             self.restore_state_with_precedence(_frame);
-            log::debug!(
-                "After restore_state_with_precedence: route: {:?}, selected_post: {}",
-                self.router.current_route(),
-                self.selected_post
-            );
+            // Debug logging removed for performance
+            // log::debug!(
+            //     "After restore_state_with_precedence: route: {:?}, selected_post: {}",
+            //     self.router.current_route(),
+            //     self.selected_post
+            // );
         } else {
-            log::debug!(
-                "State already restored (route_restored: {}), handling URL changes only",
-                self.route_restored
-            );
+            // Debug logging removed for performance
+            // log::debug!(
+            //     "State already restored (route_restored: {}), handling URL changes only",
+            //     self.route_restored
+            // );
             // Handle URL changes from browser (web target only)
             #[cfg(target_arch = "wasm32")]
             self.handle_url_changes(_frame);
@@ -672,18 +662,20 @@ impl eframe::App for BlogApp {
         let shortcut_handled = {
             // Take the integration out, use it, then put it back
             let mut integration = std::mem::take(&mut self.shortcut_integration);
-            log::debug!(
-                "Shortcut integration initialized: {}",
-                integration.initialized
-            );
-            log::debug!(
-                "[FOCUS] Current focused panel before shortcuts: {:?}",
-                self.focused_panel
-            );
+            // Debug logging removed for performance
+            // log::debug!(
+            //     "Shortcut integration initialized: {}",
+            //     integration.initialized
+            // );
+            // log::debug!(
+            //     "[FOCUS] Current focused panel before shortcuts: {:?}",
+            //     self.focused_panel
+            // );
             let handled = integration.update(ui.ctx(), self);
             self.shortcut_integration = integration;
             if handled {
-                log::debug!("[SHORTCUT] Shortcut was handled");
+                // Debug logging removed for performance
+                // log::debug!("[SHORTCUT] Shortcut was handled");
             }
             handled
         };
@@ -698,20 +690,22 @@ impl eframe::App for BlogApp {
         let is_mobile = screen_width < self.responsive_config.mobile_breakpoint;
 
         if is_mobile && !self.side_panel_collapsed {
-            log::debug!(
-                "Mobile screen detected ({}px < {}px), auto-collapsing side panel",
-                screen_width,
-                self.responsive_config.mobile_breakpoint
-            );
+            // Debug logging removed for performance
+            // log::debug!(
+            //     "Mobile screen detected ({}px < {}px), auto-collapsing side panel",
+            //     screen_width,
+            //     self.responsive_config.mobile_breakpoint
+            // );
             self.side_panel_collapsed = true;
         }
 
         if is_mobile && !self.right_panel_collapsed {
-            log::debug!(
-                "Mobile screen detected ({}px < {}px), auto-collapsing right panel",
-                screen_width,
-                self.responsive_config.mobile_breakpoint
-            );
+            // Debug logging removed for performance
+            // log::debug!(
+            //     "Mobile screen detected ({}px < {}px), auto-collapsing right panel",
+            //     screen_width,
+            //     self.responsive_config.mobile_breakpoint
+            // );
             self.right_panel_collapsed = true;
         }
 
@@ -723,17 +717,14 @@ impl eframe::App for BlogApp {
 
         // Check if focus changed since last frame
         if self.focused_panel != self.previous_focused_panel {
-            log::debug!(
-                "Focus changed from {:?} to {:?}, triggering animation",
-                self.previous_focused_panel,
-                self.focused_panel
-            );
-
-            // Trigger animation for focus change
+            // Debug logging removed for performance
+            // log::info!(
+            //     "[FOCUS] Panel focus changed from {:?} to {:?}",
+            //     self.previous_focused_panel,
+            //     self.focused_panel
+            // );
             self.focus_animation
                 .on_focus_change(self.focused_panel, current_time);
-
-            // Update previous focused panel
             self.previous_focused_panel = self.focused_panel;
         }
 
@@ -789,22 +780,26 @@ impl eframe::App for BlogApp {
 
         // Check if theme changed (via UI button or keyboard shortcut) and apply it
         if self.theme != self.previous_theme {
-            log::info!("[THEME DEBUG] Theme changed from {:?} to {:?}, applying to UI", 
-                      self.previous_theme, self.theme);
+            // Debug logging removed for performance
+            // log::info!("[THEME DEBUG] Theme changed from {:?} to {:?}, applying to UI", 
+            //           self.previous_theme, self.theme);
             self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
-            log::info!("[THEME DEBUG] Set previous_theme to: {:?}", self.previous_theme);
+            // Debug logging removed for performance
+            // log::info!("[THEME DEBUG] Set previous_theme to: {:?}", self.previous_theme);
             
             // Save immediately when theme changes
             if let Some(storage) = _frame.storage_mut() {
-                log::info!("[THEME DEBUG] Saving app state immediately after theme change");
+                // Debug logging removed for performance
+                // log::info!("[THEME DEBUG] Saving app state immediately after theme change");
                 eframe::set_value(storage, eframe::APP_KEY, self);
                 // Also save theme separately as backup
                 eframe::set_value(storage, "blog_app_theme", &self.theme);
             }
         } else if top_panel_result.theme_changed {
             // This shouldn't happen, but log if it does (theme changed but detection didn't trigger)
-            log::warn!("[THEME DEBUG] top_panel reported theme changed but self.theme == self.previous_theme");
+            // Debug logging removed for performance
+            // log::warn!("[THEME DEBUG] top_panel reported theme changed but self.theme == self.previous_theme");
         }
 
         // Handle search committed with Enter key
@@ -826,9 +821,10 @@ impl eframe::App for BlogApp {
                 || search_state_before.selected_tags != self.tag_search_state.selected_tags;
 
             if !search_actually_changed {
-                log::debug!(
-                    "Search marked as modified but no actual change detected (likely theme change), skipping navigation"
-                );
+                // Debug logging removed for performance
+                // log::debug!(
+                //     "Search marked as modified but no actual change detected (likely theme change), skipping navigation"
+                // );
                 tag_search_was_modified = false;
             }
         }
@@ -925,11 +921,12 @@ impl eframe::App for BlogApp {
                 selection_changed = changed;
 
                 if panel_clicked {
-                    log::debug!("Side panel clicked from layout.rs, focusing left panel");
-                    log::debug!(
-                        "[FOCUS] Side panel clicked, setting focused_panel = LeftPanel (was {:?})",
-                        self.focused_panel
-                    );
+                    // Debug logging removed for performance
+                    // log::debug!("Side panel clicked from layout.rs, focusing left panel");
+                    // log::debug!(
+                    //     "[FOCUS] Side panel clicked, setting focused_panel = LeftPanel (was {:?})",
+                    //     self.focused_panel
+                    // );
                     self.focused_panel = crate::shortcuts::FocusedPanel::LeftPanel;
                 }
             });
@@ -1004,7 +1001,8 @@ impl eframe::App for BlogApp {
                 );
 
                 if panel_clicked {
-                    log::debug!("[FOCUS] Right panel (TOC) clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
+                    // Debug logging removed for performance
+                    // log::debug!("[FOCUS] Right panel (TOC) clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
                     self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
                 }
 
@@ -1065,7 +1063,8 @@ impl eframe::App for BlogApp {
             let _scroll_response = ScrollArea::vertical()
                 .id_salt(scroll_id)  // Dynamic ID based on post
                 .show(ui, |ui| {
-                    log::debug!("Scroll area initialized with offset: {}", self.scroll_offset);
+                    // Debug logging removed for performance
+                    // log::debug!("Scroll area initialized with offset: {}", self.scroll_offset);
                     // Apply requested scroll delta if any
                     if let Some(delta) = self.requested_scroll_delta.take() {
                         ui.scroll_with_delta(egui::vec2(0.0, delta));
@@ -1114,10 +1113,11 @@ impl eframe::App for BlogApp {
                         ) = result;
 
                         if panel_clicked {
-                            log::debug!(
-                                "Main content clicked from layout.rs, focusing right panel"
-                            );
-                            log::debug!("[FOCUS] Main content clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
+                            // Debug logging removed for performance
+                            // log::debug!(
+                            //     "Main content clicked from layout.rs, focusing right panel"
+                            // );
+                            // log::debug!("[FOCUS] Main content clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
                             self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
                         }
                     });
@@ -1135,7 +1135,8 @@ impl eframe::App for BlogApp {
         }
 
         if let Some(new_index) = navigation_index {
-            log::debug!("Post navigation: {} -> {}", self.selected_post, new_index);
+            // Debug logging removed for performance
+            // log::debug!("Post navigation: {} -> {}", self.selected_post, new_index);
             self.selected_post = new_index;
             self.editing_new_post = false;
         }
@@ -1180,7 +1181,10 @@ impl eframe::App for BlogApp {
         // This prevents cursor positioning issues in WASM
         if tag_search_was_modified {
             #[cfg(target_arch = "wasm32")]
-            log::debug!("Search modified but URL not updated (prevent cursor issues)");
+            {
+                // Debug logging removed for performance
+                // log::debug!("Search modified but URL not updated (prevent cursor issues)");
+            }
         }
 
         // Clear fragment after it's been used for scrolling
@@ -1315,16 +1319,18 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
                         .iter()
                         .position(|p| p.id == next_post.id)
                         .unwrap_or(self.selected_post);
-                    log::debug!(
-                        "Navigated to next post: {} (index {})",
-                        next_post.title,
-                        self.selected_post
-                    );
+                    // Debug logging removed for performance
+                    // log::debug!(
+                    //     "Navigated to next post: {} (index {})",
+                    //     next_post.title,
+                    //     self.selected_post
+                    // );
                     true
                 } else {
-                    log::debug!(
-                        "Cannot navigate next: already at last post (index {current_index})"
-                    );
+                    // Debug logging removed for performance
+                    // log::debug!(
+                    //     "Cannot navigate next: already at last post (index {current_index})"
+                    // );
                     false
                 }
             }
@@ -1338,16 +1344,18 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
                         .iter()
                         .position(|p| p.id == prev_post.id)
                         .unwrap_or(self.selected_post);
-                    log::debug!(
-                        "Navigated to previous post: {} (index {})",
-                        prev_post.title,
-                        self.selected_post
-                    );
+                    // Debug logging removed for performance
+                    // log::debug!(
+                    //     "Navigated to previous post: {} (index {})",
+                    //     prev_post.title,
+                    //     self.selected_post
+                    // );
                     true
                 } else {
-                    log::debug!(
-                        "Cannot navigate previous: already at first post (index {current_index})"
-                    );
+                    // Debug logging removed for performance
+                    // log::debug!(
+                    //     "Cannot navigate previous: already at first post (index {current_index})"
+                    // );
                     false
                 }
             }
@@ -1359,11 +1367,12 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
                     .iter()
                     .position(|p| p.id == first_post.id)
                     .unwrap_or(self.selected_post);
-                log::debug!(
-                    "Navigated to first post: {} (index {})",
-                    first_post.title,
-                    self.selected_post
-                );
+                // Debug logging removed for performance
+                // log::debug!(
+                //     "Navigated to first post: {} (index {})",
+                //     first_post.title,
+                //     self.selected_post
+                // );
                 true
             }
             Last => {
@@ -1377,11 +1386,12 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
                     .iter()
                     .position(|p| p.id == last_post.id)
                     .unwrap_or(self.selected_post);
-                log::debug!(
-                    "Navigated to last post: {} (index {})",
-                    last_post.title,
-                    self.selected_post
-                );
+                // Debug logging removed for performance
+                // log::debug!(
+                //     "Navigated to last post: {} (index {})",
+                //     last_post.title,
+                //     self.selected_post
+                // );
                 true
             }
         };

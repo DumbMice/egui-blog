@@ -351,15 +351,18 @@ pub fn side_panel(
             let all_selected = selected_content_type.is_none();
             let all_response = ui.selectable_label(all_selected, "All");
             if all_response.clicked() && !all_selected {
-                log::debug!("Side panel: 'All' tab clicked, selected_content_type was: {selected_content_type:?}");
+                // Debug logging removed for performance
+                // log::debug!("Side panel: 'All' tab clicked, selected_content_type was: {selected_content_type:?}");
                 interactive_element_clicked = true;
                 *selected_content_type = None;
                 // When switching to "All", navigate to Home to show all posts
                 selection_changed = true;
-                log::debug!("Side panel: Calling on_selection(None) because 'All' tab clicked");
+                // Debug logging removed for performance
+                // log::debug!("Side panel: Calling on_selection(None) because 'All' tab clicked");
                 on_selection(None); // Navigate to Home
             } else if all_response.clicked() {
-                log::debug!("Side panel: 'All' tab clicked but already selected (bug?)");
+                // Debug logging removed for performance
+                // log::debug!("Side panel: 'All' tab clicked but already selected (bug?)");
             }
 
             // Content type tabs
@@ -373,10 +376,9 @@ pub fn side_panel(
                 if response.clicked() && !is_selected {
                     interactive_element_clicked = true;
                     *selected_content_type = Some(content_type);
-                    // Tab switching is just a filter, not navigation
-                    // Don't change selected_post_index or call on_selection
-                    // Current post stays visible even if filtered out
-                    log::debug!("Tab switched to {content_type:?} (filter only, no navigation)");
+                    // Don't navigate when switching tabs - just filter the list
+                    // Debug logging removed for performance
+                    // log::debug!("Tab switched to {content_type:?} (filter only, no navigation)");
                 }
             }
         });
@@ -506,21 +508,24 @@ pub fn side_panel(
         if let Some(click_pos) = pointer.interact_pos()
             && click_rect.contains(click_pos) && pointer.primary_clicked()
         {
-            log::debug!("Side panel clicked via interact_pos");
+            // Debug logging removed for performance
+            // log::debug!("Side panel clicked via interact_pos");
             true
         }
         // Method 2: Check for primary press origin (where mouse was pressed down)
         else if let Some(press_origin) = pointer.press_origin()
             && click_rect.contains(press_origin) && pointer.primary_down()
         {
-            log::debug!("Side panel pressed via press_origin");
+            // Debug logging removed for performance
+            // log::debug!("Side panel pressed via press_origin");
             true
         }
         // Method 3: Check latest position if primary is down
         else if let Some(latest_pos) = pointer.latest_pos()
             && click_rect.contains(latest_pos) && pointer.primary_down()
         {
-            log::debug!("Side panel pressed via latest_pos");
+            // Debug logging removed for performance
+            // log::debug!("Side panel pressed via latest_pos");
             true
         }
         else {
@@ -576,27 +581,20 @@ pub fn right_panel(
 
     // Handle collapsed state - show only hamburger button
     if panel_collapsed {
-        log::debug!("Right panel is COLLAPSED, showing expand button");
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                // Panel expand button (when panel is collapsed)
-                // Use « (left-pointing) to indicate expand (points toward content)
-                let button_icon = "«";
-
-                // Add vertical spacing for consistent alignment
-                ui.vertical(|ui| {
-                    ui.add_space(4.0); // Same as expanded state
-                    let button = ui.button(button_icon);
-                    if button.clicked() {
-                        interactive_element_clicked = true;
-                        on_toggle_panel();
-                    }
-                    button.on_hover_text("Expand panel");
-                });
-            });
+        // Debug logging removed for performance
+        // log::debug!("Right panel is COLLAPSED, showing expand button");
+        // Collapsed panel - show only expand button
+        ui.vertical_centered(|ui| {
+            // Use « (left-pointing) to indicate expand (points toward content)
+            let button_icon = "«";
+            let button = ui.button(button_icon);
+            if button.clicked() {
+                interactive_element_clicked = true;
+                on_toggle_panel();
+            }
+            button.on_hover_text("Expand panel");
         });
-
-        return (panel_clicked, heading_clicked_id);
+        return (false, None);
     }
 
     // Expanded panel - show table of contents
@@ -769,18 +767,19 @@ fn main_content_internal_impl(
     let mut panel_clicked = false;
 
     // Save the initial rect for debugging
-    let initial_rect = ui.available_rect_before_wrap();
-    log::debug!(
-        "Main content initial rect: {:?} (min: {:?}, max: {:?}, size: {:?}), panel_rect: {:?} (min: {:?}, max: {:?}, size: {:?})",
-        initial_rect,
-        initial_rect.min,
-        initial_rect.max,
-        initial_rect.size(),
-        panel_rect,
-        panel_rect.min,
-        panel_rect.max,
-        panel_rect.size()
-    );
+    let _initial_rect = ui.available_rect_before_wrap();
+    // Debug logging removed for performance
+    // log::debug!(
+    //     "Main content initial rect: {:?} (min: {:?}, max: {:?}, size: {:?}), panel_rect: {:?} (min: {:?}, max: {:?}, size: {:?})",
+    //     initial_rect,
+    //     initial_rect.min,
+    //     initial_rect.max,
+    //     initial_rect.size(),
+    //     panel_rect,
+    //     panel_rect.min,
+    //     panel_rect.max,
+    //     panel_rect.size()
+    // );
 
     // Draw animated focus indicator if panel is focused
     if is_focused {
@@ -928,7 +927,8 @@ fn main_content_internal_impl(
         && let Some(click_pos) = pointer.interact_pos()
         && panel_rect.contains(click_pos)
     {
-        log::debug!("Main content clicked!");
+        // Debug logging removed for performance
+        // log::debug!("Main content clicked!");
         panel_clicked = true;
     }
 

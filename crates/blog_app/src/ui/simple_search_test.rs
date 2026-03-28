@@ -30,13 +30,14 @@ impl SimpleSearchTest {
                 changed = true;
                 self.change_count += 1;
 
-                #[cfg(target_arch = "wasm32")]
-                log::debug!(
-                    "Simple search changed #{}, text: '{}' (len: {})",
-                    self.change_count,
-                    self.search_text,
-                    self.search_text.len()
-                );
+                // Debug logging removed for performance
+                // #[cfg(target_arch = "wasm32")]
+                // log::debug!(
+                //     "Simple search changed #{}, text: '{}' (len: {})",
+                //     self.change_count,
+                //     self.search_text,
+                //     self.search_text.len()
+                // );
             }
 
             // Clear button
@@ -47,8 +48,9 @@ impl SimpleSearchTest {
                 changed = true;
                 self.change_count += 1;
 
-                #[cfg(target_arch = "wasm32")]
-                log::debug!("Simple search cleared");
+                // Debug logging removed for performance
+                // #[cfg(target_arch = "wasm32")]
+                // log::debug!("Simple search cleared");
             }
         });
 
@@ -73,13 +75,14 @@ impl SimpleSearchTest {
                 changed = true;
                 self.change_count += 1;
 
-                #[cfg(target_arch = "wasm32")]
-                log::debug!(
-                    "Simple search (with ID) changed #{}, text: '{}' (len: {})",
-                    self.change_count,
-                    self.search_text,
-                    self.search_text.len()
-                );
+                // Debug logging removed for performance
+                // #[cfg(target_arch = "wasm32")]
+                // log::debug!(
+                //     "Simple search (with ID) changed #{}, text: '{}' (len: {})",
+                //     self.change_count,
+                //     self.search_text,
+                //     self.search_text.len()
+                // );
             }
 
             // Clear button
@@ -90,8 +93,9 @@ impl SimpleSearchTest {
                 changed = true;
                 self.change_count += 1;
 
-                #[cfg(target_arch = "wasm32")]
-                log::debug!("Simple search (with ID) cleared");
+                // Debug logging removed for performance
+                // #[cfg(target_arch = "wasm32")]
+                // log::debug!("Simple search (with ID) cleared");
             }
         });
 

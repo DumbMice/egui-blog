@@ -149,13 +149,15 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
     // Single toggle button
     let button = ui.button(icon).on_hover_text(hover_text);
     if button.clicked() {
-        log::debug!("Theme toggle button clicked, current theme: {current_theme:?}");
+        // Debug logging removed for performance
+        // log::debug!("Theme toggle button clicked, current theme: {current_theme:?}");
         // Toggle to the opposite theme
         *current_theme = match current_theme {
             Theme::CatppuccinLatte => Theme::CatppuccinMacchiato,
             Theme::CatppuccinMacchiato => Theme::CatppuccinLatte,
         };
-        log::debug!("Theme changed to: {current_theme:?}");
+        // Debug logging removed for performance
+        // log::debug!("Theme changed to: {current_theme:?}");
         changed = true;
     }
 

@@ -173,26 +173,27 @@ pub fn tag_search_bar(
                 });
             }
 
-            // Debug: Log when text changes
-            if response.changed() {
-                #[cfg(target_arch = "wasm32")]
-                log::debug!(
-                    "TAG SEARCH text changed: '{}' (len: {}) - in_tag_mode: {}",
-                    search_state.search_text,
-                    search_state.search_text.len(),
-                    search_state.in_tag_mode
-                );
-            }
+            // Debug: Log when text changes - REMOVED for performance
+            // if response.changed() {
+            //     #[cfg(target_arch = "wasm32")]
+            //     log::debug!(
+            //         "TAG SEARCH text changed: '{}' (len: {}) - in_tag_mode: {}",
+            //         search_state.search_text,
+            //         search_state.search_text.len(),
+            //         search_state.in_tag_mode
+            //     );
+            // }
 
             // Check for Enter key - indicates search should be committed to URL
             let enter_pressed =
                 response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             if enter_pressed {
-                #[cfg(target_arch = "wasm32")]
-                log::debug!(
-                    "Enter key pressed in search (search committed): '{}'",
-                    search_state.search_text
-                );
+                // Debug logging removed for performance
+                // #[cfg(target_arch = "wasm32")]
+                // log::debug!(
+                //     "Enter key pressed in search (search committed): '{}'",
+                //     search_state.search_text
+                // );
                 // Optionally blur the input field
                 response.surrender_focus();
                 search_committed_flag = true;
@@ -207,8 +208,9 @@ pub fn tag_search_bar(
             if current_text.ends_with('#') && !was_in_tag_mode {
                 search_state.in_tag_mode = true;
                 search_state.tag_input.clear();
-                #[cfg(target_arch = "wasm32")]
-                log::debug!("Entered tag mode");
+                // Debug logging removed for performance
+                // #[cfg(target_arch = "wasm32")]
+                // log::debug!("Entered tag mode");
             } else if search_state.in_tag_mode {
                 // Update tag input - but only if text actually contains tag
                 if current_text.ends_with(' ') {
@@ -217,8 +219,9 @@ pub fn tag_search_bar(
                     if !search_state.tag_input.is_empty() {
                         search_state.add_tag(search_state.tag_input.clone());
                         tags_changed = true;
-                        #[cfg(target_arch = "wasm32")]
-                        log::debug!("Added tag from space: {}", search_state.tag_input);
+                        // Debug logging removed for performance
+                        // #[cfg(target_arch = "wasm32")]
+                        // log::debug!("Added tag from space: {}", search_state.tag_input);
                     }
                     search_state.tag_input.clear();
                 } else if let Some(tag_part) = current_text.strip_prefix('#') {
@@ -231,17 +234,19 @@ pub fn tag_search_bar(
                         // Update suggestions
                         update_tag_suggestions(search_state, all_tags);
 
-                        #[cfg(target_arch = "wasm32")]
-                        if !search_state.tag_input.is_empty() {
-                            log::debug!("Tag input updated: '{}'", search_state.tag_input);
-                        }
+                        // Debug logging removed for performance
+                        // #[cfg(target_arch = "wasm32")]
+                        // if !search_state.tag_input.is_empty() {
+                        //     log::debug!("Tag input updated: '{}'", search_state.tag_input);
+                        // }
                     }
                 } else {
                     // Text doesn't start with # anymore - exit tag mode
                     search_state.in_tag_mode = false;
                     search_state.tag_input.clear();
-                    #[cfg(target_arch = "wasm32")]
-                    log::debug!("Exited tag mode (no # prefix)");
+                    // Debug logging removed for performance
+                    // #[cfg(target_arch = "wasm32")]
+                    // log::debug!("Exited tag mode (no # prefix)");
                 }
             }
 
@@ -299,8 +304,9 @@ pub fn tag_search_bar(
                                             search_state.tag_input.clear();
                                             tags_changed = true;
                                             search_changed = true;
-                                            #[cfg(target_arch = "wasm32")]
-                                            log::debug!("Tag selected from dropdown: {}, cleared search text", tag.name);
+                                            // Debug logging removed for performance
+                                            // #[cfg(target_arch = "wasm32")]
+                                            // log::debug!("Tag selected from dropdown: {}, cleared search text", tag.name);
                                         }
                                     }
                                 });

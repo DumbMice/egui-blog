@@ -85,7 +85,7 @@ which maps an array of values $bold(x)$ to a probability distribution $"softmax"
 The softmax function can be viewed as a Boltzmann distribution with $x_i -> (-E_i)/(k_B T)$.
 
 The exponent must be dimensionless; otherwise, the Taylor expansion $e^x = sum_(n=0)^infinity (x^n)/(n!)$ would sum quantities with incompatible dimensions.
-In the Boltzmann distribution, both $E_i$ and $k_B T$ have energy dimensions, while in path integrals, $A$ and $hbar$ share dimensions of energy×time, ensuring dimensionless ratios.
+In the Boltzmann distribution, both $E_i$ and $k_B T$ have energy dimensions, while in path integrals, $A$ and $hbar$ share dimensions of energy × time, ensuring dimensionless ratios.
 
 The denominator, analogous to temperature in thermodynamics, controls distribution concentration.
 High temperatures produce uniform distributions, while low temperatures concentrate probability at extreme values.
@@ -118,7 +118,7 @@ $ &EE[hat(r)_(i j)] =  0 \ &"Var"[hat(r)_(i j)] = 1 $
 
 and this $sqrt(d)$ can be interpreted either as a dimensional quantity that renders $hat(r)$ dimensionless or as a temperature that preserves the peakedness of the distribution derived from $hat(r)$.
 
-The $sqrt(d)$ scaling factor is essential for stable training—without it, attention scores would diverge with increasing model dimensions.
+The $sqrt(d)$ scaling factor is essential for stable training - without it, attention scores would diverge with increasing model dimensions.
 
 #### Self-Attention as Ensemble on Tokens
 
