@@ -287,7 +287,7 @@ fn render_baseline_aligned_image(
 
 /// Content that can appear within a paragraph
 #[derive(Clone)]
-enum ParagraphContent {
+pub enum ParagraphContent {
     Text(String),
     MathImage {
         image_source: ImageSource<'static>,
@@ -1115,8 +1115,8 @@ fn render_markdown_impl(
                                                     math_resolution_scale,
                                                 )
                                             {
-                                                // Get the SVG's intrinsic size
-                                                let svg_size = MathAssetManager::get_svg_size(hash);
+                                            // Get the SVG's intrinsic size
+                                            let svg_size = _asset_manager.get_svg_size(hash);
 
                                                 if let Some(size) = svg_size {
                                                     // Size stays the same - resolution scale affects rasterization quality, not display size
@@ -1406,7 +1406,7 @@ fn render_text_with_math_impl(
 fn render_text_with_math_and_assets(
     ui: &mut Ui,
     text: &str,
-    asset_manager: &crate::math::MathAssetManager,
+    asset_manager: &mut crate::math::MathAssetManager,
     math_resolution_scale: f32,
 ) {
     let mut remaining = text;
@@ -1758,125 +1758,19 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
 
 /// Process text with math placeholders and return paragraph content
 /// This is a reusable version of `accumulate_text_content` that returns the result
+/// Uses optimized O(n) parser instead of O(n²)
 fn process_text_with_math(
     text: &str,
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
     math_resolution_scale: f32,
 ) -> Vec<ParagraphContent> {
-    let mut paragraph_content = Vec::new();
-    let mut remaining = text;
-
-    while let Some(start) = remaining.find('(') {
-        // Add text before the placeholder
-        if start > 0 {
-            let before_text = &remaining[..start];
-            if !before_text.is_empty() {
-                paragraph_content.push(ParagraphContent::Text(before_text.to_owned()));
-            }
-        }
-
-        // Find the end of the placeholder - look for closing ')'
-        if let Some(end) = remaining[start..].find(')') {
-            let placeholder = &remaining[start..=start + end];
-
-            // Check if this is a math placeholder: contains (hash.typ)
-            // It could be nested like ((hash.typ)), so we need to find the .typ) pattern
-            if let Some(typ_start) = placeholder.find(".typ)") {
-                // Extract the part from the opening '(' before .typ) to the end
-                // Find the '(' that starts the math placeholder
-                let mut paren_start = typ_start;
-                while paren_start > 0 && placeholder.chars().nth(paren_start - 1) != Some('(') {
-                    paren_start -= 1;
-                }
-
-                if paren_start > 0 && placeholder.chars().nth(paren_start - 1) == Some('(') {
-                    // We found the opening '(' for the math placeholder
-                    // Add any text before the math placeholder (e.g., the first '(' in "((hash.typ))")
-                    if paren_start - 1 > 0 {
-                        let before_math = &placeholder[..paren_start - 1];
-                        if !before_math.is_empty() {
-                            paragraph_content.push(ParagraphContent::Text(before_math.to_owned()));
-                        }
-                    }
-
-                    let math_placeholder = &placeholder[paren_start - 1..=typ_start + 4]; // +4 for ".typ)"
-                    let hash = &math_placeholder[1..math_placeholder.len() - 5]; // Remove '(' and '.typ)'
-
-                    // Look up metadata in manifest
-                    if let Some(metadata) = manifest.get_metadata(hash) {
-                        // Inline math - accumulate in paragraph content
-                        if let Some(_asset_manager) = math_asset_manager {
-                            // Try to get SVG using hash with resolution scale
-                            if let Some(image_source) =
-                                MathAssetManager::get_image_source_for_hash_with_resolution(
-                                    hash,
-                                    math_resolution_scale,
-                                )
-                            {
-                                // Get the SVG's intrinsic size
-                                let svg_size = MathAssetManager::get_svg_size(hash);
-
-                                if let Some(size) = svg_size {
-                                    // Size stays the same - resolution scale affects rasterization quality, not display size
-                                    paragraph_content.push(ParagraphContent::MathImage {
-                                        image_source,
-                                        size,
-                                        is_display: metadata.is_display,
-                                        baseline_from_top: metadata.baseline_from_top,
-                                    });
-                                } else {
-                                    // Fallback: use code rendering
-                                    paragraph_content.push(ParagraphContent::MathCode {
-                                        content: format!("Math formula: {hash}"),
-                                        is_display: metadata.is_display,
-                                    });
-                                }
-                            } else {
-                                // Fallback: render as code
-                                paragraph_content.push(ParagraphContent::MathCode {
-                                    content: format!("Math formula: {hash}"),
-                                    is_display: metadata.is_display,
-                                });
-                            }
-                        } else {
-                            // No asset manager, render as code
-                            paragraph_content.push(ParagraphContent::MathCode {
-                                content: format!("Math formula: {hash}"),
-                                is_display: metadata.is_display,
-                            });
-                        }
-                    } else {
-                        // Hash not found in manifest, add placeholder as text
-                        paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
-                    }
-
-                    // Skip past the placeholder
-                    remaining = &remaining[start + end + 1..];
-                } else {
-                    // Couldn't find opening '(' for math placeholder
-                    // Not a math placeholder, add as normal text
-                    paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
-                    remaining = &remaining[start + end + 1..];
-                }
-            } else {
-                // Not a math placeholder, add as normal text
-                paragraph_content.push(ParagraphContent::Text(placeholder.to_owned()));
-                remaining = &remaining[start + end + 1..];
-            }
-        } else {
-            // No closing ')', add the '(' and continue
-            paragraph_content.push(ParagraphContent::Text("(".to_owned()));
-            remaining = &remaining[start + 1..];
-        }
-    }
-
-    // Add any remaining text
-    if !remaining.is_empty() {
-        paragraph_content.push(ParagraphContent::Text(remaining.to_owned()));
-    }
-
-    paragraph_content
+    crate::ui::math_parser::parse_text_with_math(
+        text,
+        manifest,
+        math_asset_manager,
+        math_resolution_scale,
+    )
 }
 
 /// Accumulate text content for paragraph rendering

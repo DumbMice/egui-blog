@@ -4,7 +4,7 @@ use blog_app::math::{self, MathAssetManager};
 
 #[test]
 fn test_svg_size_extraction() {
-    let _asset_manager = MathAssetManager::default();
+    let mut asset_manager = MathAssetManager::default();
     let manifest = math::load_manifest();
 
     // Test a known formula
@@ -19,7 +19,9 @@ fn test_svg_size_extraction() {
     println!("Hash: {}", hash);
 
     // Get SVG size
-    let svg_size = MathAssetManager::get_svg_size(hash).expect("Should get SVG size");
+    let svg_size = asset_manager
+        .get_svg_size(hash)
+        .expect("Should get SVG size");
 
     println!("  SVG size: {}x{}", svg_size.x, svg_size.y);
 
@@ -46,7 +48,7 @@ fn test_svg_size_extraction() {
 
 #[test]
 fn test_svg_size_for_formula() {
-    let asset_manager = MathAssetManager::default();
+    let mut asset_manager = MathAssetManager::default();
 
     // Test getting size for formula directly
     let formula = "a^2 + b^2 = c^2";
@@ -69,7 +71,7 @@ fn test_svg_size_for_formula() {
 
 #[test]
 fn test_multiple_svg_sizes() {
-    let _asset_manager = MathAssetManager::default();
+    let mut asset_manager = MathAssetManager::default();
     let manifest = math::load_manifest();
 
     println!("Testing SVG sizes for all formulas in manifest:");
@@ -80,7 +82,7 @@ fn test_multiple_svg_sizes() {
     for (hash, metadata) in &manifest.formulas {
         total_formulas += 1;
 
-        if let Some(svg_size) = MathAssetManager::get_svg_size(hash) {
+        if let Some(svg_size) = asset_manager.get_svg_size(hash) {
             formulas_with_size += 1;
 
             println!(

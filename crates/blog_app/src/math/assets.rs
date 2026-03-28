@@ -1,17 +1,21 @@
 //! Asset management for math SVGs.
 
 use egui::ImageSource;
+use std::collections::HashMap;
 
 /// Manages math SVG assets
 pub struct MathAssetManager {
     /// Manifest of available formulas
     manifest: &'static crate::math::embedded::MathManifest,
+    /// Cache for SVG sizes (hash -> size)
+    size_cache: HashMap<String, egui::Vec2>,
 }
 
 impl Default for MathAssetManager {
     fn default() -> Self {
         Self {
             manifest: crate::math::embedded::load_manifest(),
+            size_cache: HashMap::new(),
         }
     }
 }
@@ -65,19 +69,33 @@ impl MathAssetManager {
     }
 
     /// Get the intrinsic size of an SVG from its bytes
-    pub fn get_svg_size(hash: &str) -> Option<egui::Vec2> {
+    pub fn get_svg_size(&mut self, hash: &str) -> Option<egui::Vec2> {
+        // Check cache first
+        if let Some(cached_size) = self.size_cache.get(hash) {
+            return Some(*cached_size);
+        }
+
         // Get SVG bytes from embedded assets
         let svg_bytes = crate::math::embedded::get_svg_bytes(hash)?;
 
         // Parse SVG to extract size
-        Self::extract_svg_size(svg_bytes)
+        let size = Self::extract_svg_size(svg_bytes)?;
+
+        // Cache the result
+        self.size_cache.insert(hash.to_string(), size);
+
+        Some(size)
     }
 
     /// Get the intrinsic size of an SVG for a formula
-    pub fn get_svg_size_for_formula(&self, formula: &str, is_display: bool) -> Option<egui::Vec2> {
+    pub fn get_svg_size_for_formula(
+        &mut self,
+        formula: &str,
+        is_display: bool,
+    ) -> Option<egui::Vec2> {
         // Find the hash for this formula
         let hash = self.manifest.find_hash(formula, is_display)?.to_owned();
-        Self::get_svg_size(&hash)
+        self.get_svg_size(&hash)
     }
 
     /// Get baseline position for a formula (SVG units from top)
@@ -95,14 +113,14 @@ impl MathAssetManager {
     /// Get SVG size with baseline data for a formula
     /// Returns (size, `baseline_from_top`) where `baseline_from_top` is None for display math
     pub fn get_svg_size_with_baseline(
-        &self,
+        &mut self,
         formula: &str,
         is_display: bool,
     ) -> Option<(egui::Vec2, Option<f32>)> {
         let hash = self.manifest.find_hash(formula, is_display)?.to_owned();
         let metadata = self.manifest.get_metadata(&hash)?;
 
-        let size = Self::get_svg_size(&hash)?;
+        let size = self.get_svg_size(&hash)?;
         let baseline = if is_display {
             None
         } else {
@@ -117,7 +135,7 @@ impl MathAssetManager {
     /// `resolution_scale`: Parameter is accepted for API compatibility but doesn't affect size
     /// Capped at 25.0 maximum
     pub fn get_svg_size_with_baseline_scaled(
-        &self,
+        &mut self,
         formula: &str,
         is_display: bool,
         _resolution_scale: f32,

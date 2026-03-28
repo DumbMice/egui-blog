@@ -1,6 +1,6 @@
 //! Tests for math formula resolution scaling feature
 
-use blog_app::math::{MathAssetManager, find_formulas};
+use blog_app::math::{find_formulas, MathAssetManager};
 use egui::ImageSource;
 
 /// Test that resolution scale parameter is accepted and clamped
@@ -49,7 +49,7 @@ fn test_resolution_scale_parameter() {
 /// Test that neither size nor baseline scales with resolution (only rasterization quality changes)
 #[test]
 fn test_baseline_scaling_correctness() {
-    let asset_manager = MathAssetManager::new();
+    let mut asset_manager = MathAssetManager::new();
 
     // We need a formula that exists and has baseline data
     // Try a few common formulas
@@ -249,7 +249,7 @@ fn test_math_rendering_with_resolution() {
     // This is more of an integration test
     // We'll test that the API works end-to-end
 
-    let asset_manager = MathAssetManager::new();
+    let mut asset_manager = MathAssetManager::new();
 
     // Test formulas that exist
     let test_formulas = vec![
