@@ -637,6 +637,14 @@ cargo blog-wasm     # Build WASM library only
 - Formula reverse index for O(1) lookup instead of O(n) linear search  
 - Markdown processing cache to avoid reprocessing static content every frame
 - Removed unused code and cleaned up function hierarchy
+
+✅ **Text Segmentation Caching (2026-03-29)**
+- Text segment caching with 10,000 entry limit to avoid O(n) re-parsing every frame
+- Cache key includes text hash and math resolution scale for accurate rendering
+- Integrated into BlogApp and markdown rendering pipeline
+- Debug window to monitor cache statistics (hits, misses, hit rate)
+- Memory usage ~200KB for typical blog content, improves framerate during mouse movement
+- All 63 existing tests pass, cache unit tests verify functionality
 - Added benchmark tests showing significant performance improvements
 - Fixed all clippy warnings and code quality issues
 
