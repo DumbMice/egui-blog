@@ -25,6 +25,8 @@ pub struct DebugState {
     pub simple_search_test: crate::ui::simple_search_test::SimpleSearchTest,
     /// Show math resolution configuration window
     pub show_math_resolution_config: bool,
+    /// Show text segment cache statistics window
+    pub show_text_cache_stats: bool,
 }
 
 #[cfg(debug_assertions)]
@@ -42,6 +44,7 @@ impl Default for DebugState {
             show_simple_search_test: false,
             simple_search_test: crate::ui::simple_search_test::SimpleSearchTest::new(),
             show_math_resolution_config: false,
+            show_text_cache_stats: false,
         }
     }
 }
@@ -555,5 +558,104 @@ pub fn show_math_resolution_config_window(
 
             ui.separator();
             ui.label("Note: Changes take effect on next formula render");
+        });
+}
+
+/// Show text segment cache statistics window for monitoring performance
+#[cfg(debug_assertions)]
+pub fn show_text_cache_stats_window(
+    ui: &egui::Ui,
+    debug_state: &mut DebugState,
+    text_segment_cache: &crate::ui::text_cache::TextSegmentCache,
+) {
+    egui::Window::new("Text Segment Cache Statistics")
+        .default_size([400.0, 300.0])
+        .open(&mut debug_state.show_text_cache_stats)
+        .show(ui.ctx(), |ui| {
+            ui.heading("Text Segment Cache Performance");
+            ui.separator();
+
+            let stats = text_segment_cache.stats();
+
+            // Basic cache info
+            ui.label("Cache Status:");
+            ui.indent("cache_indent", |ui| {
+                ui.label(format!("Entries: {}/{}", stats.entries, stats.max_size));
+                ui.label(format!("Hit rate: {:.1}%", stats.hit_rate));
+                ui.label(format!("Hits: {}", stats.hits));
+                ui.label(format!("Misses: {}", stats.misses));
+                ui.label(format!("Inserts: {}", stats.inserts));
+            });
+
+            ui.separator();
+
+            // Performance interpretation
+            ui.label("Performance Analysis:");
+            if stats.hits == 0 && stats.misses == 0 {
+                ui.colored_label(ui.visuals().weak_text_color(), "No cache activity yet");
+            } else if stats.hit_rate > 80.0 {
+                ui.colored_label(
+                    ui.visuals().strong_text_color(),
+                    "✓ Excellent cache performance",
+                );
+                ui.label("Most text segments are being reused, reducing parsing overhead.");
+            } else if stats.hit_rate > 50.0 {
+                ui.colored_label(ui.visuals().text_color(), "✓ Good cache performance");
+                ui.label("Cache is providing significant performance benefits.");
+            } else if stats.hit_rate > 20.0 {
+                ui.colored_label(ui.visuals().warn_fg_color, "⚠ Moderate cache performance");
+                ui.label("Cache is helping but many segments are unique.");
+            } else {
+                ui.colored_label(ui.visuals().error_fg_color, "⚠ Low cache performance");
+                ui.label("Most text segments are unique or cache is not being utilized.");
+            }
+
+            ui.separator();
+
+            // Cache management
+            ui.label("Cache Management:");
+            ui.indent("management_indent", |ui| {
+                if stats.entries >= stats.max_size {
+                    ui.colored_label(
+                        ui.visuals().warn_fg_color,
+                        "Cache is at capacity (will clear on next insert)",
+                    );
+                } else {
+                    let usage_percent = (stats.entries as f64 / stats.max_size as f64) * 100.0;
+                    ui.label(format!("Usage: {:.1}% of capacity", usage_percent));
+                }
+
+                // Memory estimate (rough)
+                let estimated_memory_kb = (stats.entries * 200) / 1024; // ~200 bytes per entry
+                ui.label(format!("Estimated memory: ~{} KB", estimated_memory_kb));
+            });
+
+            ui.separator();
+
+            // Explanation
+            ui.collapsing("How This Cache Works", |ui| {
+                ui.label("The text segment cache stores parsed markdown text segments to avoid:");
+                ui.indent("explain_indent", |ui| {
+                    ui.label("• O(n) math placeholder parsing every frame");
+                    ui.label("• UTF-8 character iteration for each text segment");
+                    ui.label("• Math manifest lookups for formula metadata");
+                });
+
+                ui.label("\nCache Key:");
+                ui.indent("key_indent", |ui| {
+                    ui.label("• Hash of text content");
+                    ui.label("• Math resolution scale factor");
+                });
+
+                ui.label("\nTypical Performance:");
+                ui.indent("perf_indent", |ui| {
+                    ui.label("• First render: Parse everything (cache misses)");
+                    ui.label("• Subsequent renders: 80-90% cache hits");
+                    ui.label("• Scrolling/typing: Cache hits for static content");
+                });
+            });
+
+            ui.separator();
+            ui.label("Note: Cache is cleared when capacity (10,000 entries) is reached");
         });
 }

@@ -163,6 +163,11 @@ pub struct BlogApp {
     #[cfg_attr(feature = "serde", serde(skip))]
     fragment_to_scroll_to: Option<String>,
 
+    /// Cache for text segments with math placeholders
+    /// Avoids re-parsing the same text segments every frame
+    #[cfg_attr(feature = "serde", serde(skip))]
+    text_segment_cache: crate::ui::text_cache::TextSegmentCache,
+
 }
 
 impl Default for BlogApp {
@@ -212,6 +217,7 @@ impl Default for BlogApp {
             route_restored: false,
             just_restored: false,
             fragment_to_scroll_to: None,
+            text_segment_cache: crate::ui::text_cache::TextSegmentCache::new(10_000),
         }
     }
 }
@@ -863,6 +869,15 @@ impl eframe::App for BlogApp {
                     &mut self.math_resolution_scale,
                 );
             }
+
+            // Show text cache stats window if enabled
+            if self.debug_state.show_text_cache_stats {
+                crate::debug_windows::show_text_cache_stats_window(
+                    ui,
+                    &mut self.debug_state,
+                    &self.text_segment_cache,
+                );
+            }
         }
 
         // Side panel
@@ -1094,6 +1109,7 @@ impl eframe::App for BlogApp {
                             &all_tags_vec,
                             self.math_resolution_scale,
                             self.fragment_to_scroll_to.as_deref(),
+                            &mut self.text_segment_cache,
                         );
                         let result = ui::layout::main_content(
                             ui,

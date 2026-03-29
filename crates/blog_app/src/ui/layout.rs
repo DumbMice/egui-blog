@@ -41,6 +41,8 @@ pub struct MainContentState<'a> {
     pub math_resolution_scale: f32,
     /// Optional fragment ID to scroll to in the content
     pub fragment_to_scroll_to: Option<&'a str>,
+    /// Text segment cache for markdown rendering performance
+    pub text_segment_cache: &'a mut crate::ui::text_cache::TextSegmentCache,
 }
 
 impl<'a> MainContentState<'a> {
@@ -59,6 +61,7 @@ impl<'a> MainContentState<'a> {
         all_tags: &'a [crate::tags::Tag],
         math_resolution_scale: f32,
         fragment_to_scroll_to: Option<&'a str>,
+        text_segment_cache: &'a mut crate::ui::text_cache::TextSegmentCache,
     ) -> Self {
         Self {
             post_manager,
@@ -73,6 +76,7 @@ impl<'a> MainContentState<'a> {
             all_tags,
             math_resolution_scale,
             fragment_to_scroll_to,
+            text_segment_cache,
         }
     }
 }
@@ -892,6 +896,7 @@ fn main_content_internal_impl(
                             state.math_asset_manager,
                             state.math_resolution_scale,
                             state.fragment_to_scroll_to,
+                            state.text_segment_cache,
                         );
                     } else {
                         ui.label("Error: Post content not available");

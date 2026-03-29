@@ -286,7 +286,7 @@ fn render_baseline_aligned_image(
 }
 
 /// Content that can appear within a paragraph
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ParagraphContent {
     Text(String),
     MathImage {
@@ -386,6 +386,7 @@ pub fn render_preprocessed_markdown(
     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
     math_resolution_scale: f32,
     fragment_to_scroll_to: Option<&str>,
+    text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
 ) {
     render_markdown_impl(
         ui,
@@ -394,6 +395,7 @@ pub fn render_preprocessed_markdown(
         true,
         math_resolution_scale,
         fragment_to_scroll_to,
+        text_segment_cache,
     );
 }
 
@@ -404,6 +406,7 @@ fn render_markdown_impl(
     is_preprocessed: bool,
     math_resolution_scale: f32,
     fragment_to_scroll_to: Option<&str>,
+    text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
 ) {
     let protected_text = if is_preprocessed {
         // Content is already preprocessed with math placeholders
@@ -492,11 +495,12 @@ fn render_markdown_impl(
                             .unwrap_or(false);
 
                         // Process text with math placeholders
-                        let paragraph_content = process_text_with_math(
+                        let paragraph_content = process_text_with_math_cached(
                             &heading_text,
                             manifest,
                             &mut math_asset_manager,
                             math_resolution_scale,
+                            text_segment_cache,
                         );
 
                         // Determine text style based on heading level
@@ -591,11 +595,12 @@ fn render_markdown_impl(
                                 ui.add_space(one_indent / 3.0);
 
                                 // Process text with math placeholders
-                                let paragraph_content = process_text_with_math(
+                                let paragraph_content = process_text_with_math_cached(
                                     item,
                                     manifest,
                                     &mut math_asset_manager,
                                     math_resolution_scale,
+                                    text_segment_cache,
                                 );
 
                                 render_paragraph_content_vec(
@@ -707,11 +712,12 @@ fn render_markdown_impl(
                             paragraph_content.push(ParagraphContent::Strong(bold_text));
                         } else {
                             // Process text with math placeholders
-                            let paragraph_content_vec = process_text_with_math(
+                            let paragraph_content_vec = process_text_with_math_cached(
                                 &bold_text,
                                 manifest,
                                 &mut math_asset_manager,
                                 math_resolution_scale,
+                                text_segment_cache,
                             );
 
                             // Render with bold styling (uses bold font, no need for .strong() color)
@@ -737,11 +743,12 @@ fn render_markdown_impl(
                             paragraph_content.push(ParagraphContent::Emphasis(italic_text));
                         } else {
                             // Process text with math placeholders
-                            let paragraph_content_vec = process_text_with_math(
+                            let paragraph_content_vec = process_text_with_math_cached(
                                 &italic_text,
                                 manifest,
                                 &mut math_asset_manager,
                                 math_resolution_scale,
+                                text_segment_cache,
                             );
 
                             // Render with italic styling
@@ -772,11 +779,12 @@ fn render_markdown_impl(
                             });
                         } else {
                             // Process text with math placeholders
-                            let paragraph_content_vec = process_text_with_math(
+                            let paragraph_content_vec = process_text_with_math_cached(
                                 &link_text,
                                 manifest,
                                 &mut math_asset_manager,
                                 math_resolution_scale,
+                                text_segment_cache,
                             );
 
                             // For links outside paragraphs, we need to handle them differently
@@ -850,11 +858,12 @@ fn render_markdown_impl(
                             paragraph_content.push(ParagraphContent::Strikethrough(strike_text));
                         } else {
                             // Process text with math placeholders
-                            let paragraph_content_vec = process_text_with_math(
+                            let paragraph_content_vec = process_text_with_math_cached(
                                 &strike_text,
                                 manifest,
                                 &mut math_asset_manager,
                                 math_resolution_scale,
+                                text_segment_cache,
                             );
 
                             // Render with strikethrough styling
@@ -914,11 +923,12 @@ fn render_markdown_impl(
                                     ui.add_space(vertical_padding);
 
                                     // Process text with math placeholders
-                                    let paragraph_content = process_text_with_math(
+                                    let paragraph_content = process_text_with_math_cached(
                                         quote_text,
                                         manifest,
                                         &mut math_asset_manager,
                                         math_resolution_scale,
+                                        text_segment_cache,
                                     );
 
                                     // Render with weak text color
@@ -1043,12 +1053,13 @@ fn render_markdown_impl(
             Event::Text(text) => {
                 if in_paragraph {
                     // Accumulate text content for paragraph rendering
-                    accumulate_text_content(
+                    accumulate_text_content_cached(
                         &text,
                         manifest,
                         &mut math_asset_manager,
                         &mut paragraph_content,
                         math_resolution_scale,
+                        text_segment_cache,
                     );
                 } else {
                     // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
@@ -1757,32 +1768,49 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
 }
 
 /// Process text with math placeholders and return paragraph content
-/// This is a reusable version of `accumulate_text_content` that returns the result
-/// Uses optimized O(n) parser instead of O(n²)
-fn process_text_with_math(
+
+/// Cached version of `process_text_with_math` that avoids re-parsing the same text segments.
+fn process_text_with_math_cached(
     text: &str,
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
     math_resolution_scale: f32,
+    text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
 ) -> Vec<ParagraphContent> {
-    crate::ui::math_parser::parse_text_with_math(
+    // Check cache first
+    if let Some(cached) = text_segment_cache.get(text, math_resolution_scale) {
+        return cached.clone();
+    }
+
+    // Cache miss: parse normally
+    let result = crate::ui::math_parser::parse_text_with_math(
         text,
         manifest,
         math_asset_manager,
         math_resolution_scale,
-    )
+    );
+
+    // Store in cache
+    text_segment_cache.insert(text, math_resolution_scale, result.clone());
+    result
 }
 
-/// Accumulate text content for paragraph rendering
-fn accumulate_text_content(
+/// Cached version of `accumulate_text_content`
+fn accumulate_text_content_cached(
     text: &str,
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
     paragraph_content: &mut Vec<ParagraphContent>,
     math_resolution_scale: f32,
+    text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
 ) {
-    let processed =
-        process_text_with_math(text, manifest, math_asset_manager, math_resolution_scale);
+    let processed = process_text_with_math_cached(
+        text,
+        manifest,
+        math_asset_manager,
+        math_resolution_scale,
+        text_segment_cache,
+    );
     paragraph_content.extend(processed);
 }
 

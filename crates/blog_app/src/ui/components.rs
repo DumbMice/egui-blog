@@ -218,8 +218,18 @@ pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugStat
 
                 ui.separator();
 
-                // Clear cache button
+                // Text cache stats button - toggle display
+                if ui.button("Toggle text cache stats").clicked() {
+                    debug_state.show_text_cache_stats = !debug_state.show_text_cache_stats;
+                    interacted = true;
+                }
+
+                ui.separator();
+
+                // Clear cache button (placeholder - would need access to cache)
                 if ui.button("Clear cache").clicked() {
+                    // Note: Cache clearing would need access to BlogApp's text_segment_cache
+                    // For now, this is just a placeholder
                     interacted = true;
                 }
             });

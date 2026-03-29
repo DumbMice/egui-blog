@@ -553,34 +553,34 @@ cargo blog-wasm     # Build WASM library only
 
 **Note**: Fixed urgent bug where panel focus and scroll position were not restored after browser refresh. Scroll position persistence now uses egui's built-in `id_salt()` mechanism with dynamic IDs per post (`main_content_scroll_{post_key}`). Panel focus persistence fixed by correcting RON serialization issues. When corrupted LocalStorage data exists, app falls back to defaults and overwrites with correct data on next save.
 
-## Priority 22: Fix Theme Persistence Bug
-- [ ] Selected theme is not persisted over refresh - page always goes to bright theme after refresh
-- [ ] Investigate why theme state is not being saved/restored correctly
-- [ ] Check serialization/deserialization of Theme enum
-- [ ] Verify LocalStorage save/restore logic for theme preference
-- [ ] Test theme persistence across browser refreshes
+## Priority 22: Fix Theme Persistence Bug ✅ COMPLETED 2026-03-15
+- [x] Selected theme is not persisted over refresh - page always goes to bright theme after refresh
+- [x] Investigate why theme state is not being saved/restored correctly
+- [x] Check serialization/deserialization of Theme enum
+- [x] Verify LocalStorage save/restore logic for theme preference
+- [x] Test theme persistence across browser refreshes
 
-**Note**: Users report that after refreshing the page, the theme always resets to bright theme instead of preserving the selected theme.
+**Note**: Fixed in commit `950867974`. Theme now persists correctly across browser refreshes.
 
-## Priority 23: Fix Math Formula Replacement Logic for Parentheses
-- [ ] Typst math formulas originally wrapped inside parentheses are not replaced with rendered SVG
-- [ ] Root cause: Replacement logic error - should detect innermost `(xxxx.typ)` and replace with SVG image
-- [ ] Current issue: `($x$)` transforms to `((xxxx.typ))` instead of `(xxxx.typ)` → SVG
-- [ ] Fix regex or replacement logic to handle parentheses correctly
-- [ ] Test formulas in various contexts with parentheses
-- [ ] Ensure all math formulas render correctly regardless of surrounding syntax
+## Priority 23: Fix Math Formula Replacement Logic for Parentheses ✅ COMPLETED 2026-03-15
+- [x] Typst math formulas originally wrapped inside parentheses are not replaced with rendered SVG
+- [x] Root cause: Replacement logic error - should detect innermost `(xxxx.typ)` and replace with SVG image
+- [x] Current issue: `($x$)` transforms to `((xxxx.typ))` instead of `(xxxx.typ)` → SVG
+- [x] Fix regex or replacement logic to handle parentheses correctly
+- [x] Test formulas in various contexts with parentheses
+- [x] Ensure all math formulas render correctly regardless of surrounding syntax
 
-**Note**: Math formulas inside parentheses show as `(xxxx.typ)` placeholders instead of rendered SVGs due to incorrect replacement logic.
+**Note**: Fixed in commit `950867974`. Math formulas inside parentheses now render correctly as SVGs.
 
-## Priority 24: Fix Main Content Panel Scroll Area Margins
-- [ ] The scroll area in the main panel/content panel should include the margins on both sides
-- [ ] Current issue: Scroll area doesn't include responsive margins, causing content to appear cut off
-- [ ] Investigate ScrollArea configuration and container nesting
-- [ ] Ensure responsive margins are applied within the scrollable region
-- [ ] Test scrolling behavior with various content widths
-- [ ] Fix layout so content scrolls with proper margins on both sides
+## Priority 24: Fix Main Content Panel Scroll Area Margins ✅ COMPLETED 2026-03-15
+- [x] The scroll area in the main panel/content panel should include the margins on both sides
+- [x] Current issue: Scroll area doesn't include responsive margins, causing content to appear cut off
+- [x] Investigate ScrollArea configuration and container nesting
+- [x] Ensure responsive margins are applied within the scrollable region
+- [x] Test scrolling behavior with various content widths
+- [x] Fix layout so content scrolls with proper margins on both sides
 
-**Note**: The main content scroll area doesn't include the responsive margins, making content appear incorrectly positioned during scrolling.
+**Note**: Fixed in commit `950867974`. Main content scroll area now includes proper responsive margins on both sides.
 
 ## Priority 25: Implement gg and G Keyboard Shortcuts
 - [ ] Add vim-like `gg` and `G` keyboard shortcuts for scrolling/navigation
