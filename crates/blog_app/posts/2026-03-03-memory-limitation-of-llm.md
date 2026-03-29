@@ -24,7 +24,7 @@ To provide a complete mathematical treatment of self-attention,
 we employ tensor notation for multi-dimensional arrays, representing a token sequence as $x equiv [bold(x)_1, dots, bold(x)_T]$ with components $x_(mu t)$ where $1<=t<=T$ indexes positions and $1<=mu<=d_"tok"$ indexes features.
 
 From now on, we will use Greek letters, e.g. $mu, nu, tau$, for feature indices and Latin letters, e.g. $t, s, u$, for positional indices.
-For example, in GPT-3 (175B parameter model), $d_"tok"=12288$ with 96 attention heads, resulting in $d=128$ per-head attention dimension (since $d_"tok" = N_"head" dot.c d$).
+For example, in GPT-3 (175B parameter model), $d_"tok"=12288$ with 96 attention heads, resulting in $d=128$ per-head attention dimension since $d_"tok" = N_"head" dot.c d$.
 
 The core innovation of attention is representing directional relationships between tokens.
 
@@ -33,8 +33,13 @@ The core innovation of attention is representing directional relationships betwe
 When $bold(x)_i$ attends to $bold(x)_j$, this establishes a **directional** relationship.
 Since symmetric operations like dot products cannot capture directionality, self-attention employs **a learnable asymmetric bilinear form** to represent these directed connections.
 
-Self-attention computes two projections for each token: a _query_ vector $bold(q)_t in RR^d$ and a _key_ vector $bold(k)_t in RR^d$.
+Self-attention computes two projections for each token:
+
+- a _query_ vector $bold(q)_t in RR^d$
+- and a _key_ vector $bold(k)_t in RR^d$.
+
 The attention from $bold(x)_i$ to $bold(x)_j$ is determined by the dot product $bold(q)_i dot.c bold(k)_j$, where the query "asks" about information and the key "answers" with relevance.
+
 These projections are obtained through linear transformations using learnable matrices $Q$ and $K$, mapping from $RR^(d_"tok")$ to $RR^(d)$. Their tensor representations are:
 
 $ bold(q)_t = Q bold(x)_t  &<=> q_(mu t) = lr(Q_mu)^nu x_(nu t) \  bold(k)_t = K bold(x)_t &<=> k_(mu t) = lr(K_mu)^nu x_(nu t), $
@@ -103,7 +108,7 @@ $ &EE[x_(mu)] = 0, "Var"[x_(mu)]=1 \ &lr(Q^mu)_nu tilde cal(N)(0,1/d_"tok"), lr(
 
 Then for entries in the bilinear matrix $R$, it follows that
 
-$ &EE[R^(mu nu)] = EE[lr(Q^tack.b)^(mu tau) K_tau^nu]= 0 \ &"Var"[R^(mu nu)] = "Var"[lr(Q^tack.b)^(mu tau)] dot "Var"[K_tau^nu] = d/lr(d_"tok")^2. $
+$ &EE[R^(mu nu)] = EE[lr(Q^tack.b)^(mu tau) K_tau^nu]= 0 \ &"Var"[R^(mu nu)] = "Var"[lr(Q^tack.b)^(mu tau)] dot "Var"[lr(K_tau)^nu] = d/lr(d_"tok")^2. $
 
 The query score $r_(i j) equiv r(bold(x)_i, bold(x)_j)$ hence has the mean and variance,
 
