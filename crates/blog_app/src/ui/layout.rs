@@ -339,7 +339,11 @@ pub fn side_panel(
             let button_icon = if side_panel_collapsed { "»" } else { "«" };
             let collapse_button = ui.button(button_icon);
             if collapse_button
-                .on_hover_text(if side_panel_collapsed { "Expand panel" } else { "Collapse panel" })
+                .on_hover_text(if side_panel_collapsed {
+                    "Expand panel"
+                } else {
+                    "Collapse panel"
+                })
                 .clicked()
             {
                 interactive_element_clicked = true;
@@ -390,10 +394,7 @@ pub fn side_panel(
         ui.separator();
 
         // Get posts based on tag search, content type filter, and sort order
-        let mut posts_to_show = crate::tags::search_posts(
-            post_manager.posts(),
-            tag_search_state,
-        );
+        let mut posts_to_show = crate::tags::search_posts(post_manager.posts(), tag_search_state);
 
         // Apply content type filter if set
         if let Some(content_type) = selected_content_type {
@@ -401,11 +402,9 @@ pub fn side_panel(
         }
 
         // Apply sort order
-        posts_to_show.sort_by(|a, b| {
-            match config.post_sort_order {
-                PostSortOrder::NewestFirst => b.date.cmp(&a.date),
-                PostSortOrder::OldestFirst => a.date.cmp(&b.date),
-            }
+        posts_to_show.sort_by(|a, b| match config.post_sort_order {
+            PostSortOrder::NewestFirst => b.date.cmp(&a.date),
+            PostSortOrder::OldestFirst => a.date.cmp(&b.date),
         });
 
         if posts_to_show.is_empty() {
@@ -417,85 +416,93 @@ pub fn side_panel(
             let scroll_response = egui::ScrollArea::vertical()
                 .scroll_offset(egui::vec2(0.0, *scroll_offset))
                 .show(ui, |ui| {
-                for (idx, post) in posts_to_show.iter().enumerate() {
-                    // Find the original index in the post manager
-                    let original_index = post_manager
-                        .posts()
-                        .iter()
-                        .position(|p| p.id == post.id)
-                        .unwrap_or(idx);
+                    for (idx, post) in posts_to_show.iter().enumerate() {
+                        // Find the original index in the post manager
+                        let original_index = post_manager
+                            .posts()
+                            .iter()
+                            .position(|p| p.id == post.id)
+                            .unwrap_or(idx);
 
-                    let is_selected = original_index == *selected_post_index;
+                        let is_selected = original_index == *selected_post_index;
 
-                    // Handle auto-scroll if this is the selected post and auto-scroll is requested
-                    if is_selected && *request_auto_scroll {
-                        // Scroll to this item
-                        ui.scroll_to_cursor(Some(egui::Align::Center));
-                        *request_auto_scroll = false;
-                    }
-
-                    let post_response = ui.vertical(|ui| {
-                        let clicked = components::post_preview(ui, post, is_selected);
-
-                        if config.show_preview_in_list {
-                            // Try to show first paragraph, show nothing if no paragraph
-                            if let Some(paragraph) = post.first_paragraph() {
-                                ui.small(paragraph);
-                            } else {
-                                // Show nothing if first content is not a paragraph
-                                // (e.g., heading, table, formula, etc.)
-                            }
+                        // Handle auto-scroll if this is the selected post and auto-scroll is requested
+                        if is_selected && *request_auto_scroll {
+                            // Scroll to this item
+                            ui.scroll_to_cursor(Some(egui::Align::Center));
+                            *request_auto_scroll = false;
                         }
 
-                        if config.show_tags_in_list && !post.tags.is_empty() {
-                            ui.horizontal_wrapped(|ui| {
-                                for tag_name in &post.tags {
-                                    // Find the tag to get its color
-                                    if let Some(tag) = all_tags.iter().find(|t| t.name == *tag_name) {
-                                        if crate::ui::tag_components::tag_chip(ui, tag, tag_search_state).clicked() {
-                                            // Tag was clicked - selection will be updated in main loop
-                                        }
-                                    } else {
-                                        // Fallback for tags not in all_tags
-                                        ui.label(
-                                            egui::RichText::new(format!("#{tag_name}"))
-                                                .small()
-                                                .color(ui.visuals().weak_text_color()),
-                                        );
-                                    }
+                        let post_response = ui.vertical(|ui| {
+                            let clicked = components::post_preview(ui, post, is_selected);
+
+                            if config.show_preview_in_list {
+                                // Try to show first paragraph, show nothing if no paragraph
+                                if let Some(paragraph) = post.first_paragraph() {
+                                    ui.small(paragraph);
+                                } else {
+                                    // Show nothing if first content is not a paragraph
+                                    // (e.g., heading, table, formula, etc.)
                                 }
-                            });
+                            }
+
+                            if config.show_tags_in_list && !post.tags.is_empty() {
+                                ui.horizontal_wrapped(|ui| {
+                                    for tag_name in &post.tags {
+                                        // Find the tag to get its color
+                                        if let Some(tag) =
+                                            all_tags.iter().find(|t| t.name == *tag_name)
+                                        {
+                                            if crate::ui::tag_components::tag_chip(
+                                                ui,
+                                                tag,
+                                                tag_search_state,
+                                            )
+                                            .clicked()
+                                            {
+                                                // Tag was clicked - selection will be updated in main loop
+                                            }
+                                        } else {
+                                            // Fallback for tags not in all_tags
+                                            ui.label(
+                                                egui::RichText::new(format!("#{tag_name}"))
+                                                    .small()
+                                                    .color(ui.visuals().weak_text_color()),
+                                            );
+                                        }
+                                    }
+                                });
+                            }
+
+                            ui.separator();
+
+                            if clicked {
+                                interactive_element_clicked = true;
+                                *selected_post_index = original_index;
+                                selection_changed = true;
+                                // Update URL when post is selected
+                                on_selection(Some(post));
+                                // Request auto-scroll to the clicked post
+                                *request_auto_scroll = true;
+                            }
+                        });
+
+                        // Handle auto-scroll if this is the selected post and auto-scroll is requested
+                        if is_selected && *request_auto_scroll {
+                            // Check if the post is already visible in the scroll area
+                            let clip_rect = ui.clip_rect();
+                            let post_rect = post_response.response.rect;
+
+                            // Only scroll if the post is not fully visible
+                            if !clip_rect.contains_rect(post_rect) {
+                                // Scroll to this item's rect
+                                // Using None for alignment means "make it visible somewhere" (less jumping than Center)
+                                ui.scroll_to_rect(post_rect, None);
+                            }
+                            *request_auto_scroll = false;
                         }
-
-                        ui.separator();
-
-                        if clicked {
-                            interactive_element_clicked = true;
-                            *selected_post_index = original_index;
-                            selection_changed = true;
-                            // Update URL when post is selected
-                            on_selection(Some(post));
-                            // Request auto-scroll to the clicked post
-                            *request_auto_scroll = true;
-                        }
-                    });
-
-                    // Handle auto-scroll if this is the selected post and auto-scroll is requested
-                    if is_selected && *request_auto_scroll {
-                        // Check if the post is already visible in the scroll area
-                        let clip_rect = ui.clip_rect();
-                        let post_rect = post_response.response.rect;
-
-                        // Only scroll if the post is not fully visible
-                        if !clip_rect.contains_rect(post_rect) {
-                            // Scroll to this item's rect
-                            // Using None for alignment means "make it visible somewhere" (less jumping than Center)
-                            ui.scroll_to_rect(post_rect, None);
-                        }
-                        *request_auto_scroll = false;
                     }
-                }
-            });
+                });
 
             // Update scroll offset from scroll area response
             *scroll_offset = scroll_response.state.offset.y;

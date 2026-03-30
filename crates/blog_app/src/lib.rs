@@ -167,7 +167,6 @@ pub struct BlogApp {
     /// Avoids re-parsing the same text segments every frame
     #[cfg_attr(feature = "serde", serde(skip))]
     text_segment_cache: crate::ui::text_cache::TextSegmentCache,
-
 }
 
 impl Default for BlogApp {
@@ -294,7 +293,10 @@ impl BlogApp {
         }
 
         // Apply theme to context (this will also set up text styles)
-        log::info!("Persistence: Applying theme in constructor: {:?}", app.theme);
+        log::info!(
+            "Persistence: Applying theme in constructor: {:?}",
+            app.theme
+        );
         app.theme.apply(&cc.egui_ctx);
         // Don't overwrite previous_theme if we loaded from storage
         // It should already be set from the saved state
@@ -302,14 +304,23 @@ impl BlogApp {
         #[cfg(feature = "persistence")]
         if cc.storage.is_none() {
             app.previous_theme = app.theme;
-            log::info!("Persistence: Fresh app, set previous_theme to: {:?}", app.previous_theme);
+            log::info!(
+                "Persistence: Fresh app, set previous_theme to: {:?}",
+                app.previous_theme
+            );
         } else {
-            log::info!("Persistence: Loaded from storage, previous_theme is: {:?}", app.previous_theme);
+            log::info!(
+                "Persistence: Loaded from storage, previous_theme is: {:?}",
+                app.previous_theme
+            );
         }
         #[cfg(not(feature = "persistence"))]
         {
             app.previous_theme = app.theme;
-            log::info!("Persistence: No persistence feature, set previous_theme to: {:?}", app.previous_theme);
+            log::info!(
+                "Persistence: No persistence feature, set previous_theme to: {:?}",
+                app.previous_theme
+            );
         }
 
         // Migration: Convert old search_query to new tag_search_state
@@ -336,8 +347,6 @@ impl BlogApp {
         );
         post.map(|post| format!("{}:{}", post.content_type.display_name(), post.slug))
     }
-
-
 
     /// Ensure `selected_post` is within valid bounds
     fn ensure_valid_selection(&mut self) {
@@ -637,8 +646,6 @@ impl eframe::App for BlogApp {
             }
         }
 
-
-
         // Unified state restoration with clear precedence
         if !self.route_restored {
             // Debug logging removed for performance
@@ -787,13 +794,13 @@ impl eframe::App for BlogApp {
         // Check if theme changed (via UI button or keyboard shortcut) and apply it
         if self.theme != self.previous_theme {
             // Debug logging removed for performance
-            // log::info!("[THEME DEBUG] Theme changed from {:?} to {:?}, applying to UI", 
+            // log::info!("[THEME DEBUG] Theme changed from {:?} to {:?}, applying to UI",
             //           self.previous_theme, self.theme);
             self.theme.apply(ui.ctx());
             self.previous_theme = self.theme;
             // Debug logging removed for performance
             // log::info!("[THEME DEBUG] Set previous_theme to: {:?}", self.previous_theme);
-            
+
             // Save immediately when theme changes
             if let Some(storage) = _frame.storage_mut() {
                 // Debug logging removed for performance
@@ -1076,7 +1083,7 @@ impl eframe::App for BlogApp {
             };
 
             let _scroll_response = ScrollArea::vertical()
-                .id_salt(scroll_id)  // Dynamic ID based on post
+                .id_salt(scroll_id) // Dynamic ID based on post
                 .show(ui, |ui| {
                     // Debug logging removed for performance
                     // log::debug!("Scroll area initialized with offset: {}", self.scroll_offset);
@@ -1545,8 +1552,15 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
             crate::ui::Theme::CatppuccinLatte => crate::ui::Theme::CatppuccinMacchiato,
             crate::ui::Theme::CatppuccinMacchiato => crate::ui::Theme::CatppuccinLatte,
         };
-        log::info!("[THEME DEBUG] toggle_theme: {:?} -> {:?}", old_theme, self.theme);
-        log::info!("[THEME DEBUG] previous_theme before toggle: {:?}", self.previous_theme);
+        log::info!(
+            "[THEME DEBUG] toggle_theme: {:?} -> {:?}",
+            old_theme,
+            self.theme
+        );
+        log::info!(
+            "[THEME DEBUG] previous_theme before toggle: {:?}",
+            self.previous_theme
+        );
         // Invalidate tag cache since theme changed
         self.cached_tags = None;
         true
@@ -1781,8 +1795,6 @@ mod tests {
         app.handle_retry();
     }
 
-
-
     #[test]
     fn test_theme_toggle_does_not_navigate_to_home() {
         let mut app = BlogApp::default();
@@ -1828,31 +1840,38 @@ mod tests {
     #[test]
     fn test_theme_persistence_serialization() {
         use crate::ui::components::Theme;
-        
+
         println!("Testing Theme enum serialization...");
-        
+
         // Test CatppuccinLatte
         let theme_latte = Theme::CatppuccinLatte;
-        let json_latte = serde_json::to_string(&theme_latte).expect("Failed to serialize CatppuccinLatte");
+        let json_latte =
+            serde_json::to_string(&theme_latte).expect("Failed to serialize CatppuccinLatte");
         println!("CatppuccinLatte serialized: {}", json_latte);
-        
-        let deserialized_latte: Theme = serde_json::from_str(&json_latte).expect("Failed to deserialize CatppuccinLatte");
+
+        let deserialized_latte: Theme =
+            serde_json::from_str(&json_latte).expect("Failed to deserialize CatppuccinLatte");
         println!("CatppuccinLatte deserialized: {:?}", deserialized_latte);
         assert_eq!(theme_latte, deserialized_latte);
-        
+
         // Test CatppuccinMacchiato
         let theme_macchiato = Theme::CatppuccinMacchiato;
-        let json_macchiato = serde_json::to_string(&theme_macchiato).expect("Failed to serialize CatppuccinMacchiato");
+        let json_macchiato = serde_json::to_string(&theme_macchiato)
+            .expect("Failed to serialize CatppuccinMacchiato");
         println!("CatppuccinMacchiato serialized: {}", json_macchiato);
-        
-        let deserialized_macchiato: Theme = serde_json::from_str(&json_macchiato).expect("Failed to deserialize CatppuccinMacchiato");
-        println!("CatppuccinMacchiato deserialized: {:?}", deserialized_macchiato);
+
+        let deserialized_macchiato: Theme = serde_json::from_str(&json_macchiato)
+            .expect("Failed to deserialize CatppuccinMacchiato");
+        println!(
+            "CatppuccinMacchiato deserialized: {:?}",
+            deserialized_macchiato
+        );
         assert_eq!(theme_macchiato, deserialized_macchiato);
-        
+
         // Test default
         let default_theme = Theme::default();
         assert_eq!(default_theme, Theme::CatppuccinLatte);
-        
+
         println!("✅ Theme serialization/deserialization test passed!");
     }
 
@@ -1860,25 +1879,31 @@ mod tests {
     #[cfg(feature = "serde")]
     fn test_theme_persistence_save_load_cycle() {
         use serde_json;
-        
+
         println!("Testing theme persistence in save/load cycle...");
-        
+
         // Create app with dark theme
         let mut app = BlogApp::default();
         app.theme = crate::ui::components::Theme::CatppuccinMacchiato;
         app.previous_theme = crate::ui::components::Theme::CatppuccinMacchiato;
-        
-        println!("Initial app: theme={:?}, previous_theme={:?}", app.theme, app.previous_theme);
-        
+
+        println!(
+            "Initial app: theme={:?}, previous_theme={:?}",
+            app.theme, app.previous_theme
+        );
+
         // Simulate save
         let json = serde_json::to_string(&app).expect("Failed to serialize app");
         println!("Serialized app: {} bytes", json.len());
-        
+
         // Simulate load
         let loaded_app: BlogApp = serde_json::from_str(&json).expect("Failed to deserialize app");
-        
-        println!("Loaded app: theme={:?}, previous_theme={:?}", loaded_app.theme, loaded_app.previous_theme);
-        
+
+        println!(
+            "Loaded app: theme={:?}, previous_theme={:?}",
+            loaded_app.theme, loaded_app.previous_theme
+        );
+
         // Check that theme persisted
         assert_eq!(
             loaded_app.theme,
@@ -1890,7 +1915,7 @@ mod tests {
             crate::ui::components::Theme::CatppuccinMacchiato,
             "Previous theme should also persist"
         );
-        
+
         println!("✅ Theme persistence save/load cycle test passed!");
     }
 
@@ -1967,3 +1992,4 @@ mod tests {
         println!("✅ Serialization round-trip test passed!");
     }
 }
+mod test_minimal;
