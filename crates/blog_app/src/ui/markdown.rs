@@ -1,16 +1,16 @@
 //! Markdown rendering for blog posts.
 
-use egui::{vec2, Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui};
-use egui_extras::syntax_highlighting::{highlight, CodeTheme};
+use egui::{Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2};
+use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
-use crate::{ui::table_renderer, MathAssetManager};
+use crate::{MathAssetManager, ui::table_renderer};
 
 /// Get the bold variant of a text style
 /// Since egui's `.strong()` only changes color, not font weight,
 /// we need to use different text styles for bold text
-fn bold_text_style(text_style: &TextStyle) -> TextStyle {
+pub(crate) fn bold_text_style(text_style: &TextStyle) -> TextStyle {
     match text_style {
         // Content body variants
         TextStyle::Name(name) if name == &"ContentBody".into() => {
@@ -64,7 +64,7 @@ fn bold_text_style(text_style: &TextStyle) -> TextStyle {
 }
 
 /// Get the italic variant of a text style
-fn italic_text_style(text_style: &TextStyle) -> TextStyle {
+pub(crate) fn italic_text_style(text_style: &TextStyle) -> TextStyle {
     match text_style {
         // Content body variants
         TextStyle::Name(name) if name == &"ContentBody".into() => {
@@ -131,7 +131,7 @@ const ASCENT_RATIO: f32 = 0.76;
 const MAX_HEIGHT_FACTOR: f32 = 1.0;
 
 /// Render an image with baseline alignment
-fn render_baseline_aligned_image(
+pub(crate) fn render_baseline_aligned_image(
     ui: &mut Ui,
     image_source: ImageSource<'static>,
     mut image_size: egui::Vec2,
@@ -992,6 +992,9 @@ fn render_markdown_impl(
                             &headers,
                             &rows,
                             &TableConfig::default(),
+                            &mut math_asset_manager,
+                            math_resolution_scale,
+                            text_segment_cache,
                         );
 
                         // Add table bottom margin (same as paragraph) and track it
@@ -1585,7 +1588,11 @@ fn render_text_with_math(ui: &mut Ui, text: &str) {
 
 /// Render a single paragraph content item
 /// Render a vector of paragraph content with optional styling
-fn render_paragraph_content_vec(ui: &mut Ui, content: &[ParagraphContent], text_style: &TextStyle) {
+pub(crate) fn render_paragraph_content_vec(
+    ui: &mut Ui,
+    content: &[ParagraphContent],
+    text_style: &TextStyle,
+) {
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
         for item in content {
@@ -1770,7 +1777,7 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
 /// Process text with math placeholders and return paragraph content
 
 /// Cached version of `process_text_with_math` that avoids re-parsing the same text segments.
-fn process_text_with_math_cached(
+pub(crate) fn process_text_with_math_cached(
     text: &str,
     manifest: &crate::math::MathManifest,
     math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
@@ -1872,7 +1879,7 @@ mod tests {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                                           // Skip through the list events
+                // Skip through the list events
                 while let Some(event) = events.next() {
                     if let Event::End(Tag::List(_)) = event {
                         break;

@@ -1,7 +1,141 @@
 //! Custom table rendering for markdown tables with enhanced styling.
 
-use egui::{Align, Layout, Pos2, RichText, Stroke, StrokeKind, Ui};
+use egui::{Align, Layout, Pos2, Stroke, StrokeKind, TextStyle, Ui};
 use pulldown_cmark::Alignment;
+
+/// Render table cell content without wrapping (for proper column width calculation)
+fn render_table_cell_content(
+    ui: &mut Ui,
+    content: &[crate::ui::markdown::ParagraphContent],
+    text_style: &TextStyle,
+) {
+    // Render horizontally without wrapping to maintain column width
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        for item in content {
+            match item {
+                crate::ui::markdown::ParagraphContent::Text(text) => {
+                    let rich_text = egui::RichText::new(text).text_style((*text_style).clone());
+                    ui.label(rich_text);
+                }
+                crate::ui::markdown::ParagraphContent::Strong(text) => {
+                    // Use bold text style
+                    let bold_style = crate::ui::markdown::bold_text_style(text_style);
+                    let rich_text = egui::RichText::new(text).text_style(bold_style);
+                    ui.label(rich_text);
+                }
+                crate::ui::markdown::ParagraphContent::Emphasis(text) => {
+                    // Use italic text style if available
+                    let italic_style = crate::ui::markdown::italic_text_style(text_style);
+                    let rich_text = if italic_style == *text_style {
+                        // No italic variant available, use .italics() for slant
+                        egui::RichText::new(text)
+                            .italics()
+                            .text_style(text_style.clone())
+                    } else {
+                        // Use italic font variant
+                        egui::RichText::new(text).text_style(italic_style)
+                    };
+                    ui.label(rich_text);
+                }
+                crate::ui::markdown::ParagraphContent::InlineCode(text) => {
+                    // Render inline code with monospace font
+                    ui.code(text);
+                }
+                crate::ui::markdown::ParagraphContent::MathImage {
+                    image_source,
+                    size,
+                    is_display: _,
+                    baseline_from_top,
+                } => {
+                    // Render math image with baseline alignment
+                    if let Some(baseline) = baseline_from_top {
+                        crate::ui::markdown::render_baseline_aligned_image(
+                            ui,
+                            image_source.clone(),
+                            *size,
+                            *baseline,
+                        );
+                    } else {
+                        let image = egui::Image::new(image_source.clone())
+                            .tint(ui.visuals().text_color())
+                            .fit_to_exact_size(*size);
+                        ui.add(image);
+                    }
+                }
+                crate::ui::markdown::ParagraphContent::MathCode { content, .. } => {
+                    // Fallback: render math as code if no SVG available
+                    ui.code(content);
+                }
+                crate::ui::markdown::ParagraphContent::Link { text, url } => {
+                    // Render link (without underline in tables for simplicity)
+                    ui.hyperlink_to(text, url);
+                }
+                crate::ui::markdown::ParagraphContent::Strikethrough(text) => {
+                    // Render strikethrough text
+                    let rich_text = egui::RichText::new(text)
+                        .strikethrough()
+                        .text_style((*text_style).clone());
+                    ui.label(rich_text);
+                }
+            }
+        }
+    });
+}
+
+/// Helper function to render a table cell with math formula support
+fn render_table_cell(
+    ui: &mut Ui,
+    cell: &str,
+    alignment: Alignment,
+    is_header: bool,
+    math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    math_resolution_scale: f32,
+    text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
+) {
+    // Load manifest for math formula lookup
+    let manifest = crate::math::load_manifest();
+
+    // Process text with math placeholders using cached version
+    let paragraph_content = crate::ui::markdown::process_text_with_math_cached(
+        cell,
+        manifest,
+        math_asset_manager,
+        math_resolution_scale,
+        text_segment_cache,
+    );
+
+    // Determine text style based on whether it's a header or data cell
+    let text_style = if is_header {
+        // Headers use medium weight for emphasis
+        TextStyle::Name("ContentBodyMedium".into())
+    } else {
+        // Data cells use regular body text
+        TextStyle::Name("ContentBody".into())
+    };
+
+    // Apply alignment
+    match alignment {
+        Alignment::Left => {
+            ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
+                render_table_cell_content(ui, &paragraph_content, &text_style);
+            });
+        }
+        Alignment::Center => {
+            ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                render_table_cell_content(ui, &paragraph_content, &text_style);
+            });
+        }
+        Alignment::Right => {
+            ui.with_layout(Layout::left_to_right(Align::Max), |ui| {
+                render_table_cell_content(ui, &paragraph_content, &text_style);
+            });
+        }
+        Alignment::None => {
+            render_table_cell_content(ui, &paragraph_content, &text_style);
+        }
+    }
+}
 
 /// Configuration for table rendering.
 #[derive(Clone, Debug)]
@@ -47,6 +181,9 @@ pub fn render_table(
     headers: &[Vec<String>],
     rows: &[Vec<String>],
     config: &TableConfig,
+    math_asset_manager: &mut Option<&mut crate::math::MathAssetManager>,
+    math_resolution_scale: f32,
+    text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
 ) {
     if headers.is_empty() && rows.is_empty() {
         return;
@@ -92,29 +229,16 @@ pub fn render_table(
                         for (col_idx, cell) in header_row.iter().enumerate() {
                             let alignment =
                                 alignments.get(col_idx).copied().unwrap_or(Alignment::None);
-                            let label = RichText::new(cell);
 
-                            // Apply alignment
-                            match alignment {
-                                Alignment::Left => {
-                                    ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                                        ui.label(label);
-                                    });
-                                }
-                                Alignment::Center => {
-                                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                                        ui.label(label);
-                                    });
-                                }
-                                Alignment::Right => {
-                                    ui.with_layout(Layout::left_to_right(Align::Max), |ui| {
-                                        ui.label(label);
-                                    });
-                                }
-                                Alignment::None => {
-                                    ui.label(label);
-                                }
-                            }
+                            render_table_cell(
+                                ui,
+                                cell,
+                                alignment,
+                                true, // is_header = true
+                                math_asset_manager,
+                                math_resolution_scale,
+                                text_segment_cache,
+                            );
                         }
                         ui.end_row();
                     }
@@ -125,36 +249,15 @@ pub fn render_table(
                     for (col_idx, cell) in row.iter().enumerate() {
                         let alignment = alignments.get(col_idx).copied().unwrap_or(Alignment::None);
 
-                        // Apply alignment
-                        match alignment {
-                            Alignment::Left => {
-                                ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                                    ui.label(RichText::new(cell).color(
-                                        ui.visuals().widgets.noninteractive.fg_stroke.color,
-                                    ));
-                                });
-                            }
-                            Alignment::Center => {
-                                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                                    ui.label(RichText::new(cell).color(
-                                        ui.visuals().widgets.noninteractive.fg_stroke.color,
-                                    ));
-                                });
-                            }
-                            Alignment::Right => {
-                                ui.with_layout(Layout::left_to_right(Align::Max), |ui| {
-                                    ui.label(RichText::new(cell).color(
-                                        ui.visuals().widgets.noninteractive.fg_stroke.color,
-                                    ));
-                                });
-                            }
-                            Alignment::None => {
-                                ui.label(
-                                    RichText::new(cell)
-                                        .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
-                                );
-                            }
-                        }
+                        render_table_cell(
+                            ui,
+                            cell,
+                            alignment,
+                            false, // is_header = false
+                            math_asset_manager,
+                            math_resolution_scale,
+                            text_segment_cache,
+                        );
                     }
                     ui.end_row();
                 }
