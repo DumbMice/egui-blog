@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 /// Configuration for responsive layout behavior
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 #[derive(Clone, Debug)]
 pub struct ResponsiveConfig {
     /// Optimal reading width in characters (80-100 chars)

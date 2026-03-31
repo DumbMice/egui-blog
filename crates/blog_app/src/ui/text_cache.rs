@@ -28,6 +28,7 @@ impl CacheKey {
 
 /// Cache for text segments with math placeholders.
 /// Stores parsed `Vec<ParagraphContent>` to avoid re-parsing every frame.
+#[derive(Default)]
 pub struct TextSegmentCache {
     cache: HashMap<CacheKey, Vec<ParagraphContent>>,
     max_size: usize,

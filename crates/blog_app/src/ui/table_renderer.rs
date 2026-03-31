@@ -8,79 +8,119 @@ fn render_table_cell_content(
     ui: &mut Ui,
     content: &[crate::ui::markdown::ParagraphContent],
     text_style: &TextStyle,
+    alignment: Alignment,
 ) {
-    // Render horizontally without wrapping to maintain column width
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        for item in content {
-            match item {
-                crate::ui::markdown::ParagraphContent::Text(text) => {
-                    let rich_text = egui::RichText::new(text).text_style((*text_style).clone());
-                    ui.label(rich_text);
+    // Add vertical padding similar to GitHub's table styling (4px top/bottom)
+    ui.vertical(|ui| {
+        ui.add_space(4.0);
+
+        // Render horizontally without wrapping to maintain column width
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+
+            // Apply padding based on alignment
+            match alignment {
+                Alignment::Left | Alignment::None => {
+                    // Left alignment: add left padding, content starts at left
+                    ui.add_space(8.0); // Left padding
+                    render_cell_content_items(ui, content, text_style);
+                    // Right padding is handled by grid spacing
                 }
-                crate::ui::markdown::ParagraphContent::Strong(text) => {
-                    // Use bold text style
-                    let bold_style = crate::ui::markdown::bold_text_style(text_style);
-                    let rich_text = egui::RichText::new(text).text_style(bold_style);
-                    ui.label(rich_text);
+                Alignment::Center => {
+                    // Center alignment: let layout center the content
+                    // Add equal padding on both sides for visual spacing
+                    ui.add_space(4.0); // Half of normal padding
+                    render_cell_content_items(ui, content, text_style);
+                    ui.add_space(4.0); // Half of normal padding
                 }
-                crate::ui::markdown::ParagraphContent::Emphasis(text) => {
-                    // Use italic text style if available
-                    let italic_style = crate::ui::markdown::italic_text_style(text_style);
-                    let rich_text = if italic_style == *text_style {
-                        // No italic variant available, use .italics() for slant
-                        egui::RichText::new(text)
-                            .italics()
-                            .text_style(text_style.clone())
-                    } else {
-                        // Use italic font variant
-                        egui::RichText::new(text).text_style(italic_style)
-                    };
-                    ui.label(rich_text);
-                }
-                crate::ui::markdown::ParagraphContent::InlineCode(text) => {
-                    // Render inline code with monospace font
-                    ui.code(text);
-                }
-                crate::ui::markdown::ParagraphContent::MathImage {
-                    image_source,
-                    size,
-                    is_display: _,
-                    baseline_from_top,
-                } => {
-                    // Render math image with baseline alignment
-                    if let Some(baseline) = baseline_from_top {
-                        crate::ui::markdown::render_baseline_aligned_image(
-                            ui,
-                            image_source.clone(),
-                            *size,
-                            *baseline,
-                        );
-                    } else {
-                        let image = egui::Image::new(image_source.clone())
-                            .tint(ui.visuals().text_color())
-                            .fit_to_exact_size(*size);
-                        ui.add(image);
-                    }
-                }
-                crate::ui::markdown::ParagraphContent::MathCode { content, .. } => {
-                    // Fallback: render math as code if no SVG available
-                    ui.code(content);
-                }
-                crate::ui::markdown::ParagraphContent::Link { text, url } => {
-                    // Render link (without underline in tables for simplicity)
-                    ui.hyperlink_to(text, url);
-                }
-                crate::ui::markdown::ParagraphContent::Strikethrough(text) => {
-                    // Render strikethrough text
-                    let rich_text = egui::RichText::new(text)
-                        .strikethrough()
-                        .text_style((*text_style).clone());
-                    ui.label(rich_text);
+                Alignment::Right => {
+                    // Right alignment: content ends at right edge
+                    // Add flexible space before content
+                    ui.add(egui::Label::new("").wrap());
+                    render_cell_content_items(ui, content, text_style);
+                    ui.add_space(8.0); // Right padding
                 }
             }
-        }
+        });
+
+        ui.add_space(4.0);
     });
+}
+
+/// Helper function to render cell content items
+fn render_cell_content_items(
+    ui: &mut Ui,
+    content: &[crate::ui::markdown::ParagraphContent],
+    text_style: &TextStyle,
+) {
+    for item in content {
+        match item {
+            crate::ui::markdown::ParagraphContent::Text(text) => {
+                let rich_text = egui::RichText::new(text).text_style((*text_style).clone());
+                ui.label(rich_text);
+            }
+            crate::ui::markdown::ParagraphContent::Strong(text) => {
+                // Use bold text style
+                let bold_style = crate::ui::markdown::bold_text_style(text_style);
+                let rich_text = egui::RichText::new(text).text_style(bold_style);
+                ui.label(rich_text);
+            }
+            crate::ui::markdown::ParagraphContent::Emphasis(text) => {
+                // Use italic text style if available
+                let italic_style = crate::ui::markdown::italic_text_style(text_style);
+                let rich_text = if italic_style == *text_style {
+                    // No italic variant available, use .italics() for slant
+                    egui::RichText::new(text)
+                        .italics()
+                        .text_style(text_style.clone())
+                } else {
+                    // Use italic font variant
+                    egui::RichText::new(text).text_style(italic_style)
+                };
+                ui.label(rich_text);
+            }
+            crate::ui::markdown::ParagraphContent::InlineCode(text) => {
+                // Render inline code with monospace font
+                ui.code(text);
+            }
+            crate::ui::markdown::ParagraphContent::MathImage {
+                image_source,
+                size,
+                is_display: _,
+                baseline_from_top,
+            } => {
+                // Render math image with baseline alignment
+                if let Some(baseline) = baseline_from_top {
+                    crate::ui::markdown::render_baseline_aligned_image(
+                        ui,
+                        image_source.clone(),
+                        *size,
+                        *baseline,
+                    );
+                } else {
+                    let image = egui::Image::new(image_source.clone())
+                        .tint(ui.visuals().text_color())
+                        .fit_to_exact_size(*size);
+                    ui.add(image);
+                }
+            }
+            crate::ui::markdown::ParagraphContent::MathCode { content, .. } => {
+                // Fallback: render math as code if no SVG available
+                ui.code(content);
+            }
+            crate::ui::markdown::ParagraphContent::Link { text, url } => {
+                // Render link (without underline in tables for simplicity)
+                ui.hyperlink_to(text, url);
+            }
+            crate::ui::markdown::ParagraphContent::Strikethrough(text) => {
+                // Render strikethrough text
+                let rich_text = egui::RichText::new(text)
+                    .strikethrough()
+                    .text_style((*text_style).clone());
+                ui.label(rich_text);
+            }
+        }
+    }
 }
 
 /// Helper function to render a table cell with math formula support
@@ -114,25 +154,34 @@ fn render_table_cell(
         TextStyle::Name("ContentBody".into())
     };
 
+    // Apply alignment - GitHub tables default to left-aligned for Alignment::None
+    let actual_alignment = match alignment {
+        Alignment::None => Alignment::Left, // GitHub default is left-aligned
+        _ => alignment,
+    };
+
     // Apply alignment
-    match alignment {
+    match actual_alignment {
         Alignment::Left => {
             ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style);
+                render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
             });
         }
         Alignment::Center => {
             ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style);
+                render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
             });
         }
         Alignment::Right => {
             ui.with_layout(Layout::left_to_right(Align::Max), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style);
+                render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
             });
         }
         Alignment::None => {
-            render_table_cell_content(ui, &paragraph_content, &text_style);
+            // Should never happen - we convert None to Left above
+            ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
+                render_table_cell_content(ui, &paragraph_content, &text_style, Alignment::Left);
+            });
         }
     }
 }

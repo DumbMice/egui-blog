@@ -71,7 +71,11 @@ impl KeySequenceHandler {
 
         // Check if buffer ends with the sequence
         if self.buffer.len() < sequence.len() {
-            log::debug!("Sequence check failed: buffer len {} < sequence len {}", self.buffer.len(), sequence.len());
+            log::debug!(
+                "Sequence check failed: buffer len {} < sequence len {}",
+                self.buffer.len(),
+                sequence.len()
+            );
             return false;
         }
 
@@ -84,8 +88,12 @@ impl KeySequenceHandler {
             .copied()
             .collect();
 
-        log::debug!("Checking sequence: buffer={:?}, recent={:?}, sequence={:?}", 
-                   self.buffer, recent, sequence);
+        log::debug!(
+            "Checking sequence: buffer={:?}, recent={:?}, sequence={:?}",
+            self.buffer,
+            recent,
+            sequence
+        );
 
         if recent == sequence {
             log::debug!("Sequence matched!");
