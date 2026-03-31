@@ -40,8 +40,10 @@ fn default_math_resolution_scale() -> f32 {
 /// Font loading state tracking
 /// Fonts load asynchronously in egui and are only available in the next frame
 #[derive(Debug, Clone, PartialEq)]
+#[derive(Default)]
 enum FontLoadingState {
     /// Fonts are being loaded (initial state)
+    #[default]
     Loading,
     /// Fonts have been loaded and are ready for use
     Ready,
@@ -228,40 +230,76 @@ impl BlogApp {
         let mut app = if let Some(storage) = cc.storage {
             log::info!("Persistence: Loading app from storage");
 
-            // Try to load with error handling
-            if let Some(loaded_app) = eframe::get_value::<Self>(storage, eframe::APP_KEY) {
-                log::info!("Persistence: Successfully loaded app from storage");
-                log::info!(
-                    "Persistence: Loaded theme: {:?}, previous_theme: {:?}, focused_panel: {:?}",
-                    loaded_app.theme,
-                    loaded_app.previous_theme,
-                    loaded_app.focused_panel
-                );
-                log::debug!(
-                    "Persistence: Loaded app. scroll_offset: {}, post_scroll_positions count: {}",
-                    loaded_app.scroll_offset,
-                    loaded_app.post_scroll_positions.len()
-                );
-                loaded_app
-            } else {
-                log::warn!(
-                    "Persistence: Failed to deserialize app state. This might be due to format changes."
-                );
-                log::warn!(
-                    "Persistence: Starting with fresh defaults. Corrupted data will be overwritten on save."
-                );
-
-                // Try to load just the theme separately as fallback
-                let mut default_app = Self::default();
-                if let Some(saved_theme) = eframe::get_value::<Theme>(storage, "blog_app_theme") {
-                    log::info!("Persistence: Loaded theme separately: {:?}", saved_theme);
-                    default_app.theme = saved_theme;
-                    default_app.previous_theme = saved_theme;
-                } else {
-                    log::info!("Persistence: No separate theme saved, using default theme");
+            // IMPORTANT: Custom JSON persistence is now the PRIMARY storage mechanism
+            // RON serialization is broken for Theme enum (and possibly other fields)
+            // Error: "Failed to decode RON: 1:645: Expected opening '{'"
+            // We use JSON as reliable alternative, RON is only for backward compatibility
+            
+            // First try to load from our custom JSON persistence (more reliable)
+            let mut loaded_from_json = false;
+            let mut app = if let Some(json_string) = storage.get_string("blog_app_json") {
+                match serde_json::from_str::<Self>(&json_string) {
+                    Ok(loaded_app) => {
+                        log::info!("Persistence: Successfully loaded app from custom JSON storage");
+                        log::info!(
+                            "Persistence: JSON loaded theme: {:?}, previous_theme: {:?}",
+                            loaded_app.theme,
+                            loaded_app.previous_theme
+                        );
+                        loaded_from_json = true;
+                        loaded_app
+                    }
+                    Err(e) => {
+                        log::warn!("Persistence: Failed to deserialize from JSON: {}", e);
+                        Self::default()
+                    }
                 }
-                default_app
+            } else {
+                Self::default()
+            };
+
+            // If we didn't load from JSON, try RON (for backward compatibility only)
+            // NOTE: RON serialization is BROKEN - fails with "Expected opening '{'" error
+            // This is only for migrating old data to JSON format
+            if !loaded_from_json {
+                log::info!("Persistence: No JSON data found, trying RON for backward compatibility (RON is broken but we try anyway)");
+                
+                // Note: We could debug RON string here, but it's not essential
+                // The key point is RON is broken and we're using JSON as primary
+
+                if let Some(loaded_app) = eframe::get_value::<Self>(storage, eframe::APP_KEY) {
+                    log::info!("Persistence: Successfully loaded app from RON storage");
+                    log::info!(
+                        "Persistence: RON loaded theme: {:?}, previous_theme: {:?}, focused_panel: {:?}",
+                        loaded_app.theme,
+                        loaded_app.previous_theme,
+                        loaded_app.focused_panel
+                    );
+                    log::info!(
+                        "Persistence: RON loaded selected_post: {}, editing_new_post: {}, side_panel_collapsed: {}",
+                        loaded_app.selected_post,
+                        loaded_app.editing_new_post,
+                        loaded_app.side_panel_collapsed
+                    );
+                    
+                    // Validate theme was loaded correctly
+                    // RON often fails to deserialize Theme enum correctly
+                    if loaded_app.theme == Theme::default() {
+                        log::warn!("Persistence: RON loaded theme is default (CatppuccinLatte). This might indicate deserialization issue.");
+                    }
+                    
+                    app = loaded_app;
+                } else {
+                    log::warn!(
+                        "Persistence: Failed to deserialize app state from RON. This might be due to format changes."
+                    );
+                    log::warn!(
+                        "Persistence: Starting with fresh defaults. Corrupted data will be overwritten on save."
+                    );
+                }
             }
+            
+            app
         } else {
             log::info!("Persistence: No storage available, using default");
             Self::default()
@@ -298,6 +336,13 @@ impl BlogApp {
             app.theme
         );
         app.theme.apply(&cc.egui_ctx);
+        
+        // Debug: Log theme state for troubleshooting
+        log::info!(
+            "Persistence: Final theme state - theme: {:?}, previous_theme: {:?}",
+            app.theme,
+            app.previous_theme
+        );
         // Don't overwrite previous_theme if we loaded from storage
         // It should already be set from the saved state
         // Only set it if we're creating a fresh app
@@ -599,10 +644,32 @@ impl BlogApp {
 impl eframe::App for BlogApp {
     #[cfg(feature = "persistence")]
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        log::info!("Saving app state with theme: {:?}", self.theme);
+        
+        // IMPORTANT: Custom JSON persistence is now the PRIMARY storage mechanism
+        // RON serialization is broken for Theme enum (fails with "Expected opening '{'" error)
+        // We save to JSON first as reliable storage, RON is only for backward compatibility
+        
+        // Save to custom JSON persistence (primary, more reliable)
+        match serde_json::to_string(self) {
+            Ok(json_string) => {
+                storage.set_string("blog_app_json", json_string);
+                log::debug!("Persistence: Saved to custom JSON storage");
+            }
+            Err(e) => {
+                log::error!("Persistence: Failed to serialize to JSON: {}", e);
+            }
+        }
+        
+        // Also save to RON for backward compatibility (but it's broken)
+        // WARNING: RON serialization has bugs - Theme enum doesn't serialize/deserialize correctly
+        // This is only kept for migration purposes, JSON is the primary storage
+        // Note: We don't debug RON serialization here because ron crate might not be available
+        // in all compilation targets. The actual save happens via eframe::set_value below.
+        
         // Router state is automatically serialized as part of BlogApp
+        // NOTE: This saves to RON (eframe::APP_KEY) which is broken but kept for compatibility
         eframe::set_value(storage, eframe::APP_KEY, self);
-        // Also save theme separately as backup
-        eframe::set_value(storage, "blog_app_theme", &self.theme);
     }
 
     fn persist_egui_memory(&self) -> bool {
@@ -806,8 +873,6 @@ impl eframe::App for BlogApp {
                 // Debug logging removed for performance
                 // log::info!("[THEME DEBUG] Saving app state immediately after theme change");
                 eframe::set_value(storage, eframe::APP_KEY, self);
-                // Also save theme separately as backup
-                eframe::set_value(storage, "blog_app_theme", &self.theme);
             }
         } else if top_panel_result.theme_changed {
             // This shouldn't happen, but log if it does (theme changed but detection didn't trigger)
@@ -1992,4 +2057,4 @@ mod tests {
         println!("✅ Serialization round-trip test passed!");
     }
 }
-mod test_minimal;
+

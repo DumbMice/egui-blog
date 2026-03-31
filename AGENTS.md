@@ -220,12 +220,30 @@ pub enum PostManagerState {
 
 ### Persistence Implementation
 The blog app includes state persistence across browser refreshes:
+
+#### IMPORTANT: Custom JSON Persistence (Primary)
+**CRITICAL WARNING**: The default eframe RON persistence is **BROKEN** for Theme enum serialization (error: `Failed to decode RON: 1:645: Expected opening '{'`). We use **custom JSON persistence** as the primary reliable storage mechanism.
+
+- **Primary storage**: Custom JSON persistence (`blog_app_json` key)
+- **Fallback**: Broken RON persistence (`eframe::APP_KEY`) for backward compatibility only
 - **Enabled by default**: `persistence` feature in Cargo.toml
 - **What gets saved**: Selected post index, theme preference, search query, layout config, editor state
 - **What doesn't get saved**: Post content (loaded from files), math SVGs (embedded resources)
 - **Serialization**: Uses `serde` with `#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]`
 - **Storage**: Browser LocalStorage (web) or file storage (native)
 - **Auto-save**: Every 30 seconds via `auto_save_interval()` method
+
+#### Key Implementation Details:
+1. **Loading order**: JSON first → RON fallback (for migration)
+2. **Saving**: Both JSON (primary) and RON (backward compatibility)
+3. **Theme persistence**: Works correctly in JSON, broken in RON
+4. **Location**: `crates/blog_app/src/lib.rs` in `BlogApp::new()` and `save()` methods
+
+#### NEVER REVERT TO DEFAULT RON PERSISTENCE
+Agents must NOT attempt to "fix" or revert to using only eframe's RON persistence. The custom JSON solution is the correct long-term fix. Any persistence changes should:
+1. Maintain JSON as primary storage
+2. Only use RON for backward compatibility loading
+3. Test theme persistence thoroughly
 
 Example BlogApp struct with persistence:
 ```rust
@@ -236,7 +254,7 @@ pub struct BlogApp {
     post_manager: PostManager,  // Not serialized - reloaded from source
     post_manager_state: PostManagerState,  // Serialized
     selected_post: usize,  // Serialized
-    theme: Theme,  // Serialized
+    theme: Theme,  // Serialized (WORKS in JSON, BROKEN in RON)
     // ...
 }
 ```
@@ -327,6 +345,13 @@ git push blog blog --force-with-lease
 2. **Fix systematically**: Address root cause, not just symptoms
 3. **Add regression test**: Ensure bug doesn't reoccur
 4. **Update documentation**: If API behavior changes
+
+### CRITICAL: Persistence Warnings
+1. **DO NOT REVERT TO RON**: The default eframe RON persistence is broken for Theme enum
+2. **JSON is primary**: Custom JSON persistence (`blog_app_json`) is the reliable storage
+3. **RON is fallback only**: Only for backward compatibility loading, not saving
+4. **Test theme persistence**: Always verify theme saves/loads correctly after changes
+5. **Error to watch for**: `Failed to decode RON: 1:645: Expected opening '{'` means RON is broken
 
 ### Performance Considerations
 - WASM binary size is important for web deployment
