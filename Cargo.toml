@@ -40,6 +40,14 @@ opt-level = 2 # fast and small wasm, basically same as `opt-level = 's'`
 
 panic = "abort" # This leads to better optimizations and smaller binaries (and is the default in Wasm anyways).
 
+[profile.release-wasm]
+inherits = "release"
+opt-level = 'z'
+lto = true
+codegen-units = 1
+strip = "debuginfo"
+panic = "abort"
+
 
 [profile.dev]
 # Can't leave this on by default, because it breaks the Windows build. Related: https://github.com/rust-lang/cargo/issues/4897
@@ -370,3 +378,10 @@ map_unwrap_or = "allow" # so is this one
 self_named_module_files = "allow" # Disabled waiting on https://github.com/rust-lang/rust-clippy/issues/9602
 significant_drop_tightening = "allow" # Too many false positives
 wildcard_imports = "allow" # `use crate::*` is useful to avoid merge conflicts when adding/removing imports
+
+[patch.crates-io]
+# Patch egui_plot to use our workspace egui crates
+egui = { path = "crates/egui" }
+emath = { path = "crates/emath" }
+ecolor = { path = "crates/ecolor" }
+epaint = { path = "crates/epaint" }

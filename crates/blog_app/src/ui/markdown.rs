@@ -5,6 +5,7 @@ use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
 
 use crate::ui::table_renderer::TableConfig;
+use crate::widgets::WidgetConfig;
 use crate::{ui::table_renderer, MathAssetManager};
 
 /// Get the bold variant of a text style
@@ -286,7 +287,52 @@ pub(crate) fn render_baseline_aligned_image(
 }
 
 /// Content that can appear within a paragraph
-#[derive(Clone, Debug)]
+impl Clone for ParagraphContent {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Text(arg0) => Self::Text(arg0.clone()),
+            Self::MathImage {
+                image_source,
+                size,
+                is_display,
+                baseline_from_top,
+            } => Self::MathImage {
+                image_source: image_source.clone(),
+                size: *size,
+                is_display: *is_display,
+                baseline_from_top: *baseline_from_top,
+            },
+            Self::MathCode {
+                content,
+                is_display,
+            } => Self::MathCode {
+                content: content.clone(),
+                is_display: *is_display,
+            },
+            Self::InlineCode(arg0) => Self::InlineCode(arg0.clone()),
+            Self::Strong(arg0) => Self::Strong(arg0.clone()),
+            Self::Emphasis(arg0) => Self::Emphasis(arg0.clone()),
+            Self::Link { text, url } => Self::Link {
+                text: text.clone(),
+                url: url.clone(),
+            },
+            Self::Strikethrough(arg0) => Self::Strikethrough(arg0.clone()),
+            Self::Widget {
+                name,
+                config,
+                width,
+                height,
+            } => Self::Widget {
+                name: name.clone(),
+                config: config.clone(),
+                width: *width,
+                height: *height,
+            },
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum ParagraphContent {
     Text(String),
     MathImage {
@@ -307,6 +353,12 @@ pub enum ParagraphContent {
         url: String,
     },
     Strikethrough(String),
+    Widget {
+        name: String,
+        config: WidgetConfig,
+        width: Option<f32>,
+        height: Option<f32>,
+    },
 }
 
 /// Extract math formulas from text and replace with (hash.typ) placeholders
@@ -825,6 +877,9 @@ fn render_markdown_impl(
                                         } => {
                                             ui.label(RichText::new(content).code());
                                         }
+                                        ParagraphContent::Widget { .. } => {
+                                            // Widgets in links not supported - skip
+                                        }
                                         _ => {
                                             // Other content types in links - render as text
                                             let text = match item {
@@ -832,6 +887,7 @@ fn render_markdown_impl(
                                                 | ParagraphContent::Emphasis(t)
                                                 | ParagraphContent::Strikethrough(t)
                                                 | ParagraphContent::InlineCode(t) => t,
+                                                ParagraphContent::Widget { .. } => String::new(),
                                                 _ => String::new(),
                                             };
                                             if !text.is_empty() {
@@ -1012,22 +1068,118 @@ fn render_markdown_impl(
                         }
                     }
                     Tag::Image(_, url, _) => {
-                        // Images - display alt text as placeholder
-                        let _url = url.to_string();
-                        let mut alt_text = String::new();
-                        for event in events.by_ref() {
-                            match event {
-                                Event::End(Tag::Image(_, _, _)) => break,
-                                Event::Text(text) => alt_text.push_str(&text),
-                                Event::SoftBreak => alt_text.push(' '),
-                                _ => {} // Skip other events
+                        let url_str = url.to_string();
+
+                        // Check if this is a widget (ends with .rs)
+                        if url_str.contains(".rs") {
+                            // Parse widget name and query parameters
+                            let (widget_name, query_params) = if let Some(pos) = url_str.find('?') {
+                                let name_part = &url_str[..pos];
+                                let query_part = &url_str[pos + 1..];
+                                (
+                                    name_part.trim_end_matches(".rs").to_string(),
+                                    Some(query_part.to_string()),
+                                )
+                            } else {
+                                (url_str.trim_end_matches(".rs").to_string(), None)
+                            };
+
+                            let mut alt_text = String::new();
+
+                            for event in events.by_ref() {
+                                match event {
+                                    Event::End(Tag::Image(_, _, _)) => break,
+                                    Event::Text(text) => alt_text.push_str(&text),
+                                    Event::SoftBreak => alt_text.push(' '),
+                                    _ => {} // Skip other events
+                                }
                             }
+
+                            // Parse configuration from query parameters
+                            let mut config = WidgetConfig::default();
+                            let mut width = None;
+                            let mut height = None;
+
+                            if let Some(query) = query_params {
+                                // Parse simple width/height parameters
+                                for param in query.split('&') {
+                                    if let Some((key, value)) = param.split_once('=') {
+                                        match key {
+                                            "width" => {
+                                                if let Ok(w) = value.parse::<f32>() {
+                                                    width = Some(w);
+                                                }
+                                            }
+                                            "height" => {
+                                                if let Ok(h) = value.parse::<f32>() {
+                                                    height = Some(h);
+                                                }
+                                            }
+                                            _ => {
+                                                // Try to parse as JSON configuration
+                                                if key.is_empty() && value.starts_with('{') {
+                                                    // JSON config like ?{"type":"sine"}
+                                                    if let Ok(json_value) =
+                                                        serde_json::from_str(value)
+                                                    {
+                                                        config.config = json_value;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if in_paragraph {
+                                paragraph_content.push(ParagraphContent::Widget {
+                                    name: widget_name,
+                                    config,
+                                    width,
+                                    height,
+                                });
+                            } else {
+                                // Widget outside paragraph - render directly
+                                ui.horizontal(|ui| {
+                                    // Apply size constraints to config before creating instance
+                                    let mut final_config = config;
+                                    if let Some(w) = width {
+                                        final_config.width = Some(w);
+                                    }
+                                    if let Some(h) = height {
+                                        final_config.height = Some(h);
+                                    }
+
+                                    match crate::widgets::WidgetInstance::new(
+                                        &widget_name,
+                                        final_config,
+                                    ) {
+                                        Ok(mut instance) => {
+                                            let _ = instance.render(ui);
+                                        }
+                                        Err(e) => {
+                                            ui.label(format!("Widget error: {}", e));
+                                        }
+                                    }
+                                });
+                            }
+                        } else {
+                            // Regular image - display alt text as placeholder
+                            let mut alt_text = String::new();
+                            for event in events.by_ref() {
+                                match event {
+                                    Event::End(Tag::Image(_, _, _)) => break,
+                                    Event::Text(text) => alt_text.push_str(&text),
+                                    Event::SoftBreak => alt_text.push(' '),
+                                    _ => {} // Skip other events
+                                }
+                            }
+                            ui.label(
+                                RichText::new(format!("[Image: {alt_text}]"))
+                                    .italics()
+                                    .weak(),
+                            );
                         }
-                        ui.label(
-                            RichText::new(format!("[Image: {alt_text}]"))
-                                .italics()
-                                .weak(),
-                        );
                     }
                 }
             }
@@ -1331,6 +1483,15 @@ fn render_markdown_impl(
                 }
             }
         }
+    }
+
+    // Render any remaining paragraph content
+    if in_paragraph && !paragraph_content.is_empty() {
+        ui.horizontal_wrapped(|ui| {
+            for content in &paragraph_content {
+                render_paragraph_content(ui, content);
+            }
+        });
     }
 }
 
@@ -1660,6 +1821,34 @@ pub(crate) fn render_paragraph_content_vec(
                     // Display math code - render as code
                     ui.label(RichText::new(content).code().text_style(text_style.clone()));
                 }
+                ParagraphContent::Widget {
+                    name,
+                    config,
+                    width,
+                    height,
+                } => {
+                    // Create a child UI with optional size constraints
+                    let mut child_ui = ui.new_child(egui::UiBuilder::new());
+
+                    // Apply size constraints if specified
+                    if let Some(w) = width {
+                        child_ui.set_width(*w);
+                    }
+                    if let Some(h) = height {
+                        child_ui.set_height(*h);
+                    }
+
+                    // Render the widget
+                    let registry = crate::widgets::global_registry();
+                    match registry.create_instance(name) {
+                        Ok(mut widget) => {
+                            let _size = widget.render(&mut child_ui, config);
+                        }
+                        Err(e) => {
+                            child_ui.label(format!("Widget error: {}", e));
+                        }
+                    }
+                }
             }
         }
     });
@@ -1771,6 +1960,42 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
                     .text_style(TextStyle::Name("ContentBody".into())),
             );
         }
+        &ParagraphContent::Widget {
+            ref name,
+            ref config,
+            ref width,
+            ref height,
+        } => {
+            // Create a container for the widget
+            let frame = egui::Frame::new()
+                .fill(ui.visuals().panel_fill)
+                .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
+                .corner_radius(4.0);
+
+            frame.show(ui, |ui| {
+                // Apply size constraints if specified
+                if let Some(w) = width {
+                    ui.set_width(*w);
+                }
+                if let Some(h) = height {
+                    ui.set_height(*h);
+                }
+
+                // Center the widget
+                ui.centered_and_justified(|ui| {
+                    // Create widget instance from registry
+                    let registry = crate::widgets::global_registry();
+                    match registry.create_instance(name) {
+                        Ok(mut widget) => {
+                            let _size = widget.render(ui, config);
+                        }
+                        Err(e) => {
+                            ui.label(format!("Widget error: {}", e));
+                        }
+                    }
+                });
+            });
+        }
     }
 }
 
@@ -1786,7 +2011,7 @@ pub(crate) fn process_text_with_math_cached(
 ) -> Vec<ParagraphContent> {
     // Check cache first
     if let Some(cached) = text_segment_cache.get(text, math_resolution_scale) {
-        return cached.clone();
+        return cached.to_vec();
     }
 
     // Cache miss: parse normally
@@ -1798,7 +2023,7 @@ pub(crate) fn process_text_with_math_cached(
     );
 
     // Store in cache
-    text_segment_cache.insert(text, math_resolution_scale, result.clone());
+    text_segment_cache.insert(text, math_resolution_scale, result.to_vec());
     result
 }
 

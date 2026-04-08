@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Context as _, Result, anyhow};
+use anyhow::{anyhow, Context as _, Result};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -162,6 +162,66 @@ fn extract_formulas_from_markdown(content: &str) -> Vec<(String, bool)> {
     }
 
     formulas
+}
+
+/// Extract widget references from markdown text
+fn extract_widgets_from_markdown(content: &str) -> Vec<String> {
+    let mut widgets = Vec::new();
+
+    let lines: Vec<&str> = content.lines().collect();
+    let mut in_frontmatter = false;
+    let mut content_lines = Vec::new();
+
+    for line in lines {
+        if line.trim() == "---" {
+            in_frontmatter = !in_frontmatter;
+            continue;
+        }
+        if !in_frontmatter {
+            content_lines.push(line);
+        }
+    }
+
+    let content_no_frontmatter = content_lines.join("\n");
+
+    // Simple parsing for ![alt](widget.rs) patterns
+    let mut i = 0;
+    let chars: Vec<char> = content_no_frontmatter.chars().collect();
+
+    while i < chars.len() {
+        if chars[i] == '!' && i + 1 < chars.len() && chars[i + 1] == '[' {
+            // Found ![ - look for ](
+            let mut j = i + 2;
+            while j < chars.len() && chars[j] != ']' {
+                j += 1;
+            }
+
+            if j < chars.len() && chars[j] == ']' && j + 1 < chars.len() && chars[j + 1] == '(' {
+                // Found ]( - extract URL
+                let mut k = j + 2;
+                while k < chars.len() && chars[k] != ')' {
+                    k += 1;
+                }
+
+                if k < chars.len() && chars[k] == ')' {
+                    let url: String = chars[j + 2..k].iter().collect();
+                    if url.contains(".rs") {
+                        // Extract widget name, handling query parameters
+                        let widget_name = if let Some(pos) = url.find('?') {
+                            let name_part = &url[..pos];
+                            name_part.trim_end_matches(".rs").to_string()
+                        } else {
+                            url.trim_end_matches(".rs").to_string()
+                        };
+                        widgets.push(widget_name);
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+
+    widgets
 }
 
 /// Compute SHA-256 hash of a formula
@@ -489,6 +549,7 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=notes/");
     println!("cargo:rerun-if-changed=reviews/");
     println!("cargo:rerun-if-changed=assets/math/");
+    println!("cargo:rerun-if-changed=assets/widgets/");
 
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned());
     let crate_dir = Path::new(&manifest_dir);
@@ -541,8 +602,8 @@ fn main() -> Result<()> {
 
     // Extract all formulas from markdown files
     let mut all_formulas = Vec::new();
-    for (_file_path, content) in markdown_files {
-        let formulas = extract_formulas_from_markdown(&content);
+    for (_file_path, content) in &markdown_files {
+        let formulas = extract_formulas_from_markdown(content);
         for (formula, is_display) in formulas {
             all_formulas.push((formula, is_display));
         }
@@ -773,6 +834,52 @@ fn main() -> Result<()> {
     }
 
     println!("cargo:warning=Math processing completed successfully");
+
+    // =========================================================================
+    // Widget validation
+    // =========================================================================
+
+    // Extract widget references from all markdown files
+    let mut all_widgets = Vec::new();
+    for (file_path, content) in &markdown_files {
+        let widgets = extract_widgets_from_markdown(content);
+        for widget in widgets {
+            all_widgets.push((widget, file_path.clone()));
+        }
+    }
+
+    // Get registered widgets (hardcoded for now - should match registry.rs)
+    let registered_widgets: HashSet<String> =
+        ["counter", "plot", "chart", "egui_plot", "egui_plot_simple"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+    // Check for undefined widgets
+    let mut undefined_widgets = Vec::new();
+    for (widget, file_path) in &all_widgets {
+        if !registered_widgets.contains(widget) {
+            undefined_widgets.push((widget.clone(), file_path.clone()));
+        }
+    }
+
+    // Report widget validation results
+    if !undefined_widgets.is_empty() {
+        println!(
+            "cargo:warning=Found {} undefined widget references:",
+            undefined_widgets.len()
+        );
+        for (widget, file_path) in undefined_widgets {
+            println!("cargo:warning=  • {} in {}", widget, file_path.display());
+        }
+        println!("cargo:warning=Registered widgets: {:?}", registered_widgets);
+        println!("cargo:warning=Note: Add missing widgets to src/widgets/registry.rs");
+    } else if !all_widgets.is_empty() {
+        println!(
+            "cargo:warning=All widget references are valid ({} references checked)",
+            all_widgets.len()
+        );
+    }
 
     Ok(())
 }

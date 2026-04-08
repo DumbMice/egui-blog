@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <head>
-    <title>My Blog - Built with egui</title>
+    <title>egui Blog App</title>
     <style>
         html {
             /* Remove touch delay: */
@@ -100,7 +100,7 @@
 
     <div class="centered" id="center_text">
         <p style="font-size:16px">
-            Loading…
+            Loading blog…
         </p>
         <div class="lds-dual-ring"></div>
     </div>
@@ -137,9 +137,9 @@
 
             function check_for_panic() {
                 if (handle.has_panicked()) {
-                    console.error("The egui app has crashed");
+                    console.error("The blog app has crashed");
 
-                    // The demo app already logs the panic message and callstack, but you
+                    // The app already logs the panic message and callstack, but you
                     // can access them like this if you want to show them in the html:
                     // console.error(`${handle.panic_message()}`);
                     // console.error(`${handle.panic_callstack()}`);
@@ -147,7 +147,7 @@
                     document.getElementById("the_canvas_id").remove();
                     document.getElementById("center_text").innerHTML = `
                         <p>
-                            The egui app has crashed.
+                            The blog app has crashed.
                         </p>
                         <p style="font-size:10px" align="left">
                             ${handle.panic_message()}
@@ -198,5 +198,3 @@
 </body>
 
 </html>
-
-<!-- Powered by egui: https://github.com/emilk/egui/ -->

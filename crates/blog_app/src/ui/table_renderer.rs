@@ -119,6 +119,9 @@ fn render_cell_content_items(
                     .text_style((*text_style).clone());
                 ui.label(rich_text);
             }
+            crate::ui::markdown::ParagraphContent::Widget { .. } => {
+                // Widgets in tables not supported - skip
+            }
         }
     }
 }

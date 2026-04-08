@@ -191,8 +191,13 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     let build_mode = if release { "release" } else { "debug" };
     println!("🔨 Building WASM ({})...", build_mode);
 
+    // Get current directory for absolute paths
+    let current_dir =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
     // Create output directory relative to workspace root
-    let output_path = format!("web_blog/{}", output_dir);
+    let output_relative_path = format!("web_blog/{}", output_dir);
+    let output_path = current_dir.join(&output_relative_path);
     fs::create_dir_all(&output_path)?;
 
     // Build command based on current build script
@@ -223,17 +228,74 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
 
     // Generate JS bindings
     println!("🔗 Generating JS bindings...");
-    let wasm_path = format!("target/wasm32-unknown-unknown/{}/blog_app.wasm", build_mode);
-    let output = Command::new("wasm-bindgen")
-        .args([
-            &wasm_path,
-            "--out-dir",
-            &output_path,
-            "--out-name",
-            "blog_app",
-            "--no-modules",
-            "--no-typescript",
-        ])
+
+    let wasm_relative_path = format!("target/wasm32-unknown-unknown/{}/blog_app.wasm", build_mode);
+    let wasm_path = current_dir.join(&wasm_relative_path);
+
+    println!(
+        "  Looking for WASM at: {} (absolute: {})",
+        wasm_relative_path,
+        wasm_path.display()
+    );
+    println!("  Output directory: {}", output_path.display());
+
+    // Try to find wasm-bindgen - first check common cargo location
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let wasm_bindgen_path = std::path::PathBuf::from(&home).join(".cargo/bin/wasm-bindgen");
+
+    if !wasm_bindgen_path.exists() {
+        return Err(format!(
+            "wasm-bindgen not found at {}. Install with: cargo install wasm-bindgen-cli",
+            wasm_bindgen_path.display()
+        )
+        .into());
+    }
+
+    // Get canonical path
+    let wasm_bindgen_canonical = match std::fs::canonicalize(&wasm_bindgen_path) {
+        Ok(path) => path,
+        Err(e) => {
+            println!("  ⚠️  Failed to get canonical path for wasm-bindgen: {}", e);
+            wasm_bindgen_path.clone()
+        }
+    };
+
+    println!(
+        "  Using wasm-bindgen at: {} (canonical: {})",
+        wasm_bindgen_path.display(),
+        wasm_bindgen_canonical.display()
+    );
+
+    let wasm_path_str = wasm_path
+        .to_str()
+        .ok_or("WASM path contains invalid UTF-8 characters")?;
+
+    let output_path_str = output_path
+        .to_str()
+        .ok_or("Output path contains invalid UTF-8 characters")?;
+
+    let cmd_str = format!(
+        "{} {} --out-dir {} --out-name blog_app --no-modules --no-typescript",
+        wasm_bindgen_path.display(),
+        wasm_path_str,
+        output_path_str
+    );
+    println!("  Running command: {}", cmd_str);
+
+    // Convert path to string, handling potential UTF-8 issues
+    let wasm_bindgen_str = wasm_bindgen_canonical
+        .to_str()
+        .ok_or("wasm-bindgen path contains invalid UTF-8 characters")?;
+
+    // Execute wasm-bindgen
+    let output = Command::new(wasm_bindgen_str)
+        .arg(wasm_path_str)
+        .arg("--out-dir")
+        .arg(output_path_str)
+        .arg("--out-name")
+        .arg("blog_app")
+        .arg("--no-modules")
+        .arg("--no-typescript")
         .output()?;
 
     if !output.status.success() {
@@ -243,49 +305,65 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     }
 
     // Copy index.html
-    fs::copy("web_blog/index.html", format!("{}/index.html", output_path))?;
+    fs::copy("web_blog/index.html", output_path.join("index.html"))?;
 
     // Optimize in release mode
     if release {
         println!("⚡ Optimizing WASM...");
-        let wasm_file = format!("{}/blog_app_bg.wasm", output_path);
+        let wasm_file = output_path.join("blog_app_bg.wasm");
         // Use temporary file to avoid wasm-opt bug with in-place optimization
-        let temp_file = format!("{}.tmp", wasm_file);
-        let output = Command::new("wasm-opt")
-            .args([&wasm_file, "-O1", "--fast-math", "-o", &temp_file])
-            .output();
+        let temp_file = wasm_file.with_extension("wasm.tmp");
+        // Find wasm-opt in common cargo location
+        let wasm_opt_path = std::path::PathBuf::from(&home).join(".cargo/bin/wasm-opt");
+        if wasm_opt_path.exists() {
+            let wasm_file_str = wasm_file
+                .to_str()
+                .ok_or("WASM file path contains invalid UTF-8 characters")?;
+            let temp_file_str = temp_file
+                .to_str()
+                .ok_or("Temp file path contains invalid UTF-8 characters")?;
 
-        match output {
-            Ok(output) if output.status.success() => {
-                // Move temp file back to original
-                if let Err(e) = fs::rename(&temp_file, &wasm_file) {
-                    println!("⚠️  Failed to move optimized WASM: {}", e);
-                } else {
-                    println!("✅ WASM optimized with -O1");
-                }
-            }
-            Ok(output) => {
-                let status_str = output.status.to_string();
-                if status_str.contains("SIGSEGV") || status_str.contains("signal: 11") {
-                    // SIGSEGV (segmentation fault) - wasm-opt bug
-                    println!("⚠️  wasm-opt crashed (SIGSEGV) - known issue with wasm-opt");
-                    println!("⚠️  WASM will be unoptimized but still functional");
-                } else {
-                    println!("⚠️  wasm-opt failed with status: {}", status_str);
-                    if !output.stderr.is_empty() {
-                        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            let output = Command::new(wasm_opt_path.to_str().unwrap())
+                .args([wasm_file_str, "-O1", "--fast-math", "-o", temp_file_str])
+                .output();
+
+            match output {
+                Ok(output) if output.status.success() => {
+                    // Move temp file back to original
+                    if let Err(e) = fs::rename(&temp_file, &wasm_file) {
+                        println!("⚠️  Failed to move optimized WASM: {}", e);
+                    } else {
+                        println!("✅ WASM optimized with -O1");
                     }
                 }
-                // Clean up temp file if it exists
-                let _ = fs::remove_file(&temp_file);
+                Ok(output) => {
+                    let status_str = output.status.to_string();
+                    if status_str.contains("SIGSEGV") || status_str.contains("signal: 11") {
+                        // SIGSEGV (segmentation fault) - wasm-opt bug
+                        println!("⚠️  wasm-opt crashed (SIGSEGV) - known issue with wasm-opt");
+                        println!("⚠️  WASM will be unoptimized but still functional");
+                    } else {
+                        println!("⚠️  wasm-opt failed with status: {}", status_str);
+                        if !output.stderr.is_empty() {
+                            println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+                        }
+                    }
+                    // Clean up temp file if it exists
+                    let _ = fs::remove_file(&temp_file);
+                }
+                Err(_) => {
+                    println!("⚠️  wasm-opt not available (install with: cargo install wasm-opt)");
+                }
             }
-            Err(_) => {
-                println!("⚠️  wasm-opt not available (install with: cargo install wasm-opt)");
-            }
+        } else {
+            println!(
+                "⚠️  wasm-opt not found at {}. Skipping optimization.",
+                wasm_opt_path.display()
+            );
         }
     }
 
-    println!("✅ Build complete: {}", output_path);
+    println!("✅ Build complete: {}", output_path.display());
     Ok(())
 }
 

@@ -19,7 +19,7 @@ rustdoc-args = ["--generate-link-to-definition"]
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["wgpu", "persistence"]
+default = ["glow", "persistence"]
 
 web_app = []
 
@@ -50,6 +50,9 @@ serde_yaml = "0.9"
 pulldown-cmark = "0.9"
 thiserror = "1.0"
 
+# Plotting library - compatible with egui 0.33.3
+egui_plot = "0.34.0"
+
 # TOML parsing for shortcut configuration
 toml = "0.8"
 
@@ -63,6 +66,11 @@ regex = "1.10"
 # For cache key with float
 ordered-float = "5.0"
 
+# Widget system dependencies
+chrono = "0.4"
+uuid = { version = "1.8", features = ["v4", "serde", "js"] }
+rand = "0.8"
+
 # Catppuccin theme colors
 catppuccin = "2.4.0"
 
@@ -74,7 +82,7 @@ resvg = { workspace = true, default-features = false }
 notify = { version = "6.1", optional = true }
 
 # Optional dependencies:
-bytemuck = { workspace = true, optional = true }
+bytemuck = { version = "1.24.0", optional = true }
 wgpu = { workspace = true, features = ["default", "webgpu", "webgl"], optional = true }
 
 # native:
@@ -86,6 +94,7 @@ env_logger = { workspace = true, features = ["auto-color", "humantime"] }
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 web-sys.workspace = true
+getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["eframe", "snapshot", "wgpu"] }

@@ -2,6 +2,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
     env_logger::init();
 
@@ -23,4 +24,10 @@ fn main() -> eframe::Result<()> {
             Ok(Box::new(blog_app::BlogApp::new(cc)))
         }),
     )
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    // This binary is not intended for WASM
+    println!("typography_test is a native-only binary");
 }

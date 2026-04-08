@@ -12,6 +12,7 @@ pub mod shortcuts;
 pub mod tags;
 pub mod typography;
 pub mod ui;
+pub mod widgets;
 
 mod build_filter;
 
@@ -615,6 +616,18 @@ impl eframe::App for BlogApp {
 
     fn auto_save_interval(&self) -> std::time::Duration {
         std::time::Duration::from_secs(5)
+    }
+
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Enable continuous rendering only when debug flag is set
+        // This allows toggling between reactive (lazy) and continuous (smooth) modes
+        #[cfg(debug_assertions)]
+        if self.debug_state.continuous_rendering {
+            ctx.request_repaint();
+        }
+        
+        // In release builds, use reactive mode (no continuous repaints)
+        // This saves CPU/battery when animations aren't needed
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {

@@ -27,6 +27,8 @@ pub struct DebugState {
     pub show_math_resolution_config: bool,
     /// Show text segment cache statistics window
     pub show_text_cache_stats: bool,
+    /// Enable continuous rendering for smooth animations
+    pub continuous_rendering: bool,
 }
 
 #[cfg(debug_assertions)]
@@ -45,6 +47,7 @@ impl Default for DebugState {
             simple_search_test: crate::ui::simple_search_test::SimpleSearchTest::new(),
             show_math_resolution_config: false,
             show_text_cache_stats: false,
+            continuous_rendering: false,
         }
     }
 }
@@ -137,6 +140,29 @@ pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
             };
 
             ui.colored_label(performance_color, performance_text);
+
+            ui.separator();
+
+            // Continuous rendering toggle
+            ui.horizontal(|ui| {
+                ui.label("Rendering mode:");
+                let is_continuous = debug_state.continuous_rendering;
+                ui.toggle_value(
+                    &mut debug_state.continuous_rendering,
+                    if is_continuous {
+                        "Continuous (smooth)"
+                    } else {
+                        "Reactive (lazy)"
+                    },
+                );
+            });
+
+            let is_continuous = debug_state.continuous_rendering;
+            ui.label(if is_continuous {
+                "✓ Continuous mode: Repaints every frame for smooth animations"
+            } else {
+                "✓ Reactive mode: Only repaints on input (saves CPU)"
+            });
 
             ui.separator();
             ui.label("Note: Based on recent frame times");
