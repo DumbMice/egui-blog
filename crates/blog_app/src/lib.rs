@@ -874,7 +874,7 @@ impl eframe::App for BlogApp {
         #[cfg(debug_assertions)]
         {
             // Update frame rate calculation
-            crate::debug_windows::update_frame_rate(ui.ctx(), &mut self.debug_state);
+            crate::debug_windows::update_frame_rate(ui.ctx(), _frame, &mut self.debug_state);
 
             // Show font book window if enabled
             if self.debug_state.show_font_book {

@@ -52,23 +52,26 @@ impl Default for DebugState {
     }
 }
 
-/// Update frame rate calculation.
 #[cfg(debug_assertions)]
-pub fn update_frame_rate(ctx: &egui::Context, debug_state: &mut DebugState) {
+pub fn update_frame_rate(ctx: &egui::Context, frame: &eframe::Frame, debug_state: &mut DebugState) {
     let now = ctx.input(|i| i.time);
 
-    if let Some(last_time) = debug_state.last_frame_time {
+    if let Some(cpu_usage) = frame.info().cpu_usage {
+        if let Some(latest) = debug_state.frame_time_history.latest_mut() {
+            *latest = cpu_usage;
+        }
+        debug_state.frame_time_history.add(now, cpu_usage);
+    } else if let Some(last_time) = debug_state.last_frame_time {
         let delta = (now - last_time) as f32;
         if delta > 0.0 {
-            // Add frame time to history (in seconds)
             debug_state.frame_time_history.add(now, delta);
         }
+        debug_state.last_frame_time = Some(now);
+    } else {
+        debug_state.last_frame_time = Some(now);
     }
-
-    debug_state.last_frame_time = Some(now);
 }
 
-/// Get average frame rate from history.
 #[cfg(debug_assertions)]
 pub fn get_average_frame_rate(debug_state: &DebugState) -> f32 {
     1.0 / debug_state
@@ -159,9 +162,9 @@ pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
 
             let is_continuous = debug_state.continuous_rendering;
             ui.label(if is_continuous {
-                "✓ Continuous mode: Repaints every frame for smooth animations"
+                "Continuous mode: Repaints every frame for smooth animations"
             } else {
-                "✓ Reactive mode: Only repaints on input (saves CPU)"
+                "Reactive mode: Only repaints on input (saves CPU)"
             });
 
             ui.separator();
@@ -488,7 +491,7 @@ pub fn show_simple_search_test_window(ui: &egui::Ui, debug_state: &mut DebugStat
             ui.label("Test 1: Basic text_edit_singleline()");
             let (changed1, _) = debug_state.simple_search_test.show(ui);
             if changed1 {
-                ui.label("✓ Text changed in basic version");
+                ui.label("Text changed in basic version");
             }
 
             ui.separator();
@@ -496,7 +499,7 @@ pub fn show_simple_search_test_window(ui: &egui::Ui, debug_state: &mut DebugStat
             ui.label("Test 2: TextEdit with stable ID");
             let (changed2, _) = debug_state.simple_search_test.show_with_id(ui);
             if changed2 {
-                ui.label("✓ Text changed in ID version");
+                ui.label("Text changed in ID version");
             }
 
             ui.separator();
