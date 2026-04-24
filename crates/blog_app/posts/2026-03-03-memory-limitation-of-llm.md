@@ -18,7 +18,7 @@ Let's start by formalizing how text is represented in transformers.
 
 ### Texts as Tokens
 
-Mathematically, they are all sequences of tokens $[bold(x)_1, dots, bold(x)_T]$, and each token $bold(x)_t in RR^(d_"tok")$.
+Mathematically, they are all sequences of tokens $[bold(x)_1, dots, bold(x)_T]$, and each token $bold(x)_t in RR^(d_"tok")$ is a real-valued vector.
 The bold notation $bold(x)_t$ encapsulates $d_"tok"$ dimensions of token features.
 To provide a complete mathematical treatment of self-attention,
 we employ tensor notation for multi-dimensional arrays, representing a token sequence as $x equiv [bold(x)_1, dots, bold(x)_T]$ with components $lr(x^(mu))_t$ where $1<=t<=T$ indexes positions and $1<=mu<=d_"tok"$ indexes features.
