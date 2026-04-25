@@ -5,10 +5,10 @@
 //! - Production mode with optimized builds
 //!
 //! Usage:
-//!   cargo run --bin blog_web_server                 # Development mode (default)
-//!   cargo run --bin blog_web_server -- --serve-release  # Production mode
-//!   cargo run --bin blog_web_server -- --port 9999     # Custom port
-//!   cargo run --bin blog_web_server -- --build-only --serve-release  # Build only
+//!   cargo run --bin `blog_web_server`                 # Development mode (default)
+//!   cargo run --bin `blog_web_server` -- --serve-release  # Production mode
+//!   cargo run --bin `blog_web_server` -- --port 9999     # Custom port
+//!   cargo run --bin `blog_web_server` -- --build-only --serve-release  # Build only
 
 use std::fs;
 use std::path::Path;
@@ -42,6 +42,7 @@ struct Args {
     log_level: String,
 }
 
+#[expect(clippy::print_stdout)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -62,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     );
     println!("   Port: {}", args.port);
-    println!("   Log level: {}", log_level);
+    println!("   Log level: {log_level}");
 
     if args.serve_release {
         run_release_mode(&args)
@@ -71,6 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+#[expect(clippy::print_stdout, clippy::print_stderr)]
 fn run_dev_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     println!("🔧 Starting development server...");
 
@@ -87,7 +89,7 @@ fn run_dev_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         match start_file_watcher() {
             Ok(_) => println!("✅ File watcher started successfully"),
             Err(e) => {
-                eprintln!("⚠️  Failed to start file watcher: {}", e);
+                eprintln!("⚠️  Failed to start file watcher:  {e}",);
                 eprintln!("   File changes won't trigger automatic rebuilds");
             }
         }
@@ -104,16 +106,14 @@ fn run_dev_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
     // 5. Open browser if requested
     if args.open {
-        open_browser(args.port)?;
+        open_browser(args.port);
     }
 
     // 6. Wait for shutdown
     wait_for_shutdown();
-
-    println!("👋 Development server stopped");
-    Ok(())
 }
 
+#[expect(clippy::print_stdout)]
 fn run_release_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     println!("🏗️  Building release version...");
 
@@ -132,16 +132,14 @@ fn run_release_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
     // 4. Open browser if requested
     if args.open {
-        open_browser(args.port)?;
+        open_browser(args.port);
     }
 
     // 5. Wait for shutdown
     wait_for_shutdown();
-
-    println!("👋 Release server stopped");
-    Ok(())
 }
 
+#[expect(clippy::print_stdout)]
 fn ensure_tools_installed() -> Result<(), Box<dyn std::error::Error>> {
     println!("🔧 Checking for required tools...");
 
@@ -187,16 +185,17 @@ fn ensure_tools_installed() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[expect(clippy::print_stdout, clippy::print_stderr)]
 fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     let build_mode = if release { "release" } else { "debug" };
-    println!("🔨 Building WASM ({})...", build_mode);
+    println!("🔨 Building WASM ({build_mode})...",);
 
     // Get current directory for absolute paths
     let current_dir =
-        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {e}",))?;
 
     // Create output directory relative to workspace root
-    let output_relative_path = format!("web_blog/{}", output_dir);
+    let output_relative_path = format!("web_blog/{output_dir}");
     let output_path = current_dir.join(&output_relative_path);
     fs::create_dir_all(&output_path)?;
 
@@ -229,7 +228,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     // Generate JS bindings
     println!("🔗 Generating JS bindings...");
 
-    let wasm_relative_path = format!("target/wasm32-unknown-unknown/{}/blog_app.wasm", build_mode);
+    let wasm_relative_path = format!("target/wasm32-unknown-unknown/{build_mode}/blog_app.wasm");
     let wasm_path = current_dir.join(&wasm_relative_path);
 
     println!(
@@ -240,7 +239,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     println!("  Output directory: {}", output_path.display());
 
     // Try to find wasm-bindgen - first check common cargo location
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_owned());
     let wasm_bindgen_path = std::path::PathBuf::from(&home).join(".cargo/bin/wasm-bindgen");
 
     if !wasm_bindgen_path.exists() {
@@ -255,7 +254,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     let wasm_bindgen_canonical = match std::fs::canonicalize(&wasm_bindgen_path) {
         Ok(path) => path,
         Err(e) => {
-            println!("  ⚠️  Failed to get canonical path for wasm-bindgen: {}", e);
+            println!("  ⚠️  Failed to get canonical path for wasm-bindgen: {e}");
             wasm_bindgen_path.clone()
         }
     };
@@ -280,7 +279,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
         wasm_path_str,
         output_path_str
     );
-    println!("  Running command: {}", cmd_str);
+    println!("  Running command: {cmd_str}");
 
     // Convert path to string, handling potential UTF-8 issues
     let wasm_bindgen_str = wasm_bindgen_canonical
@@ -323,7 +322,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
                 .to_str()
                 .ok_or("Temp file path contains invalid UTF-8 characters")?;
 
-            let output = Command::new(wasm_opt_path.to_str().unwrap())
+            let output = Command::new(wasm_opt_path.to_str().ok_or("wasm_opt_path exists.")?)
                 .args([wasm_file_str, "-O1", "--fast-math", "-o", temp_file_str])
                 .output();
 
@@ -331,7 +330,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
                 Ok(output) if output.status.success() => {
                     // Move temp file back to original
                     if let Err(e) = fs::rename(&temp_file, &wasm_file) {
-                        println!("⚠️  Failed to move optimized WASM: {}", e);
+                        println!("⚠️  Failed to move optimized WASM: {e}");
                     } else {
                         println!("✅ WASM optimized with -O1");
                     }
@@ -343,7 +342,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
                         println!("⚠️  wasm-opt crashed (SIGSEGV) - known issue with wasm-opt");
                         println!("⚠️  WASM will be unoptimized but still functional");
                     } else {
-                        println!("⚠️  wasm-opt failed with status: {}", status_str);
+                        println!("⚠️  wasm-opt failed with status: {status_str}");
                         if !output.stderr.is_empty() {
                             println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
                         }
@@ -368,6 +367,7 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
 }
 
 #[cfg(feature = "notify")]
+#[expect(clippy::print_stdout, clippy::print_stderr, clippy::mem_forget)]
 fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
     use notify::{RecommendedWatcher, RecursiveMode, Watcher};
     use std::collections::HashSet;
@@ -385,7 +385,7 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
             Ok(event) => {
                 let _ = event_tx_clone.send(event);
             }
-            Err(e) => eprintln!("📁 File watcher error: {}", e),
+            Err(e) => eprintln!("📁 File watcher error: {e}"),
         },
         notify::Config::default(),
     )?;
@@ -396,136 +396,145 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
     let (path_tx, path_rx) = mpsc::channel();
 
     // Spawn file watcher thread
-    thread::spawn(move || {
-        println!("📁 File watcher thread started");
-        std::mem::forget(watcher); // Keep watcher alive
+    thread::Builder::new()
+        .name("file-watcher".into())
+        .spawn(move || {
+            println!("📁 File watcher thread started");
+            std::mem::forget(watcher); // Keep watcher alive
 
-        for event in event_rx {
-            // Filter by event kind - only care about modify/create/remove events
-            let is_relevant_event = matches!(
-                event.kind,
-                notify::EventKind::Create(_)
-                    | notify::EventKind::Modify(_)
-                    | notify::EventKind::Remove(_)
-            );
+            for event in event_rx {
+                // Filter by event kind - only care about modify/create/remove events
+                let is_relevant_event = matches!(
+                    event.kind,
+                    notify::EventKind::Create(_)
+                        | notify::EventKind::Modify(_)
+                        | notify::EventKind::Remove(_)
+                );
 
-            if !is_relevant_event {
-                continue;
-            }
+                if !is_relevant_event {
+                    continue;
+                }
 
-            // Check if it's a relevant file change
-            if let Some(path) = event.paths.first() {
-                let path_str = path.to_string_lossy();
+                // Check if it's a relevant file change
+                if let Some(path) = event.paths.first() {
+                    let path_str = path.to_string_lossy();
 
-                // Check if it's a generated file we should ignore
-                let is_generated_file = path_str.contains("assets/math/")
-                    || path_str.contains("src/math/embedded.rs")
-                    || path_str.contains("target/");
+                    // Check if it's a generated file we should ignore
+                    let is_generated_file = path_str.contains("assets/math/")
+                        || path_str.contains("src/math/embedded.rs")
+                        || path_str.contains("target/");
 
-                if !is_generated_file {
-                    // Check if it's a file we should rebuild for
-                    let should_rebuild = {
-                        // Only rebuild for Rust or Markdown files
-                        if path_str.ends_with(".rs") || path_str.ends_with(".md") {
-                            // Check for backup files and hidden files to ignore
-                            let is_backup_file = path_str.ends_with("~")
-                                || path_str.ends_with(".bak")
-                                || path_str.ends_with(".tmp")
-                                || path_str.ends_with(".swp")
-                                || path_str.ends_with(".swx");
+                    if !is_generated_file {
+                        // Check if it's a file we should rebuild for
+                        let should_rebuild = {
+                            // Only rebuild for Rust or Markdown files
+                            if path_str.ends_with(".rs") || path_str.ends_with(".md") {
+                                // Check for backup files and hidden files to ignore
+                                let is_backup_file = path_str.ends_with('~')
+                                    || path_str.ends_with(".bak")
+                                    || path_str.ends_with(".tmp")
+                                    || path_str.ends_with(".swp")
+                                    || path_str.ends_with(".swx");
 
-                            let is_hidden_file =
-                                path_str.contains("/.") || path_str.contains("\\."); // Windows paths
+                                let is_hidden_file =
+                                    path_str.contains("/.") || path_str.contains("\\."); // Windows paths
 
-                            // Also ignore files in .git directory
-                            let is_git_file =
-                                path_str.contains("/.git/") || path_str.contains("\\.git\\");
+                                // Also ignore files in .git directory
+                                let is_git_file =
+                                    path_str.contains("/.git/") || path_str.contains("\\.git\\");
 
-                            !is_backup_file && !is_hidden_file && !is_git_file
-                        } else {
-                            false
+                                !is_backup_file && !is_hidden_file && !is_git_file
+                            } else {
+                                false
+                            }
+                        };
+
+                        if should_rebuild {
+                            // Send file path to rebuild worker
+                            let _ = path_tx.send(path_str.to_string());
                         }
-                    };
-
-                    if should_rebuild {
-                        // Send file path to rebuild worker
-                        let _ = path_tx.send(path_str.to_string());
                     }
                 }
             }
-        }
-        println!("📁 File watcher thread exiting");
-    });
+            println!("📁 File watcher thread exiting");
+        })?;
 
     // Spawn rebuild worker thread
-    thread::spawn(move || {
-        println!("🔨 Rebuild worker thread started");
+    thread::Builder::new()
+        .name("blog-builder".into())
+        .spawn(move || {
+            println!("🔨 Rebuild worker thread started");
 
-        let mut pending_files = HashSet::new();
-        let mut last_rebuild_time = Instant::now();
-        let debounce_delay = Duration::from_millis(800);
-        let min_rebuild_interval = Duration::from_millis(2000);
+            let mut pending_files = HashSet::new();
+            let mut last_rebuild_time = Instant::now();
+            let debounce_delay = Duration::from_millis(800);
+            let min_rebuild_interval = Duration::from_millis(2000);
 
-        let mut debounce_timer: Option<Instant> = None;
+            let mut debounce_timer: Option<Instant> = None;
 
-        loop {
-            // Calculate timeout for recv
-            let timeout = if let Some(timer_deadline) = debounce_timer {
-                let now = Instant::now();
-                if timer_deadline > now {
-                    timer_deadline - now
-                } else {
-                    Duration::from_millis(0) // Timer expired
-                }
-            } else {
-                Duration::from_millis(100) // Default timeout
-            };
-
-            // Check for file change events with calculated timeout
-            match path_rx.recv_timeout(timeout) {
-                Ok(file_path) => {
-                    // Only log if this is a new file in the set
-                    if pending_files.insert(file_path.clone()) {
-                        println!("📁 Detected change: {}", file_path);
+            loop {
+                // Calculate timeout for recv
+                let timeout = if let Some(timer_deadline) = debounce_timer {
+                    let now = Instant::now();
+                    if timer_deadline > now {
+                        timer_deadline - now
+                    } else {
+                        Duration::from_millis(0) // Timer expired
                     }
+                } else {
+                    Duration::from_millis(100) // Default timeout
+                };
 
-                    // Reset debounce timer
-                    debounce_timer = Some(Instant::now() + debounce_delay);
-                }
-                Err(mpsc::RecvTimeoutError::Timeout) => {
-                    // Check if debounce timer has expired
-                    if let Some(timer_deadline) = debounce_timer {
-                        let now = Instant::now();
-                        if now >= timer_deadline {
-                            // Timer expired, check if we should rebuild
-                            let time_since_last_rebuild = now.duration_since(last_rebuild_time);
+                // Check for file change events with calculated timeout
+                match path_rx.recv_timeout(timeout) {
+                    Ok(file_path) => {
+                        // Only log if this is a new file in the set
+                        if pending_files.insert(file_path.clone()) {
+                            println!("📁 Detected change: {file_path}");
+                        }
 
-                            if !pending_files.is_empty()
-                                && time_since_last_rebuild >= min_rebuild_interval
-                            {
-                                trigger_rebuild(&pending_files);
-                                pending_files.clear();
-                                last_rebuild_time = now;
-                            } else if !pending_files.is_empty() {
-                                pending_files.clear();
+                        // Reset debounce timer
+                        debounce_timer = Some(Instant::now() + debounce_delay);
+                    }
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        // Check if debounce timer has expired
+                        if let Some(timer_deadline) = debounce_timer {
+                            let now = Instant::now();
+                            if now >= timer_deadline {
+                                // Timer expired, check if we should rebuild
+                                let time_since_last_rebuild = now.duration_since(last_rebuild_time);
+
+                                if !pending_files.is_empty()
+                                    && time_since_last_rebuild >= min_rebuild_interval
+                                {
+                                    trigger_rebuild(&pending_files);
+                                    pending_files.clear();
+                                    last_rebuild_time = now;
+                                } else if !pending_files.is_empty() {
+                                    pending_files.clear();
+                                }
+
+                                debounce_timer = None;
                             }
-
-                            debounce_timer = None;
                         }
                     }
-                }
-                Err(mpsc::RecvTimeoutError::Disconnected) => {
-                    println!("🔨 Rebuild worker thread exiting");
-                    break;
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        println!("🔨 Rebuild worker thread exiting");
+                        break;
+                    }
                 }
             }
-        }
-    });
+        })?;
 
     Ok(())
 }
 
 #[cfg(feature = "notify")]
+#[expect(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::iter_over_hash_type
+)]
 fn trigger_rebuild(pending_files: &std::collections::HashSet<String>) {
     if pending_files.is_empty() {
         return;
@@ -534,7 +543,7 @@ fn trigger_rebuild(pending_files: &std::collections::HashSet<String>) {
     // Log all changed files
     println!("📁 Files changed:");
     for file in pending_files {
-        println!("   - {}", file);
+        println!("   - {file}");
     }
     println!("🔨 Starting rebuild...");
 
@@ -550,7 +559,7 @@ fn trigger_rebuild(pending_files: &std::collections::HashSet<String>) {
             eprintln!("═══════════════════════════════════════════════════");
             eprintln!("❌ REBUILD FAILED!");
             eprintln!("═══════════════════════════════════════════════════");
-            eprintln!("{}", e);
+            eprintln!("{e}");
             eprintln!("═══════════════════════════════════════════════════");
             eprintln!("💡 Fix the error and save again to retry");
             eprintln!("🌐 Server continues serving previous working version");
@@ -571,94 +580,90 @@ fn start_file_watcher() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[expect(clippy::print_stderr, clippy::print_stdout)]
 fn start_http_server(port: u16, mode: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let serve_dir = format!("web_blog/{}", mode);
+    let serve_dir = format!("web_blog/{mode}");
 
     // Check if port is in use
     let port_check = Command::new("bash")
         .args([
             "-c",
-            &format!("lsof -Pi :{} -sTCP:LISTEN -t 2>/dev/null", port),
+            &format!("lsof -Pi :{port} -sTCP:LISTEN -t 2>/dev/null"),
         ])
         .output();
 
-    if let Ok(output) = port_check {
-        if !output.stdout.is_empty() {
-            return Err(format!("Port {} already in use", port).into());
-        }
+    if let Ok(output) = port_check
+        && !output.stdout.is_empty()
+    {
+        return Err(format!("Port {port} already in use").into());
     }
 
     println!("🌐 Starting HTTP server...");
-    println!("   Serving from: {}", serve_dir);
-    println!("   URL: http://localhost:{}", port);
+    println!("   Serving from: {serve_dir}");
+    println!("   URL: http://localhost:{port}");
 
     // Start server in background thread
-    thread::spawn(move || {
-        println!("🌐 HTTP server thread started, serving from: {}", serve_dir);
+    thread::Builder::new()
+        .name("http-server".to_owned())
+        .spawn(move || {
+            println!("🌐 HTTP server thread started, serving from: {serve_dir}");
 
-        let mut cmd = Command::new("basic-http-server");
-        cmd.current_dir(&serve_dir)
-            .args(["--addr", &format!("0.0.0.0:{}", port), "."]);
+            let mut cmd = Command::new("basic-http-server");
+            cmd.current_dir(&serve_dir)
+                .args(["--addr", &format!("0.0.0.0:{port}"), "."]);
 
-        println!("🌐 Starting HTTP server command: {:?}", cmd);
+            println!("🌐 Starting HTTP server command: {cmd:?}");
 
-        match cmd.spawn() {
-            Ok(mut child) => {
-                println!("🌐 HTTP server started with PID: {}", child.id());
+            match cmd.spawn() {
+                Ok(mut child) => {
+                    println!("🌐 HTTP server started with PID: {}", child.id());
 
-                // Wait for server to exit
-                match child.wait() {
-                    Ok(exit_status) if exit_status.success() => {
-                        println!("✅ HTTP server stopped cleanly");
-                    }
-                    Ok(exit_status) => {
-                        eprintln!("❌ HTTP server exited with error: {:?}", exit_status);
-                    }
-                    Err(e) => {
-                        eprintln!("❌ Failed to wait for HTTP server: {}", e);
+                    // Wait for server to exit
+                    match child.wait() {
+                        Ok(exit_status) if exit_status.success() => {
+                            println!("✅ HTTP server stopped cleanly");
+                        }
+                        Ok(exit_status) => {
+                            eprintln!("❌ HTTP server exited with error: {exit_status:?}");
+                        }
+                        Err(e) => {
+                            eprintln!("❌ Failed to wait for HTTP server: {e}");
+                        }
                     }
                 }
+                Err(e) => {
+                    eprintln!("❌ Failed to start HTTP server: {e}");
+                }
             }
-            Err(e) => {
-                eprintln!("❌ Failed to start HTTP server: {}", e);
-            }
-        }
-    });
+        })?;
 
     // Give server time to start
     thread::sleep(Duration::from_millis(100));
     Ok(())
 }
 
-fn open_browser(port: u16) -> Result<(), Box<dyn std::error::Error>> {
-    let url = format!("http://localhost:{}", port);
-    println!("🌐 Opening browser: {}", url);
-
+#[expect(clippy::print_stdout, clippy::print_stderr)]
+fn open_browser(port: u16) {
+    let url = format!("http://localhost:{port}");
+    println!("🌐 Opening browser: {url}");
     #[cfg(target_os = "linux")]
     let status = Command::new("xdg-open").arg(&url).status();
-
     #[cfg(target_os = "macos")]
     let status = Command::new("open").arg(&url).status();
-
     #[cfg(target_os = "windows")]
     let status = Command::new("cmd").args(["/C", "start", &url]).status();
-
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     let status: Result<std::process::ExitStatus, std::io::Error> = Err(std::io::Error::new(
         std::io::ErrorKind::Unsupported,
         "Unsupported OS",
     ));
-
-    match status {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            eprintln!("⚠️  Failed to open browser: {}", e);
-            Ok(())
-        }
+    if let Err(e) = status {
+        eprintln!("⚠️  Failed to open browser: {e}");
     }
 }
 
-fn wait_for_shutdown() {
+#[expect(clippy::print_stdout)]
+fn wait_for_shutdown() -> ! {
     println!();
     println!("Press Ctrl+C to stop the server");
     println!();

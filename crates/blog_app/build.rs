@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow};
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -872,7 +872,7 @@ fn main() -> Result<()> {
         for (widget, file_path) in undefined_widgets {
             println!("cargo:warning=  • {} in {}", widget, file_path.display());
         }
-        println!("cargo:warning=Registered widgets: {:?}", registered_widgets);
+        println!("cargo:warning=Registered widgets: {registered_widgets:?}");
         println!("cargo:warning=Note: Add missing widgets to src/widgets/registry.rs");
     } else if !all_widgets.is_empty() {
         println!(
