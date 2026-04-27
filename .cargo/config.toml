@@ -1,6 +1,5 @@
 [alias]
 xtask = "run --quiet --package xtask --"
-
 # Blog app aliases
 blog = "run --package blog_app --bin blog_web_server --features dev"
 blog-native = "run --package blog_app --bin blog_native"

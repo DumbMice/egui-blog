@@ -19,6 +19,7 @@ mod build_filter;
 #[cfg(debug_assertions)]
 mod debug_windows;
 
+use eframe::Storage;
 use egui::{CentralPanel, Panel, ScrollArea};
 pub use posts::{PostManager, PostManagerState};
 use ui::{LayoutConfig, ResponsiveConfig, Theme};
@@ -35,7 +36,7 @@ type PostKey = String;
 
 /// Default math resolution scale (1.0 = original resolution)
 fn default_math_resolution_scale() -> f32 {
-    1.0
+    2.0
 }
 
 /// Font loading state tracking
@@ -226,55 +227,43 @@ impl Default for BlogApp {
 }
 
 impl BlogApp {
+    fn try_load(storage: &dyn Storage) -> Option<Self> {
+        match storage
+            .get_string("blog_app_json")
+            .map(|json_string| serde_json::from_str::<Self>(&json_string))
+        {
+            Some(Ok(mut loaded_app)) => {
+                log::info!("Persistence: Successfully loaded app from custom JSON storage");
+                log::info!(
+                    "Persistence: JSON loaded theme: {:?}, previous_theme: {:?}",
+                    loaded_app.theme,
+                    loaded_app.previous_theme
+                );
+                loaded_app.just_restored = true;
+                Some(loaded_app)
+            }
+            Some(Err(e)) => {
+                log::warn!("Persistence: Failed to deserialize from JSON: {e}");
+                None
+            }
+            None => {
+                log::info!("Persistence: No JSON data found, starting with fresh defaults");
+                None
+            }
+        }
+    }
+
     /// Create a new `BlogApp`, optionally loading from storage.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         #[cfg(feature = "persistence")]
         let mut app = if let Some(storage) = cc.storage {
             log::info!("Persistence: Loading app from storage");
-
-            // IMPORTANT: Custom JSON persistence is now the ONLY storage mechanism
-            // RON serialization is broken for Theme enum (and possibly other fields)
-            // Error: "Failed to decode RON: 1:645: Expected opening '{'"
-            // We use JSON as the only reliable storage - RON is completely removed
-
             // Load from our custom JSON persistence (the only reliable storage)
-            let app = if let Some(json_string) = storage.get_string("blog_app_json") {
-                match serde_json::from_str::<Self>(&json_string) {
-                    Ok(loaded_app) => {
-                        log::info!("Persistence: Successfully loaded app from custom JSON storage");
-                        log::info!(
-                            "Persistence: JSON loaded theme: {:?}, previous_theme: {:?}",
-                            loaded_app.theme,
-                            loaded_app.previous_theme
-                        );
-                        loaded_app
-                    }
-                    Err(e) => {
-                        log::warn!("Persistence: Failed to deserialize from JSON: {}", e);
-                        Self::default()
-                    }
-                }
-            } else {
-                log::info!("Persistence: No JSON data found, starting with fresh defaults");
-                Self::default()
-            };
-
-            app
+            Self::try_load(storage).unwrap_or_default()
         } else {
             log::info!("Persistence: No storage available, using default");
             Self::default()
         };
-
-        #[cfg(feature = "persistence")]
-        {
-            // If we loaded from storage, mark as just restored
-            if cc.storage.is_some() {
-                app.just_restored = true;
-                log::info!("Persistence: App loaded from storage, just_restored = true");
-            } else {
-                log::info!("Persistence: App created fresh, just_restored = false");
-            }
-        }
 
         #[cfg(not(feature = "persistence"))]
         let mut app = Self::default();
@@ -310,13 +299,6 @@ impl BlogApp {
             "Persistence: Synchronized previous_theme with theme: {:?}",
             app.previous_theme
         );
-
-        // Migration: Convert old search_query to new tag_search_state
-        #[cfg(feature = "persistence")]
-        {
-            // Check if we have the old field (this is a hack since we can't directly access it)
-            // We'll rely on serde's default for missing fields
-        }
 
         // Ensure valid selection
         app.ensure_valid_selection();
@@ -600,7 +582,7 @@ impl eframe::App for BlogApp {
                 log::debug!("Persistence: Saved to custom JSON storage");
             }
             Err(e) => {
-                log::error!("Persistence: Failed to serialize to JSON: {}", e);
+                log::error!("Persistence: Failed to serialize to JSON: {e}");
             }
         }
 
@@ -625,7 +607,7 @@ impl eframe::App for BlogApp {
         if self.debug_state.continuous_rendering {
             ctx.request_repaint();
         }
-        
+
         // In release builds, use reactive mode (no continuous repaints)
         // This saves CPU/battery when animations aren't needed
     }
@@ -1823,8 +1805,6 @@ mod tests {
         assert!(true, "Test structure for UI method passing state");
     }
 
-
-
     #[test]
     fn test_theme_toggle_does_not_navigate_to_home() {
         let mut app = BlogApp::default();
@@ -2027,18 +2007,21 @@ mod tests {
     fn test_scroll_logic_simple() {
         // Test that scroll logic works correctly
         let mut app = BlogApp::default();
-        
+
         // Simulate a post
-        let post_key = "Posts:test-post".to_string();
-        
+        let post_key = "Posts:test-post".to_owned();
+
         // Test 1: No saved position -> saved_scroll_offset should be 0.0
         let saved_scroll_offset = app
             .current_post_key()
             .and_then(|key| app.post_scroll_positions.get(&key))
             .copied()
             .unwrap_or(0.0);
-        assert_eq!(saved_scroll_offset, 0.0, "No saved position should return 0.0");
-        
+        assert_eq!(
+            saved_scroll_offset, 0.0,
+            "No saved position should return 0.0"
+        );
+
         // Test 2: Save a position and retrieve it
         app.post_scroll_positions.insert(post_key.clone(), 123.45);
         let saved_scroll_offset2 = app
@@ -2048,8 +2031,11 @@ mod tests {
             .unwrap_or(0.0);
         // Note: current_post_key() returns None because there are no posts loaded in test
         // So this will still be 0.0
-        assert_eq!(saved_scroll_offset2, 0.0, "No current post key should return 0.0");
-        
+        assert_eq!(
+            saved_scroll_offset2, 0.0,
+            "No current post key should return 0.0"
+        );
+
         println!("✅ Simple scroll logic test passed!");
     }
 }
