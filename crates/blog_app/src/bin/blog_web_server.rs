@@ -200,7 +200,12 @@ fn build_wasm(release: bool, output_dir: &str) -> Result<(), Box<dyn std::error:
     fs::create_dir_all(&output_path)?;
 
     // Build command based on current build script
-    let features = "web_app,wgpu,persistence"; // Using wgpu backend by default with persistence
+    let extra_features = if cfg!(feature = "debug-windows") {
+        ",debug-windows"
+    } else {
+        ""
+    };
+    let features = format!("web_app,wgpu,persistence{extra_features}");
 
     let mut cmd = Command::new("cargo");
     cmd.current_dir("crates/blog_app")
