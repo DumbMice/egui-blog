@@ -151,7 +151,7 @@ pub fn top_panel(
     title: &str,
     theme: &mut Theme,
     config: &mut TopPanelConfig<'_>,
-    #[cfg(debug_assertions)] debug_state: &mut crate::debug_windows::DebugState,
+    #[cfg(feature = "debug-windows")] debug_state: &mut crate::debug_windows::DebugState,
 ) -> TopPanelResult {
     let mut theme_changed = false;
     let mut search_changed = false;
@@ -195,7 +195,7 @@ pub fn top_panel(
         }
 
         // Debug menu (only in debug builds)
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "debug-windows")]
         {
             ui.separator();
             if components::debug_menu(ui, debug_state) {

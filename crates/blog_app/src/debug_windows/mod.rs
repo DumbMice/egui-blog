@@ -1,7 +1,6 @@
-//! Debug utilities for the blog app (only available in debug builds).
+//! Debug utilities for the blog app.
 
-/// Debug state for the blog app (only available in debug builds).
-#[cfg(debug_assertions)]
+/// Debug state for the blog app.
 pub struct DebugState {
     /// Show font book window
     pub show_font_book: bool,
@@ -31,7 +30,6 @@ pub struct DebugState {
     pub continuous_rendering: bool,
 }
 
-#[cfg(debug_assertions)]
 impl Default for DebugState {
     fn default() -> Self {
         Self {
@@ -52,7 +50,6 @@ impl Default for DebugState {
     }
 }
 
-#[cfg(debug_assertions)]
 pub fn update_frame_rate(ctx: &egui::Context, frame: &eframe::Frame, debug_state: &mut DebugState) {
     let now = ctx.input(|i| i.time);
 
@@ -72,7 +69,6 @@ pub fn update_frame_rate(ctx: &egui::Context, frame: &eframe::Frame, debug_state
     }
 }
 
-#[cfg(debug_assertions)]
 pub fn get_average_frame_rate(debug_state: &DebugState) -> f32 {
     1.0 / debug_state
         .frame_time_history
@@ -81,7 +77,6 @@ pub fn get_average_frame_rate(debug_state: &DebugState) -> f32 {
 }
 
 /// Frame rate window for monitoring performance.
-#[cfg(debug_assertions)]
 pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
     // Calculate stats before opening window to avoid borrowing issues
     let avg_fps = get_average_frame_rate(debug_state);
@@ -173,7 +168,6 @@ pub fn show_frame_rate_window(ui: &egui::Ui, debug_state: &mut DebugState) {
 }
 
 /// Font book window for debugging font availability.
-#[cfg(debug_assertions)]
 pub fn show_font_book_window(ui: &egui::Ui, debug_state: &mut DebugState) {
     // Simple font book implementation showing available characters
     egui::Window::new("Font Book")
@@ -477,7 +471,6 @@ pub fn show_animation_config_window(ui: &egui::Ui, debug_state: &mut DebugState)
 }
 
 /// Show simple search test window
-#[cfg(debug_assertions)]
 pub fn show_simple_search_test_window(ui: &egui::Ui, debug_state: &mut DebugState) {
     egui::Window::new("Simple Search Test")
         .default_width(400.0)
@@ -531,7 +524,6 @@ pub fn show_simple_search_test_window(ui: &egui::Ui, debug_state: &mut DebugStat
 }
 
 /// Show math resolution configuration window for controlling formula rendering quality
-#[cfg(debug_assertions)]
 pub fn show_math_resolution_config_window(
     ui: &egui::Ui,
     debug_state: &mut DebugState,
@@ -591,7 +583,6 @@ pub fn show_math_resolution_config_window(
 }
 
 /// Show text segment cache statistics window for monitoring performance
-#[cfg(debug_assertions)]
 pub fn show_text_cache_stats_window(
     ui: &egui::Ui,
     debug_state: &mut DebugState,

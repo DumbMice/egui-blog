@@ -165,7 +165,7 @@ pub fn theme_toggle(ui: &mut Ui, current_theme: &mut Theme) -> bool {
 }
 
 /// Debug menu widget (only in debug builds).
-#[cfg(debug_assertions)]
+#[cfg(feature = "debug-windows")]
 pub fn debug_menu(ui: &mut Ui, debug_state: &mut crate::debug_windows::DebugState) -> bool {
     let mut interacted = false;
 

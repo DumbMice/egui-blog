@@ -16,7 +16,7 @@ pub mod widgets;
 
 mod build_filter;
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "debug-windows")]
 mod debug_windows;
 
 use eframe::Storage;
@@ -124,7 +124,7 @@ pub struct BlogApp {
     pending_url_update: Option<String>,
 
     /// Debug state (only available in debug builds)
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "debug-windows")]
     #[cfg_attr(feature = "serde", serde(skip))]
     debug_state: crate::debug_windows::DebugState,
 
@@ -200,7 +200,7 @@ impl Default for BlogApp {
             router: Router::new(),
             pending_url_update: None,
 
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "debug-windows")]
             debug_state: crate::debug_windows::DebugState::default(),
 
             shortcut_integration: crate::shortcuts::ShortcutIntegration::new(),
@@ -603,7 +603,7 @@ impl eframe::App for BlogApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Enable continuous rendering only when debug flag is set
         // This allows toggling between reactive (lazy) and continuous (smooth) modes
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "debug-windows")]
         if self.debug_state.continuous_rendering {
             ctx.request_repaint();
         }
@@ -742,11 +742,11 @@ impl eframe::App for BlogApp {
 
         // Update animation state every frame
         let animation_config = {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "debug-windows")]
             {
                 self.debug_state.animation_config
             }
-            #[cfg(not(debug_assertions))]
+            #[cfg(not(feature = "debug-windows"))]
             {
                 crate::animation::FocusAnimationConfig::default()
             }
@@ -780,7 +780,7 @@ impl eframe::App for BlogApp {
                     post_manager: &self.post_manager,
                     selected_post: self.selected_post,
                 },
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "debug-windows")]
                 &mut self.debug_state,
             );
 
@@ -853,7 +853,7 @@ impl eframe::App for BlogApp {
         }
 
         // Update and show debug windows (debug builds only)
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "debug-windows")]
         {
             // Update frame rate calculation
             crate::debug_windows::update_frame_rate(ui.ctx(), _frame, &mut self.debug_state);

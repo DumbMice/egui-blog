@@ -29,6 +29,9 @@ wgpu = ["eframe/wgpu", "bytemuck", "dep:wgpu"]
 # Development feature for file watching
 dev = ["notify"]
 
+# Debug windows for investigating release builds
+debug-windows = []
+
 # Persistence for saving app state across sessions
 persistence = ["eframe/persistence", "serde"]
 
