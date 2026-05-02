@@ -3,10 +3,12 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use egui::cache;
 use serde::Deserialize;
 use thiserror::Error;
 
 use crate::posts::BlogPost;
+use crate::ui::owned_pulldown_cmark::SpannedEvent;
 
 /// Frontmatter metadata for a blog post.
 #[derive(Debug, Clone, Deserialize)]
@@ -101,6 +103,15 @@ pub fn parse_post_content(
     // Extract headings for table of contents
     let headings = extract_headings(markdown_content);
 
+    let cached_events: Vec<SpannedEvent> =
+        pulldown_cmark::Parser::new_ext(&processed_content, pulldown_cmark::Options::ENABLE_TABLES)
+            .into_offset_iter()
+            .map(|(event, range)| SpannedEvent {
+                span: range,
+                event: event.into(),
+            })
+            .collect();
+
     Ok(BlogPost {
         id,
         content_type,
@@ -111,6 +122,7 @@ pub fn parse_post_content(
         tags: frontmatter.tags,
         cached_processed_content: Some(processed_content),
         headings,
+        cached_events,
     })
 }
 

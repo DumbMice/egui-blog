@@ -4,6 +4,7 @@ pub mod components;
 pub mod layout;
 pub mod markdown;
 pub mod math_parser;
+pub mod owned_pulldown_cmark;
 pub mod responsive;
 pub mod simple_search_test;
 pub mod table_renderer;

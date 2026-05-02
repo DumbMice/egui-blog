@@ -36,7 +36,11 @@ debug-windows = []
 persistence = ["eframe/persistence", "serde"]
 
 [dependencies]
-eframe = { workspace = true, default-features = false, features = ["web_screen_reader", "wayland", "x11"] }
+eframe = { workspace = true, default-features = false, features = [
+  "web_screen_reader",
+  "wayland",
+  "x11",
+] }
 egui = { workspace = true, features = ["default"] }
 log.workspace = true
 clap = { version = "4.5", features = ["derive"] }
@@ -50,7 +54,7 @@ epaint_default_fonts = { workspace = true }
 # Markdown and YAML parsing
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_yaml = "0.9"
-pulldown-cmark = "0.9"
+pulldown-cmark = { version = "0.9", features = ["serde"] }
 thiserror = "1.0"
 
 # Plotting library - compatible with egui 0.33.3
@@ -125,3 +129,4 @@ regex = "1.10"
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 roxmltree = "0.19"
+

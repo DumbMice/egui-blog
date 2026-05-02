@@ -3939,6 +3939,7 @@ dependencies = [
  "bitflags 2.11.0",
  "getopts",
  "memchr",
+ "serde",
  "unicase",
 ]
 

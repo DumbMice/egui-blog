@@ -896,10 +896,18 @@ fn main_content_internal_impl(
                     ui.separator();
 
                     // Render markdown content with math support using preprocessed content
-                    if let Some(content) = post.processed_content() {
-                        super::markdown::render_preprocessed_markdown(
+                    if let Some(_) = post.processed_content() {
+                        // super::markdown::render_preprocessed_markdown(
+                        //     ui,
+                        //     content,
+                        //     state.math_asset_manager,
+                        //     state.math_resolution_scale,
+                        //     state.fragment_to_scroll_to,
+                        //     state.text_segment_cache,
+                        // );
+                        super::markdown::render_cached_preprocessed_markdown(
                             ui,
-                            content,
+                            &post.cached_events,
                             state.math_asset_manager,
                             state.math_resolution_scale,
                             state.fragment_to_scroll_to,

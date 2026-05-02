@@ -3,6 +3,7 @@
 mod loader;
 mod state; // NEW
 
+use crate::ui::owned_pulldown_cmark::SpannedEvent;
 #[expect(unused_imports)]
 pub use loader::{
     Frontmatter, LoadError, load_embedded_content, load_post_from_file, load_posts_from_dir,
@@ -94,6 +95,8 @@ pub struct BlogPost {
     cached_processed_content: Option<String>,
     /// Table of contents headings
     pub headings: Vec<Heading>,
+    /// Cached Spanned Events
+    pub cached_events: Vec<SpannedEvent>,
 }
 
 impl BlogPost {
@@ -127,6 +130,7 @@ impl BlogPost {
             tags: Vec::new(),
             cached_processed_content: Some(processed_content),
             headings: Vec::new(), // Will be populated by parse_post_content
+            cached_events: Vec::new(),
         }
     }
 
