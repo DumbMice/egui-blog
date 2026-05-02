@@ -600,7 +600,7 @@ impl eframe::App for BlogApp {
         std::time::Duration::from_secs(5)
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Enable continuous rendering only when debug flag is set
         // This allows toggling between reactive (lazy) and continuous (smooth) modes
         #[cfg(feature = "debug-windows")]

@@ -1,12 +1,10 @@
 //! Markdown rendering for blog posts.
 
-use std::ops::Deref;
-
 use egui::{
-    Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, cache, vec2,
+    Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2,
 };
 use egui_extras::syntax_highlighting::{CodeTheme, highlight};
-use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Parser, Tag};
+use pulldown_cmark::{Alignment, HeadingLevel};
 
 use crate::ui::owned_pulldown_cmark::{OwnedCodeBlockKind, OwnedEvent, OwnedTag, SpannedEvent};
 use crate::ui::table_renderer::TableConfig;

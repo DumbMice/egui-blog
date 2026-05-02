@@ -158,7 +158,8 @@ pub struct SpannedEvent {
 }
 
 impl SpannedEvent {
-    fn contains(&self, pos: &usize) -> bool {
-        self.span.contains(pos)
+    #[allow(dead_code)]
+    pub fn contains(&self, pos: usize) -> bool {
+        self.span.contains(&pos)
     }
 }
