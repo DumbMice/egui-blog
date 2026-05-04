@@ -1,10 +1,10 @@
 //! Markdown rendering for blog posts.
 
-use egui::{
-    Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2,
-};
+use egui::{Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2};
 use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use pulldown_cmark::{Alignment, HeadingLevel};
+#[cfg(test)]
+use pulldown_cmark::{Event, Parser, Tag};
 
 use crate::ui::owned_pulldown_cmark::{OwnedCodeBlockKind, OwnedEvent, OwnedTag, SpannedEvent};
 use crate::ui::table_renderer::TableConfig;
@@ -435,27 +435,6 @@ pub fn extract_and_replace_math_formulas(
 
 /// Render preprocessed markdown content to an egui UI with math support.
 /// This function accepts markdown that has already been processed with math placeholders.
-// pub fn render_preprocessed_markdown(
-//     ui: &mut Ui,
-//     preprocessed_markdown: &str,
-//     math_asset_manager: Option<&mut crate::math::MathAssetManager>,
-//     math_resolution_scale: f32,
-//     fragment_to_scroll_to: Option<&str>,
-//     text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
-// ) {
-//     render_markdown_impl(
-//         ui,
-//         preprocessed_markdown,
-//         math_asset_manager,
-//         true,
-//         math_resolution_scale,
-//         fragment_to_scroll_to,
-//         text_segment_cache,
-//     );
-// }
-
-/// Render preprocessed markdown content to an egui UI with math support.
-/// This function accepts markdown that has already been processed with math placeholders.
 pub fn render_cached_preprocessed_markdown(
     ui: &mut Ui,
     cached_events: &[SpannedEvent],
@@ -533,7 +512,7 @@ fn render_markdown_with_cache_impl(
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::Heading(_, _, _)) => break,
-                                OwnedEvent::Text(text) => heading_text.push_str(&text),
+                                OwnedEvent::Text(text) => heading_text.push_str(text),
                                 OwnedEvent::SoftBreak => heading_text.push(' '),
                                 OwnedEvent::HardBreak => heading_text.push('\n'),
                                 _ => {} // Skip other events (code, html, etc.)
@@ -622,7 +601,7 @@ fn render_markdown_with_cache_impl(
                                     for SpannedEvent { event, .. } in events.by_ref() {
                                         match event {
                                             OwnedEvent::End(OwnedTag::Item) => break,
-                                            OwnedEvent::Text(text) => item_text.push_str(&text),
+                                            OwnedEvent::Text(text) => item_text.push_str(text),
                                             OwnedEvent::SoftBreak => item_text.push(' '),
                                             OwnedEvent::HardBreak => item_text.push('\n'),
                                             _ => {} // Skip other events for now
@@ -694,9 +673,9 @@ fn render_markdown_with_cache_impl(
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::CodeBlock(_)) => break,
-                                OwnedEvent::Text(text) => code_text.push_str(&text),
+                                OwnedEvent::Text(text) => code_text.push_str(text),
                                 OwnedEvent::SoftBreak | OwnedEvent::HardBreak => {
-                                    code_text.push('\n')
+                                    code_text.push('\n');
                                 }
                                 _ => {} // Skip other events
                             }
@@ -705,7 +684,7 @@ fn render_markdown_with_cache_impl(
                         // Display language label if present
                         let language = match kind {
                             OwnedCodeBlockKind::Fenced(lang) if !lang.is_empty() => {
-                                Some(lang.to_string())
+                                Some(lang.clone())
                             }
                             _ => None,
                         };
@@ -768,7 +747,7 @@ fn render_markdown_with_cache_impl(
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::Strong) => break,
-                                OwnedEvent::Text(text) => bold_text.push_str(&text),
+                                OwnedEvent::Text(text) => bold_text.push_str(text),
                                 OwnedEvent::SoftBreak => bold_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -799,7 +778,7 @@ fn render_markdown_with_cache_impl(
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::Emphasis) => break,
-                                OwnedEvent::Text(text) => italic_text.push_str(&text),
+                                OwnedEvent::Text(text) => italic_text.push_str(text),
                                 OwnedEvent::SoftBreak => italic_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -826,12 +805,12 @@ fn render_markdown_with_cache_impl(
                     }
                     OwnedTag::Link(_, url, _) => {
                         // Links
-                        let url = url.to_string();
+                        let url = url.clone();
                         let mut link_text = String::new();
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::Link(_, _, _)) => break,
-                                OwnedEvent::Text(text) => link_text.push_str(&text),
+                                OwnedEvent::Text(text) => link_text.push_str(text),
                                 OwnedEvent::SoftBreak => link_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -900,7 +879,6 @@ fn render_markdown_with_cache_impl(
                                                 | ParagraphContent::Emphasis(t)
                                                 | ParagraphContent::Strikethrough(t)
                                                 | ParagraphContent::InlineCode(t) => t,
-                                                ParagraphContent::Widget { .. } => String::new(),
                                                 _ => String::new(),
                                             };
                                             if !text.is_empty() {
@@ -918,7 +896,7 @@ fn render_markdown_with_cache_impl(
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::Strikethrough) => break,
-                                OwnedEvent::Text(text) => strike_text.push_str(&text),
+                                OwnedEvent::Text(text) => strike_text.push_str(text),
                                 OwnedEvent::SoftBreak => strike_text.push(' '),
                                 _ => {} // Skip other events
                             }
@@ -952,9 +930,9 @@ fn render_markdown_with_cache_impl(
                         for SpannedEvent { event, .. } in events.by_ref() {
                             match event {
                                 OwnedEvent::End(OwnedTag::BlockQuote) => break,
-                                OwnedEvent::Text(text) => quote_text.push_str(&text),
+                                OwnedEvent::Text(text) => quote_text.push_str(text),
                                 OwnedEvent::SoftBreak | OwnedEvent::HardBreak => {
-                                    quote_text.push('\n')
+                                    quote_text.push('\n');
                                 }
                                 _ => {} // Skip other events for now
                             }
@@ -1056,10 +1034,10 @@ fn render_markdown_with_cache_impl(
                         // Tables don't have top margin in GitHub's CSS
                         // Spacing comes from previous element's bottom margin
 
-                        let (headers, rows) = parse_table(&mut events, &alignments);
+                        let (headers, rows) = parse_table(&mut events, alignments);
                         table_renderer::render_table(
                             ui,
-                            &alignments,
+                            alignments,
                             &headers,
                             &rows,
                             &TableConfig::default(),
@@ -1085,7 +1063,7 @@ fn render_markdown_with_cache_impl(
                         }
                     }
                     OwnedTag::Image(_, url, _) => {
-                        let url_str = url.to_string();
+                        let url_str = url.clone();
 
                         // Check if this is a widget (ends with .rs)
                         if url_str.contains(".rs") {
@@ -1094,11 +1072,11 @@ fn render_markdown_with_cache_impl(
                                 let name_part = &url_str[..pos];
                                 let query_part = &url_str[pos + 1..];
                                 (
-                                    name_part.trim_end_matches(".rs").to_string(),
-                                    Some(query_part.to_string()),
+                                    name_part.trim_end_matches(".rs").to_owned(),
+                                    Some(query_part.to_owned()),
                                 )
                             } else {
-                                (url_str.trim_end_matches(".rs").to_string(), None)
+                                (url_str.trim_end_matches(".rs").to_owned(), None)
                             };
 
                             let mut alt_text = String::new();
@@ -1106,7 +1084,7 @@ fn render_markdown_with_cache_impl(
                             for SpannedEvent { event, .. } in events.by_ref() {
                                 match event {
                                     OwnedEvent::End(OwnedTag::Image(_, _, _)) => break,
-                                    OwnedEvent::Text(text) => alt_text.push_str(&text),
+                                    OwnedEvent::Text(text) => alt_text.push_str(text),
                                     OwnedEvent::SoftBreak => alt_text.push(' '),
                                     _ => {} // Skip other events
                                 }
@@ -1175,7 +1153,7 @@ fn render_markdown_with_cache_impl(
                                             let _ = instance.render(ui);
                                         }
                                         Err(e) => {
-                                            ui.label(format!("Widget error: {}", e));
+                                            ui.label(format!("Widget error: {e}",));
                                         }
                                     }
                                 });
@@ -1186,7 +1164,7 @@ fn render_markdown_with_cache_impl(
                             for SpannedEvent { event, .. } in events.by_ref() {
                                 match event {
                                     OwnedEvent::End(OwnedTag::Image(_, _, _)) => break,
-                                    OwnedEvent::Text(text) => alt_text.push_str(&text),
+                                    OwnedEvent::Text(text) => alt_text.push_str(text),
                                     OwnedEvent::SoftBreak => alt_text.push(' '),
                                     _ => {} // Skip other events
                                 }
@@ -1226,7 +1204,7 @@ fn render_markdown_with_cache_impl(
                 if in_paragraph {
                     // Accumulate text content for paragraph rendering
                     accumulate_text_content_cached(
-                        &text,
+                        text,
                         manifest,
                         &mut math_asset_manager,
                         &mut paragraph_content,
@@ -1382,19 +1360,17 @@ fn render_markdown_with_cache_impl(
                                         ui.label(placeholder);
                                     }
 
-                                    // Skip past the placeholder
-                                    remaining = &remaining[start + end + 1..];
                                 } else {
                                     // Couldn't find opening '(' for math placeholder
                                     // Not a math placeholder, render as normal text
                                     ui.label(placeholder);
-                                    remaining = &remaining[start + end + 1..];
                                 }
                             } else {
                                 // Not a math placeholder, render as normal text
                                 ui.label(placeholder);
-                                remaining = &remaining[start + end + 1..];
                             }
+                            // Skip past the placeholder
+                            remaining = &remaining[start + end + 1..];
                         } else {
                             // No closing ')', render the '(' and continue
                             ui.label("(");
@@ -1419,11 +1395,11 @@ fn render_markdown_with_cache_impl(
             OwnedEvent::Code(code) => {
                 // Inline code
                 if in_paragraph {
-                    paragraph_content.push(ParagraphContent::InlineCode(code.to_string()));
+                    paragraph_content.push(ParagraphContent::InlineCode(code.clone()));
                 } else {
                     // No spacing before standalone inline code
 
-                    ui.label(RichText::new(&*code).code());
+                    ui.label(RichText::new(code).code());
 
                     // Add bottom margin for standalone inline code (same as paragraph)
                     add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
@@ -1511,1050 +1487,6 @@ fn render_markdown_with_cache_impl(
         });
     }
 }
-
-// fn render_markdown_impl(
-//     ui: &mut Ui,
-//     markdown: &str,
-//     mut math_asset_manager: Option<&mut crate::math::MathAssetManager>,
-//     is_preprocessed: bool,
-//     math_resolution_scale: f32,
-//     fragment_to_scroll_to: Option<&str>,
-//     text_segment_cache: &mut crate::ui::text_cache::TextSegmentCache,
-// ) {
-//     let protected_text = if is_preprocessed {
-//         // Content is already preprocessed with math placeholders
-//         markdown.to_owned()
-//     } else {
-//         // Extract math formulas and replace with (hash.typ) placeholders
-//         let manifest = crate::math::load_manifest();
-//         extract_and_replace_math_formulas(markdown, manifest)
-//     };
-//
-//     // Load manifest for metadata lookup (needed for both preprocessed and raw content)
-//     let manifest = crate::math::load_manifest();
-//
-//     let mut events =
-//         pulldown_cmark::Parser::new_ext(&protected_text, pulldown_cmark::Options::ENABLE_TABLES)
-//             .peekable();
-//
-//     // Set vertical spacing to 0 so we have full control over spacing
-//     // This prevents default egui spacing from adding to our GitHub-inspired spacing
-//     ui.spacing_mut().item_spacing.y = 0.0;
-//
-//     // Simplified margin collapsing: track previous element's bottom margin
-//     let mut previous_bottom_margin = 0.0;
-//
-//     // Track heading IDs for duplicate detection and scrolling
-//     let mut heading_ids = std::collections::HashSet::new();
-//     let mut scroll_to_heading_requested = false;
-//
-//     // Helper function to add bottom margin and track it
-//     fn add_bottom_margin(ui: &mut Ui, previous_bottom: &mut f32, margin: f32) {
-//         ui.add_space(margin);
-//         *previous_bottom = margin;
-//     }
-//
-//     // Helper function for margin collapsing at element start
-//     fn add_top_margin_with_collapsing(ui: &mut Ui, previous_bottom: &f32, top_margin: f32) {
-//         let spacing_to_add = top_margin.max(*previous_bottom) - *previous_bottom;
-//         if spacing_to_add > 0.0 {
-//             ui.add_space(spacing_to_add);
-//         }
-//         // Don't reset previous_bottom here - it will be updated when element adds its bottom margin
-//     }
-//
-//     // State for accumulating paragraph content
-//     let mut in_paragraph = false;
-//     let mut paragraph_content = Vec::new();
-//
-//     while let Some(event) = events.next() {
-//         match event {
-//             Event::Start(tag) => {
-//                 match tag {
-//                     Tag::Paragraph => {
-//                         // Paragraphs don't have top margin in GitHub's CSS
-//                         // Spacing comes from previous element's bottom margin
-//                         in_paragraph = true;
-//                         paragraph_content.clear();
-//                     }
-//                     Tag::Heading(level, _, _) => {
-//                         // Headings
-//                         let mut heading_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::Heading(_, _, _)) => break,
-//                                 Event::Text(text) => heading_text.push_str(&text),
-//                                 Event::SoftBreak => heading_text.push(' '),
-//                                 Event::HardBreak => heading_text.push('\n'),
-//                                 _ => {} // Skip other events (code, html, etc.)
-//                             }
-//                         }
-//
-//                         // All headings have the same top margin in GitHub's CSS
-//                         let top_margin = HEADING_TOP;
-//
-//                         // Apply margin collapsing for heading top margin
-//                         add_top_margin_with_collapsing(ui, &previous_bottom_margin, top_margin);
-//
-//                         // Generate heading ID
-//                         let heading_id = crate::posts::BlogPost::generate_heading_id(
-//                             &heading_text,
-//                             &mut heading_ids,
-//                         );
-//
-//                         // Check if we should scroll to this heading
-//                         let should_scroll_to_heading = fragment_to_scroll_to
-//                             .map(|fragment| fragment == heading_id)
-//                             .unwrap_or(false);
-//
-//                         // Process text with math placeholders
-//                         let paragraph_content = process_text_with_math_cached(
-//                             &heading_text,
-//                             manifest,
-//                             &mut math_asset_manager,
-//                             math_resolution_scale,
-//                             text_segment_cache,
-//                         );
-//
-//                         // Determine text style based on heading level
-//                         let text_style = match level {
-//                             HeadingLevel::H1 => TextStyle::Name("ContentHeading".into()),
-//                             HeadingLevel::H2 => TextStyle::Name("ContentHeading2".into()),
-//                             HeadingLevel::H3 => TextStyle::Name("ContentHeading3".into()),
-//                             HeadingLevel::H4 => TextStyle::Name("ContentHeading4".into()),
-//                             HeadingLevel::H5 => TextStyle::Name("ContentHeading5".into()),
-//                             HeadingLevel::H6 => TextStyle::Name("ContentHeading6".into()),
-//                         };
-//
-//                         // Create a heading area with the ID
-//                         let mut heading_response = ui.vertical(|ui| {
-//                             render_paragraph_content_vec(ui, &paragraph_content, &text_style);
-//                         });
-//
-//                         // Store the heading ID in the response for potential scrolling
-//                         heading_response.response.id = heading_id.clone().into();
-//
-//                         // Scroll to this heading if requested
-//                         if should_scroll_to_heading && !scroll_to_heading_requested {
-//                             ui.scroll_to_rect(
-//                                 heading_response.response.rect,
-//                                 Some(egui::Align::Center),
-//                             );
-//                             scroll_to_heading_requested = true;
-//                         }
-//
-//                         // Add bottom border for h1 and h2 (GitHub style)
-//                         match level {
-//                             HeadingLevel::H1 | HeadingLevel::H2 => {
-//                                 ui.add_space(7.2); // GitHub: 0.3em padding-bottom (24px * 0.3 = 7.2px for h2)
-//                                 ui.separator();
-//                             }
-//                             _ => {}
-//                         }
-//
-//                         // All headings have the same bottom margin in GitHub's CSS
-//                         let bottom_margin = HEADING_BOTTOM;
-//
-//                         // Add heading bottom margin and track it
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, bottom_margin);
-//                     }
-//                     Tag::List(ordered) => {
-//                         // Lists don't have top margin in GitHub's CSS
-//                         // Spacing comes from previous element's bottom margin
-//
-//                         // Lists
-//                         let mut list_items = Vec::new();
-//                         while let Some(event) = events.next() {
-//                             match event {
-//                                 Event::End(Tag::List(_)) => break,
-//                                 Event::Start(Tag::Item) => {
-//                                     let mut item_text = String::new();
-//                                     for event in events.by_ref() {
-//                                         match event {
-//                                             Event::End(Tag::Item) => break,
-//                                             Event::Text(text) => item_text.push_str(&text),
-//                                             Event::SoftBreak => item_text.push(' '),
-//                                             Event::HardBreak => item_text.push('\n'),
-//                                             _ => {} // Skip other events for now
-//                                         }
-//                                     }
-//                                     if !item_text.is_empty() {
-//                                         list_items.push(item_text);
-//                                     }
-//                                 }
-//                                 _ => {} // Skip other events
-//                             }
-//                         }
-//
-//                         let row_height =
-//                             ui.text_style_height(&TextStyle::Name("ContentBody".into()));
-//                         let one_indent = row_height / 2.0;
-//
-//                         for (i, item) in list_items.iter().enumerate() {
-//                             ui.horizontal(|ui| {
-//                                 ui.spacing_mut().item_spacing.x = 0.0;
-//                                 ui.set_row_height(row_height);
-//                                 // Add indentation for the list
-//                                 ui.add_space(one_indent);
-//
-//                                 if let Some(start) = ordered {
-//                                     let number = (start + i as u64).to_string();
-//                                     // Render number as text label (part of the text flow)
-//                                     ui.label(RichText::new(format!("{number}.")));
-//                                 } else {
-//                                     // Render bullet as text character (•) instead of drawn circle
-//                                     ui.label(RichText::new("•"));
-//                                 }
-//                                 ui.add_space(one_indent / 3.0);
-//
-//                                 // Process text with math placeholders
-//                                 let paragraph_content = process_text_with_math_cached(
-//                                     item,
-//                                     manifest,
-//                                     &mut math_asset_manager,
-//                                     math_resolution_scale,
-//                                     text_segment_cache,
-//                                 );
-//
-//                                 render_paragraph_content_vec(
-//                                     ui,
-//                                     &paragraph_content,
-//                                     &TextStyle::Name("ContentBody".into()),
-//                                 );
-//                             });
-//
-//                             // Add spacing between list items (GitHub: 0.25em = 4px)
-//                             if i < list_items.len() - 1 {
-//                                 ui.add_space(LIST_ITEM_SPACING);
-//                             }
-//                         }
-//
-//                         // Add list bottom margin (same as paragraph) and track it
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                     }
-//                     Tag::Item => {
-//                         // Already handled in List
-//                     }
-//                     Tag::CodeBlock(kind) => {
-//                         // Code blocks don't have top margin in GitHub's CSS
-//                         // Spacing comes from previous element's bottom margin
-//
-//                         // Code blocks
-//                         let mut code_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::CodeBlock(_)) => break,
-//                                 Event::Text(text) => code_text.push_str(&text),
-//                                 Event::SoftBreak | Event::HardBreak => code_text.push('\n'),
-//                                 _ => {} // Skip other events
-//                             }
-//                         }
-//
-//                         // Display language label if present
-//                         let language = match kind {
-//                             CodeBlockKind::Fenced(lang) if !lang.is_empty() => {
-//                                 Some(lang.to_string())
-//                             }
-//                             _ => None,
-//                         };
-//
-//                         if let Some(lang) = &language {
-//                             ui.horizontal(|ui| {
-//                                 ui.with_layout(
-//                                     egui::Layout::right_to_left(egui::Align::Min),
-//                                     |ui| {
-//                                         ui.label(RichText::new(lang).small().weak());
-//                                     },
-//                                 );
-//                             });
-//                         }
-//
-//                         // Syntax highlighting
-//                         let theme = CodeTheme::from_style(ui.style());
-//
-//                         // Map common language names to syntect recognized names
-//                         let lang_str = language.as_deref().unwrap_or("");
-//                         let mapped_lang = match lang_str.to_lowercase().as_str() {
-//                             "rust" | "rs" => "rs",
-//                             "javascript" | "js" => "js",
-//                             "python" | "py" => "py",
-//                             "typescript" | "ts" => "ts",
-//                             "cpp" | "c++" => "cpp",
-//                             "c" => "c",
-//                             "java" => "java",
-//                             "go" => "go",
-//                             "html" => "html",
-//                             "css" => "css",
-//                             "bash" | "sh" | "shell" => "bash",
-//                             "json" => "json",
-//                             "toml" => "toml",
-//                             "yaml" | "yml" => "yaml",
-//                             "markdown" | "md" => "markdown",
-//                             _ => lang_str,
-//                         };
-//
-//                         let layout_job =
-//                             highlight(ui.ctx(), ui.style(), &theme, &code_text, mapped_lang);
-//
-//                         // Display with background (EasyMark style)
-//                         let where_to_put_background = ui.painter().add(Shape::Noop);
-//                         let response = ui.add(egui::Label::new(layout_job).selectable(true));
-//                         let mut rect = response.rect;
-//                         rect = rect.expand(1.0); // looks better
-//                         rect.max.x = ui.max_rect().max.x;
-//                         let code_bg_color = ui.visuals().code_bg_color;
-//                         ui.painter().set(
-//                             where_to_put_background,
-//                             Shape::rect_filled(rect, 1.0, code_bg_color),
-//                         );
-//                         // Add code block bottom margin and track it
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, CODE_BLOCK_BOTTOM);
-//                     }
-//                     Tag::Strong => {
-//                         // Bold text
-//                         let mut bold_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::Strong) => break,
-//                                 Event::Text(text) => bold_text.push_str(&text),
-//                                 Event::SoftBreak => bold_text.push(' '),
-//                                 _ => {} // Skip other events
-//                             }
-//                         }
-//                         if in_paragraph {
-//                             paragraph_content.push(ParagraphContent::Strong(bold_text));
-//                         } else {
-//                             // Process text with math placeholders
-//                             let paragraph_content_vec = process_text_with_math_cached(
-//                                 &bold_text,
-//                                 manifest,
-//                                 &mut math_asset_manager,
-//                                 math_resolution_scale,
-//                                 text_segment_cache,
-//                             );
-//
-//                             // Render with bold styling (uses bold font, no need for .strong() color)
-//                             render_paragraph_content_vec(
-//                                 ui,
-//                                 &paragraph_content_vec,
-//                                 &TextStyle::Name("ContentBody".into()),
-//                             );
-//                         }
-//                     }
-//                     Tag::Emphasis => {
-//                         // Italic text
-//                         let mut italic_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::Emphasis) => break,
-//                                 Event::Text(text) => italic_text.push_str(&text),
-//                                 Event::SoftBreak => italic_text.push(' '),
-//                                 _ => {} // Skip other events
-//                             }
-//                         }
-//                         if in_paragraph {
-//                             paragraph_content.push(ParagraphContent::Emphasis(italic_text));
-//                         } else {
-//                             // Process text with math placeholders
-//                             let paragraph_content_vec = process_text_with_math_cached(
-//                                 &italic_text,
-//                                 manifest,
-//                                 &mut math_asset_manager,
-//                                 math_resolution_scale,
-//                                 text_segment_cache,
-//                             );
-//
-//                             // Render with italic styling
-//                             render_paragraph_content_vec(
-//                                 ui,
-//                                 &paragraph_content_vec,
-//                                 &TextStyle::Name("ContentBody".into()),
-//                             );
-//                         }
-//                     }
-//                     Tag::Link(_, url, _) => {
-//                         // Links
-//                         let url = url.to_string();
-//                         let mut link_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::Link(_, _, _)) => break,
-//                                 Event::Text(text) => link_text.push_str(&text),
-//                                 Event::SoftBreak => link_text.push(' '),
-//                                 _ => {} // Skip other events
-//                             }
-//                         }
-//
-//                         if in_paragraph {
-//                             paragraph_content.push(ParagraphContent::Link {
-//                                 text: link_text,
-//                                 url,
-//                             });
-//                         } else {
-//                             // Process text with math placeholders
-//                             let paragraph_content_vec = process_text_with_math_cached(
-//                                 &link_text,
-//                                 manifest,
-//                                 &mut math_asset_manager,
-//                                 math_resolution_scale,
-//                                 text_segment_cache,
-//                             );
-//
-//                             // For links outside paragraphs, we need to handle them differently
-//                             // since Hyperlink doesn't support rich text with math
-//                             // For now, render as plain text with link styling
-//                             ui.horizontal_wrapped(|ui| {
-//                                 ui.spacing_mut().item_spacing.x = 0.0;
-//                                 for item in paragraph_content_vec {
-//                                     match item {
-//                                         ParagraphContent::Text(text) => {
-//                                             ui.add(Hyperlink::from_label_and_url(&text, &url));
-//                                         }
-//                                         ParagraphContent::MathImage {
-//                                             image_source,
-//                                             size,
-//                                             is_display: _,
-//                                             baseline_from_top,
-//                                         } => {
-//                                             // Render math image (same for display and inline in links)
-//                                             if let Some(baseline) = baseline_from_top {
-//                                                 render_baseline_aligned_image(
-//                                                     ui,
-//                                                     image_source.clone(),
-//                                                     size,
-//                                                     baseline,
-//                                                 );
-//                                             } else {
-//                                                 let image = egui::Image::new(image_source.clone())
-//                                                     .tint(ui.visuals().text_color())
-//                                                     .fit_to_exact_size(size)
-//                                                     .corner_radius(0.0);
-//                                                 ui.add(image);
-//                                             }
-//                                         }
-//                                         ParagraphContent::MathCode {
-//                                             content,
-//                                             is_display: _,
-//                                         } => {
-//                                             ui.label(RichText::new(content).code());
-//                                         }
-//                                         ParagraphContent::Widget { .. } => {
-//                                             // Widgets in links not supported - skip
-//                                         }
-//                                         _ => {
-//                                             // Other content types in links - render as text
-//                                             let text = match item {
-//                                                 ParagraphContent::Strong(t)
-//                                                 | ParagraphContent::Emphasis(t)
-//                                                 | ParagraphContent::Strikethrough(t)
-//                                                 | ParagraphContent::InlineCode(t) => t,
-//                                                 ParagraphContent::Widget { .. } => String::new(),
-//                                                 _ => String::new(),
-//                                             };
-//                                             if !text.is_empty() {
-//                                                 ui.add(Hyperlink::from_label_and_url(&text, &url));
-//                                             }
-//                                         }
-//                                     }
-//                                 }
-//                             });
-//                         }
-//                     }
-//                     Tag::Strikethrough => {
-//                         // Strikethrough text
-//                         let mut strike_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::Strikethrough) => break,
-//                                 Event::Text(text) => strike_text.push_str(&text),
-//                                 Event::SoftBreak => strike_text.push(' '),
-//                                 _ => {} // Skip other events
-//                             }
-//                         }
-//                         if in_paragraph {
-//                             paragraph_content.push(ParagraphContent::Strikethrough(strike_text));
-//                         } else {
-//                             // Process text with math placeholders
-//                             let paragraph_content_vec = process_text_with_math_cached(
-//                                 &strike_text,
-//                                 manifest,
-//                                 &mut math_asset_manager,
-//                                 math_resolution_scale,
-//                                 text_segment_cache,
-//                             );
-//
-//                             // Render with strikethrough styling
-//                             render_paragraph_content_vec(
-//                                 ui,
-//                                 &paragraph_content_vec,
-//                                 &TextStyle::Name("ContentBody".into()),
-//                             );
-//                         }
-//                     }
-//                     Tag::BlockQuote => {
-//                         // Blockquotes don't have top margin in GitHub's CSS
-//                         // Spacing comes from previous element's bottom margin
-//
-//                         // Collect all text from the blockquote (simple approach for now)
-//                         let mut quote_text = String::new();
-//                         for event in events.by_ref() {
-//                             match event {
-//                                 Event::End(Tag::BlockQuote) => break,
-//                                 Event::Text(text) => quote_text.push_str(&text),
-//                                 Event::SoftBreak | Event::HardBreak => quote_text.push('\n'),
-//                                 _ => {} // Skip other events for now
-//                             }
-//                         }
-//
-//                         // Trim trailing whitespace
-//                         let quote_text = quote_text.trim_end();
-//
-//                         if !quote_text.is_empty() {
-//                             // Calculate dimensions for blockquote
-//                             let row_height =
-//                                 ui.text_style_height(&TextStyle::Name("ContentBody".into()));
-//                             let border_width = 4.0; // GitHub-style 4px solid border
-//                             let horizontal_padding = row_height; // One row height of padding
-//                             let vertical_padding = row_height * 0.5; // Half row height vertical padding
-//
-//                             // Create the blockquote layout
-//                             ui.horizontal(|ui| {
-//                                 // We'll paint the border after we know the total height
-//                                 // First, allocate a placeholder for the border
-//                                 let border_id = ui.id().with("blockquote_border");
-//                                 let border_placeholder = ui.allocate_response(
-//                                     vec2(border_width, 0.0), // 0 height initially
-//                                     Sense::hover(),
-//                                 );
-//
-//                                 // Store the border position (we'll recreate the rect with correct height later)
-//                                 ui.data_mut(|data| {
-//                                     data.insert_temp(border_id, border_placeholder.rect.min);
-//                                 });
-//
-//                                 // Add padding between border and text
-//                                 ui.add_space(horizontal_padding - border_width);
-//
-//                                 // Render quote text with proper padding and color
-//                                 ui.vertical(|ui| {
-//                                     ui.add_space(vertical_padding);
-//
-//                                     // Process text with math placeholders
-//                                     let paragraph_content = process_text_with_math_cached(
-//                                         quote_text,
-//                                         manifest,
-//                                         &mut math_asset_manager,
-//                                         math_resolution_scale,
-//                                         text_segment_cache,
-//                                     );
-//
-//                                     // Render with weak text color
-//                                     ui.scope(|ui| {
-//                                         ui.style_mut().visuals.override_text_color =
-//                                             Some(ui.visuals().weak_text_color());
-//                                         render_paragraph_content_vec(
-//                                             ui,
-//                                             &paragraph_content,
-//                                             &TextStyle::Name("ContentBody".into()),
-//                                         );
-//                                     });
-//
-//                                     ui.add_space(vertical_padding);
-//                                 });
-//
-//                                 // Now we know the total height, update and paint the border
-//                                 let total_height = ui.min_rect().height();
-//                                 if let Some(border_pos) =
-//                                     ui.data_mut(|data| data.get_temp::<Pos2>(border_id))
-//                                 {
-//                                     // Create the border rect using the stored position and calculated height
-//                                     let mut border_rect = Rect::from_min_size(
-//                                         border_pos,
-//                                         vec2(border_width, total_height),
-//                                     );
-//
-//                                     // Center the border vertically with the content
-//                                     // The placeholder was allocated at the top, but we want it centered
-//                                     let content_top = ui.min_rect().top();
-//                                     border_rect.set_top(content_top);
-//
-//                                     ui.painter().rect_filled(
-//                                         border_rect,
-//                                         0.0,
-//                                         ui.visuals().weak_text_color(),
-//                                     );
-//                                 }
-//                             });
-//                         }
-//
-//                         // Add blockquote bottom margin and track it
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, BLOCKQUOTE_BOTTOM);
-//                     }
-//                     Tag::FootnoteDefinition(_) => {
-//                         // Skip footnotes for now
-//                         for event in events.by_ref() {
-//                             if matches!(event, Event::End(Tag::FootnoteDefinition(_))) {
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                     Tag::Table(alignments) => {
-//                         // Tables don't have top margin in GitHub's CSS
-//                         // Spacing comes from previous element's bottom margin
-//
-//                         let (headers, rows) = parse_table(&mut events, &alignments);
-//                         table_renderer::render_table(
-//                             ui,
-//                             &alignments,
-//                             &headers,
-//                             &rows,
-//                             &TableConfig::default(),
-//                             &mut math_asset_manager,
-//                             math_resolution_scale,
-//                             text_segment_cache,
-//                         );
-//
-//                         // Add table bottom margin (same as paragraph) and track it
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                     }
-//                     Tag::TableHead | Tag::TableRow | Tag::TableCell => {
-//                         // Skip table elements that appear outside a table (should not happen)
-//                         for event in events.by_ref() {
-//                             if matches!(
-//                                 event,
-//                                 Event::End(Tag::TableHead | Tag::TableRow | Tag::TableCell)
-//                             ) {
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                     Tag::Image(_, url, _) => {
-//                         let url_str = url.to_string();
-//
-//                         // Check if this is a widget (ends with .rs)
-//                         if url_str.contains(".rs") {
-//                             // Parse widget name and query parameters
-//                             let (widget_name, query_params) = if let Some(pos) = url_str.find('?') {
-//                                 let name_part = &url_str[..pos];
-//                                 let query_part = &url_str[pos + 1..];
-//                                 (
-//                                     name_part.trim_end_matches(".rs").to_string(),
-//                                     Some(query_part.to_string()),
-//                                 )
-//                             } else {
-//                                 (url_str.trim_end_matches(".rs").to_string(), None)
-//                             };
-//
-//                             let mut alt_text = String::new();
-//
-//                             for event in events.by_ref() {
-//                                 match event {
-//                                     Event::End(Tag::Image(_, _, _)) => break,
-//                                     Event::Text(text) => alt_text.push_str(&text),
-//                                     Event::SoftBreak => alt_text.push(' '),
-//                                     _ => {} // Skip other events
-//                                 }
-//                             }
-//
-//                             // Parse configuration from query parameters
-//                             let mut config = WidgetConfig::default();
-//                             let mut width = None;
-//                             let mut height = None;
-//
-//                             if let Some(query) = query_params {
-//                                 // Parse simple width/height parameters
-//                                 for param in query.split('&') {
-//                                     if let Some((key, value)) = param.split_once('=') {
-//                                         match key {
-//                                             "width" => {
-//                                                 if let Ok(w) = value.parse::<f32>() {
-//                                                     width = Some(w);
-//                                                 }
-//                                             }
-//                                             "height" => {
-//                                                 if let Ok(h) = value.parse::<f32>() {
-//                                                     height = Some(h);
-//                                                 }
-//                                             }
-//                                             _ => {
-//                                                 // Try to parse as JSON configuration
-//                                                 if key.is_empty() && value.starts_with('{') {
-//                                                     // JSON config like ?{"type":"sine"}
-//                                                     if let Ok(json_value) =
-//                                                         serde_json::from_str(value)
-//                                                     {
-//                                                         config.config = json_value;
-//                                                     }
-//                                                 }
-//                                             }
-//                                         }
-//                                     }
-//                                 }
-//                             }
-//
-//                             if in_paragraph {
-//                                 paragraph_content.push(ParagraphContent::Widget {
-//                                     name: widget_name,
-//                                     config,
-//                                     width,
-//                                     height,
-//                                 });
-//                             } else {
-//                                 // Widget outside paragraph - render directly
-//                                 ui.horizontal(|ui| {
-//                                     // Apply size constraints to config before creating instance
-//                                     let mut final_config = config;
-//                                     if let Some(w) = width {
-//                                         final_config.width = Some(w);
-//                                     }
-//                                     if let Some(h) = height {
-//                                         final_config.height = Some(h);
-//                                     }
-//
-//                                     match crate::widgets::WidgetInstance::new(
-//                                         &widget_name,
-//                                         final_config,
-//                                     ) {
-//                                         Ok(mut instance) => {
-//                                             let _ = instance.render(ui);
-//                                         }
-//                                         Err(e) => {
-//                                             ui.label(format!("Widget error: {}", e));
-//                                         }
-//                                     }
-//                                 });
-//                             }
-//                         } else {
-//                             // Regular image - display alt text as placeholder
-//                             let mut alt_text = String::new();
-//                             for event in events.by_ref() {
-//                                 match event {
-//                                     Event::End(Tag::Image(_, _, _)) => break,
-//                                     Event::Text(text) => alt_text.push_str(&text),
-//                                     Event::SoftBreak => alt_text.push(' '),
-//                                     _ => {} // Skip other events
-//                                 }
-//                             }
-//                             ui.label(
-//                                 RichText::new(format!("[Image: {alt_text}]"))
-//                                     .italics()
-//                                     .weak(),
-//                             );
-//                         }
-//                     }
-//                 }
-//             }
-//             Event::End(tag) => {
-//                 if tag == Tag::Paragraph {
-//                     if in_paragraph && !paragraph_content.is_empty() {
-//                         // Render the accumulated paragraph content in a horizontal layout
-//                         ui.horizontal_wrapped(|ui| {
-//                             // Remove horizontal spacing between inline elements
-//                             // This eliminates excessive spacing between text and math images
-//                             ui.spacing_mut().item_spacing.x = 0.0;
-//
-//                             for content in &paragraph_content {
-//                                 render_paragraph_content(ui, content);
-//                             }
-//                         });
-//                         // Add paragraph bottom margin and track it
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                         paragraph_content.clear();
-//                     }
-//                     in_paragraph = false;
-//                 } else {
-//                     // Other end tags are handled within Start match
-//                 }
-//             }
-//             Event::Text(text) => {
-//                 if in_paragraph {
-//                     // Accumulate text content for paragraph rendering
-//                     accumulate_text_content_cached(
-//                         &text,
-//                         manifest,
-//                         &mut math_asset_manager,
-//                         &mut paragraph_content,
-//                         math_resolution_scale,
-//                         text_segment_cache,
-//                     );
-//                 } else {
-//                     // Fallback for text outside paragraphs (shouldn't happen in proper markdown)
-//                     // No spacing for standalone text
-//
-//                     // Check for math placeholders in the text (format: (hash.typ))
-//                     let mut remaining = &text[..];
-//                     let _ = 0;
-//
-//                     while let Some(start) = remaining.find('(') {
-//                         // Render text before the placeholder
-//                         if start > 0 {
-//                             let before_text = &remaining[..start];
-//                             render_text_with_latex(
-//                                 ui,
-//                                 before_text,
-//                                 &mut math_asset_manager,
-//                                 math_resolution_scale,
-//                             );
-//                         }
-//
-//                         // Find the end of the placeholder - look for closing ')'
-//                         if let Some(end) = remaining[start..].find(')') {
-//                             let placeholder = &remaining[start..=start + end];
-//
-//                             // Check if this is a math placeholder: contains (hash.typ)
-//                             // It could be nested like ((hash.typ)), so we need to find the .typ) pattern
-//                             if let Some(typ_start) = placeholder.find(".typ)") {
-//                                 // Extract the part from the opening '(' before .typ) to the end
-//                                 // Find the '(' that starts the math placeholder
-//                                 let mut paren_start = typ_start;
-//                                 while paren_start > 0
-//                                     && placeholder.chars().nth(paren_start - 1) != Some('(')
-//                                 {
-//                                     paren_start -= 1;
-//                                 }
-//
-//                                 if paren_start > 0
-//                                     && placeholder.chars().nth(paren_start - 1) == Some('(')
-//                                 {
-//                                     // We found the opening '(' for the math placeholder
-//                                     // Render any text before the math placeholder (e.g., the first '(' in "((hash.typ))")
-//                                     if paren_start - 1 > 0 {
-//                                         let before_math = &placeholder[..paren_start - 1];
-//                                         render_text_with_latex(
-//                                             ui,
-//                                             before_math,
-//                                             &mut math_asset_manager,
-//                                             math_resolution_scale,
-//                                         );
-//                                     }
-//
-//                                     let math_placeholder =
-//                                         &placeholder[paren_start - 1..=typ_start + 4]; // +4 for ".typ)"
-//                                     let hash = &math_placeholder[1..math_placeholder.len() - 5]; // Remove '(' and '.typ)'
-//
-//                                     // Look up metadata in manifest
-//                                     if let Some(metadata) = manifest.get_metadata(hash) {
-//                                         if let Some(_asset_manager) = &mut math_asset_manager {
-//                                             // Try to render as SVG using hash with resolution scale
-//                                             if let Some(image_source) =
-//                                                 MathAssetManager::get_image_source_for_hash_with_resolution(
-//                                                     hash,
-//                                                     math_resolution_scale,
-//                                                 )
-//                                             {
-//                                             // Get the SVG's intrinsic size
-//                                             let svg_size = _asset_manager.get_svg_size(hash);
-//
-//                                                 if let Some(size) = svg_size {
-//                                                     // Size stays the same - resolution scale affects rasterization quality, not display size
-//
-//                                                     if metadata.is_display {
-//                                                         // Display math: center with spacing
-//                                                         ui.add_space(8.0);
-//                                                         ui.horizontal(|ui| {
-//                                                             ui.add_space(
-//                                                                 (ui.available_width() - size.x)
-//                                                                     / 2.0,
-//                                                             );
-//
-//                                                             // Create image with crisp rendering using SVG's intrinsic size
-//                                                             let image = egui::Image::new(image_source)
-//                                                                 .tint(ui.visuals().text_color()) // Theme-aware tinting
-//                                                                 .fit_to_exact_size(size)
-//                                                                 .corner_radius(0.0); // No rounding for crisp edges
-//
-//                                                             ui.add(image);
-//                                                         });
-//                                                         ui.add_space(8.0);
-//                                                     } else {
-//                                                         // Inline math: render at SVG's intrinsic size
-//                                                         // Create image with crisp rendering using SVG's intrinsic size
-//                                                         let image = egui::Image::new(image_source)
-//                                                             .tint(ui.visuals().text_color()) // Theme-aware tinting
-//                                                             .fit_to_exact_size(size)
-//                                                             .corner_radius(0.0); // No rounding for crisp edges
-//
-//                                                         ui.add(image);
-//                                                     }
-//                                                 } else {
-//                                                     // Fallback: use reasonable default size if SVG size not available
-//
-//                                                     if metadata.is_display {
-//                                                         // Display math: reasonable default
-//                                                         let display_size = egui::vec2(200.0, 50.0);
-//                                                         ui.add_space(8.0);
-//                                                         ui.horizontal(|ui| {
-//                                                             ui.add_space(
-//                                                                 (ui.available_width() - display_size.x)
-//                                                                     / 2.0,
-//                                                             );
-//                                                             let image = egui::Image::new(image_source)
-//                                                                 .tint(ui.visuals().text_color()) // Theme-aware tinting
-//                                                                 .fit_to_exact_size(display_size)
-//                                                                 .corner_radius(0.0);
-//                                                             ui.add(image);
-//                                                         });
-//                                                         ui.add_space(8.0);
-//                                                     } else {
-//                                                         // Inline math: reasonable default
-//                                                         let inline_size = egui::vec2(100.0, 20.0);
-//                                                         let image = egui::Image::new(image_source)
-//                                                             .tint(ui.visuals().text_color()) // Theme-aware tinting
-//                                                             .fit_to_exact_size(inline_size)
-//                                                             .corner_radius(0.0);
-//                                                         ui.add(image);
-//                                                     }
-//                                                 }
-//                                             } else {
-//                                                 // Fallback: render as code block
-//                                                 render_math_as_code(
-//                                                     ui,
-//                                                     &format!("Math formula: {hash}"),
-//                                                     metadata.is_display,
-//                                                 );
-//                                             }
-//                                         } else {
-//                                             // No asset manager, render as code block
-//                                             render_math_as_code(
-//                                                 ui,
-//                                                 &format!("Math formula: {hash}"),
-//                                                 metadata.is_display,
-//                                             );
-//                                         }
-//                                     } else {
-//                                         // Hash not found in manifest, render placeholder as text
-//                                         ui.label(placeholder);
-//                                     }
-//
-//                                     // Skip past the placeholder
-//                                     remaining = &remaining[start + end + 1..];
-//                                 } else {
-//                                     // Couldn't find opening '(' for math placeholder
-//                                     // Not a math placeholder, render as normal text
-//                                     ui.label(placeholder);
-//                                     remaining = &remaining[start + end + 1..];
-//                                 }
-//                             } else {
-//                                 // Not a math placeholder, render as normal text
-//                                 ui.label(placeholder);
-//                                 remaining = &remaining[start + end + 1..];
-//                             }
-//                         } else {
-//                             // No closing ')', render the '(' and continue
-//                             ui.label("(");
-//                             remaining = &remaining[start + 1..];
-//                         }
-//                     }
-//
-//                     // Render any remaining text after the last placeholder
-//                     if !remaining.is_empty() {
-//                         render_text_with_latex(
-//                             ui,
-//                             remaining,
-//                             &mut math_asset_manager,
-//                             math_resolution_scale,
-//                         );
-//                     }
-//
-//                     // Add bottom margin for standalone text (same as paragraph)
-//                     add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                 }
-//             }
-//             Event::Code(code) => {
-//                 // Inline code
-//                 if in_paragraph {
-//                     paragraph_content.push(ParagraphContent::InlineCode(code.to_string()));
-//                 } else {
-//                     // No spacing before standalone inline code
-//
-//                     ui.label(RichText::new(&*code).code());
-//
-//                     // Add bottom margin for standalone inline code (same as paragraph)
-//                     add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                 }
-//             }
-//             Event::Html(_) | Event::FootnoteReference(_) => {
-//                 // Skip HTML and footnotes
-//             }
-//             Event::SoftBreak => {
-//                 // Soft line break (treated as space)
-//                 if in_paragraph {
-//                     paragraph_content.push(ParagraphContent::Text(" ".to_owned()));
-//                 } else {
-//                     ui.label(" ");
-//                 }
-//             }
-//             Event::HardBreak => {
-//                 // Hard line break
-//                 if in_paragraph {
-//                     // For hard breaks within paragraphs, we need to handle them specially
-//                     // Since we're using horizontal_wrapped, we can't easily add vertical space
-//                     // We'll add a special marker that we can handle during rendering
-//                     paragraph_content.push(ParagraphContent::Text("\n".to_owned()));
-//                 } else {
-//                     // No spacing before standalone hard break
-//
-//                     ui.add_space(4.0);
-//
-//                     // Add bottom margin for standalone hard break (same as paragraph)
-//                     add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                 }
-//             }
-//             Event::Rule => {
-//                 // Horizontal rule - always breaks paragraph context
-//                 if in_paragraph {
-//                     // Render accumulated paragraph content first
-//                     if !paragraph_content.is_empty() {
-//                         ui.horizontal_wrapped(|ui| {
-//                             for content in &paragraph_content {
-//                                 render_paragraph_content(ui, content);
-//                             }
-//                         });
-//                         // Add paragraph bottom spacing
-//                         add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                         paragraph_content.clear();
-//                     }
-//                     in_paragraph = false;
-//                 }
-//
-//                 // Apply margin collapsing for horizontal rule top margin
-//                 add_top_margin_with_collapsing(
-//                     ui,
-//                     &previous_bottom_margin,
-//                     HORIZONTAL_RULE_SPACING,
-//                 );
-//
-//                 ui.separator();
-//
-//                 // Add horizontal rule bottom margin and track it
-//                 add_bottom_margin(ui, &mut previous_bottom_margin, HORIZONTAL_RULE_SPACING);
-//             }
-//             Event::TaskListMarker(checked) => {
-//                 // Task list marker
-//                 let marker = if checked { "[x]" } else { "[ ]" };
-//                 if in_paragraph {
-//                     paragraph_content.push(ParagraphContent::Text(marker.to_owned()));
-//                 } else {
-//                     // No spacing before standalone task list marker
-//
-//                     ui.label(marker);
-//
-//                     // Add bottom margin for standalone task list marker (same as paragraph)
-//                     add_bottom_margin(ui, &mut previous_bottom_margin, PARAGRAPH_BOTTOM);
-//                 }
-//             }
-//         }
-//     }
-//
-//     // Render any remaining paragraph content
-//     if in_paragraph && !paragraph_content.is_empty() {
-//         ui.horizontal_wrapped(|ui| {
-//             for content in &paragraph_content {
-//                 render_paragraph_content(ui, content);
-//             }
-//         });
-//     }
-// }
 
 /// Parse a markdown table from the event stream.
 pub(crate) fn parse_table(
@@ -2906,7 +1838,7 @@ pub(crate) fn render_paragraph_content_vec(
                             let _size = widget.render(&mut child_ui, config);
                         }
                         Err(e) => {
-                            child_ui.label(format!("Widget error: {}", e));
+                            child_ui.label(format!("Widget error: {e}"));
                         }
                     }
                 }
@@ -3021,11 +1953,11 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
                     .text_style(TextStyle::Name("ContentBody".into())),
             );
         }
-        &ParagraphContent::Widget {
-            ref name,
-            ref config,
-            ref width,
-            ref height,
+        ParagraphContent::Widget {
+            name,
+            config,
+            width,
+            height,
         } => {
             // Create a container for the widget
             let frame = egui::Frame::new()
@@ -3051,7 +1983,7 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
                             let _size = widget.render(ui, config);
                         }
                         Err(e) => {
-                            ui.label(format!("Widget error: {}", e));
+                            ui.label(format!("Widget error: {e}"));
                         }
                     }
                 });
@@ -3071,7 +2003,7 @@ pub(crate) fn process_text_with_math_cached(
 ) -> Vec<ParagraphContent> {
     // Check cache first
     if let Some(cached) = text_segment_cache.get(text, math_resolution_scale) {
-        return cached.to_vec();
+        return cached.clone();
     }
 
     // Cache miss: parse normally
@@ -3083,7 +2015,7 @@ pub(crate) fn process_text_with_math_cached(
     );
 
     // Store in cache
-    text_segment_cache.insert(text, math_resolution_scale, result.to_vec());
+    text_segment_cache.insert(text, math_resolution_scale, result.clone());
     result
 }
 
@@ -3122,15 +2054,18 @@ mod tests {
         let mut options = pulldown_cmark::Options::empty();
         options.insert(pulldown_cmark::Options::ENABLE_TABLES);
         let parser = Parser::new_ext(markdown, options);
-        let mut events = parser.peekable();
 
-        // The parser yields events; we need to skip to the Table start
-        // For simplicity, we'll just test parse_table by feeding it events after Table start
-        // But we can also test the full rendering by calling render_markdown with a dummy UI?
-        // Let's manually iterate to find Table start
-        while let Some(event) = events.next() {
-            if let Event::Start(Tag::Table(alignments)) = event {
-                let (headers, rows) = parse_table(&mut events, &alignments);
+        let spanned_events: Vec<SpannedEvent> = parser
+            .map(|e| SpannedEvent {
+                span: 0..0,
+                event: e.into(),
+            })
+            .collect();
+        let mut iter = spanned_events.iter();
+
+        while let Some(SpannedEvent { event, .. }) = iter.next() {
+            if let OwnedEvent::Start(OwnedTag::Table(alignments)) = event {
+                let (headers, rows) = parse_table(&mut iter, alignments);
                 assert_eq!(headers.len(), 1); // one header row
                 assert_eq!(headers[0].len(), 4); // four columns
                 assert_eq!(rows.len(), 4); // four data rows

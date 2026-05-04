@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 use ordered_float::OrderedFloat;
+use serde_yaml::with;
 
 use super::markdown::ParagraphContent;
 
@@ -54,9 +55,9 @@ impl TextSegmentCache {
     pub fn get(&mut self, text: &str, resolution_scale: f32) -> Option<&Vec<ParagraphContent>> {
         let key = CacheKey::new(text, resolution_scale);
 
-        if self.cache.contains_key(&key) {
+        if let Some(val) = self.cache.get(&key) {
             self.hits += 1;
-            self.cache.get(&key)
+            Some(val)
         } else {
             self.misses += 1;
             None
