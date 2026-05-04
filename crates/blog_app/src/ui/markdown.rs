@@ -1,5 +1,7 @@
 //! Markdown rendering for blog posts.
 
+use std::sync::{Arc, LazyLock};
+
 use egui::{Hyperlink, ImageSource, Pos2, Rect, RichText, Sense, Shape, TextStyle, Ui, vec2};
 use egui_extras::syntax_highlighting::{CodeTheme, highlight};
 use pulldown_cmark::{Alignment, HeadingLevel};
@@ -11,45 +13,63 @@ use crate::ui::table_renderer::TableConfig;
 use crate::widgets::WidgetConfig;
 use crate::{MathAssetManager, ui::table_renderer};
 
+// Pre-allocated TextStyles to avoid per-frame Arc<str> allocations
+static TEXT_CONTENT_BODY: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentBody")));
+static TEXT_CONTENT_BODY_BOLD: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentBodyBold")));
+static TEXT_CONTENT_BODY_ITALIC: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentBodyItalic")));
+static TEXT_CONTENT_SMALL_BOLD: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentSmallBold")));
+static TEXT_CONTENT_HEADING: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentHeading")));
+static TEXT_CONTENT_HEADING2: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentHeading2")));
+static TEXT_CONTENT_HEADING3: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentHeading3")));
+static TEXT_CONTENT_HEADING4: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentHeading4")));
+static TEXT_CONTENT_HEADING5: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentHeading5")));
+static TEXT_CONTENT_HEADING6: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentHeading6")));
+
 /// Get the bold variant of a text style
 /// Since egui's `.strong()` only changes color, not font weight,
 /// we need to use different text styles for bold text
 pub(crate) fn bold_text_style(text_style: &TextStyle) -> TextStyle {
     match text_style {
         // Content body variants
-        TextStyle::Name(name) if name == &"ContentBody".into() => {
-            TextStyle::Name("ContentBodyBold".into())
+        TextStyle::Name(name) if name.as_ref() == "ContentBody" => TEXT_CONTENT_BODY_BOLD.clone(),
+        TextStyle::Name(name) if name.as_ref() == "ContentBodyRegular" => {
+            TEXT_CONTENT_BODY_BOLD.clone()
         }
-        TextStyle::Name(name) if name == &"ContentBodyRegular".into() => {
-            TextStyle::Name("ContentBodyBold".into())
+        TextStyle::Name(name) if name.as_ref() == "ContentBodyMedium" => {
+            TEXT_CONTENT_BODY_BOLD.clone()
         }
-        TextStyle::Name(name) if name == &"ContentBodyMedium".into() => {
-            TextStyle::Name("ContentBodyBold".into())
-        }
-        TextStyle::Name(name) if name == &"ContentBodyBold".into() => {
+        TextStyle::Name(name) if name.as_ref() == "ContentBodyBold" => {
             text_style.clone() // Already bold
         }
         // Small text variants
-        TextStyle::Name(name) if name == &"ContentSmall".into() => {
-            TextStyle::Name("ContentSmallBold".into())
+        TextStyle::Name(name) if name.as_ref() == "ContentSmall" => TEXT_CONTENT_SMALL_BOLD.clone(),
+        TextStyle::Name(name) if name.as_ref() == "ContentSmallRegular" => {
+            TEXT_CONTENT_SMALL_BOLD.clone()
         }
-        TextStyle::Name(name) if name == &"ContentSmallRegular".into() => {
-            TextStyle::Name("ContentSmallBold".into())
+        TextStyle::Name(name) if name.as_ref() == "ContentSmallMedium" => {
+            TEXT_CONTENT_SMALL_BOLD.clone()
         }
-        TextStyle::Name(name) if name == &"ContentSmallMedium".into() => {
-            TextStyle::Name("ContentSmallBold".into())
-        }
-        TextStyle::Name(name) if name == &"ContentSmallBold".into() => {
+        TextStyle::Name(name) if name.as_ref() == "ContentSmallBold" => {
             text_style.clone() // Already bold
         }
         // Headings are already bold, keep as is
         TextStyle::Name(name)
-            if name == &"ContentHeading".into()
-                || name == &"ContentHeading2".into()
-                || name == &"ContentHeading3".into()
-                || name == &"ContentHeading4".into()
-                || name == &"ContentHeading5".into()
-                || name == &"ContentHeading6".into() =>
+            if name.as_ref() == "ContentHeading"
+                || name.as_ref() == "ContentHeading2"
+                || name.as_ref() == "ContentHeading3"
+                || name.as_ref() == "ContentHeading4"
+                || name.as_ref() == "ContentHeading5"
+                || name.as_ref() == "ContentHeading6" =>
         {
             text_style.clone()
         }
@@ -71,18 +91,16 @@ pub(crate) fn bold_text_style(text_style: &TextStyle) -> TextStyle {
 pub(crate) fn italic_text_style(text_style: &TextStyle) -> TextStyle {
     match text_style {
         // Content body variants
-        TextStyle::Name(name) if name == &"ContentBody".into() => {
-            TextStyle::Name("ContentBodyItalic".into())
-        }
+        TextStyle::Name(name) if name == &"ContentBody".into() => TEXT_CONTENT_BODY_ITALIC.clone(),
         TextStyle::Name(name) if name == &"ContentBodyRegular".into() => {
-            TextStyle::Name("ContentBodyItalic".into())
+            TEXT_CONTENT_BODY_ITALIC.clone()
         }
         TextStyle::Name(name) if name == &"ContentBodyMedium".into() => {
-            TextStyle::Name("ContentBodyItalic".into())
+            TEXT_CONTENT_BODY_ITALIC.clone()
         }
         TextStyle::Name(name) if name == &"ContentBodyBold".into() => {
             // Bold + Italic - we don't have this variant, use italic for now
-            TextStyle::Name("ContentBodyItalic".into())
+            TEXT_CONTENT_BODY_ITALIC.clone()
         }
         // For other styles, we don't have italic variants
         _ => text_style.clone(),
@@ -143,7 +161,7 @@ pub(crate) fn render_baseline_aligned_image(
 ) {
     // Get text metrics (estimated)
     // Use configurable ascent ratio for baseline estimation
-    let text_height = ui.text_style_height(&TextStyle::Name("ContentBody".into()));
+    let text_height = ui.text_style_height(&TEXT_CONTENT_BODY);
     let estimated_ascent = text_height * ASCENT_RATIO;
 
     // Calculate offset accounting for vertical centering in horizontal_wrapped
@@ -547,12 +565,12 @@ fn render_markdown_with_cache_impl(
 
                         // Determine text style based on heading level
                         let text_style = match level {
-                            HeadingLevel::H1 => TextStyle::Name("ContentHeading".into()),
-                            HeadingLevel::H2 => TextStyle::Name("ContentHeading2".into()),
-                            HeadingLevel::H3 => TextStyle::Name("ContentHeading3".into()),
-                            HeadingLevel::H4 => TextStyle::Name("ContentHeading4".into()),
-                            HeadingLevel::H5 => TextStyle::Name("ContentHeading5".into()),
-                            HeadingLevel::H6 => TextStyle::Name("ContentHeading6".into()),
+                            HeadingLevel::H1 => TEXT_CONTENT_HEADING.clone(),
+                            HeadingLevel::H2 => TEXT_CONTENT_HEADING2.clone(),
+                            HeadingLevel::H3 => TEXT_CONTENT_HEADING3.clone(),
+                            HeadingLevel::H4 => TEXT_CONTENT_HEADING4.clone(),
+                            HeadingLevel::H5 => TEXT_CONTENT_HEADING5.clone(),
+                            HeadingLevel::H6 => TEXT_CONTENT_HEADING6.clone(),
                         };
 
                         // Create a heading area with the ID
@@ -615,8 +633,7 @@ fn render_markdown_with_cache_impl(
                             }
                         }
 
-                        let row_height =
-                            ui.text_style_height(&TextStyle::Name("ContentBody".into()));
+                        let row_height = ui.text_style_height(&TEXT_CONTENT_BODY.clone());
                         let one_indent = row_height / 2.0;
 
                         for (i, item) in list_items.iter().enumerate() {
@@ -648,7 +665,7 @@ fn render_markdown_with_cache_impl(
                                 render_paragraph_content_vec(
                                     ui,
                                     &paragraph_content,
-                                    &TextStyle::Name("ContentBody".into()),
+                                    &TEXT_CONTENT_BODY.clone(),
                                 );
                             });
 
@@ -768,7 +785,7 @@ fn render_markdown_with_cache_impl(
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
-                                &TextStyle::Name("ContentBody".into()),
+                                &TEXT_CONTENT_BODY.clone(),
                             );
                         }
                     }
@@ -799,7 +816,7 @@ fn render_markdown_with_cache_impl(
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
-                                &TextStyle::Name("ContentBody".into()),
+                                &TEXT_CONTENT_BODY.clone(),
                             );
                         }
                     }
@@ -917,7 +934,7 @@ fn render_markdown_with_cache_impl(
                             render_paragraph_content_vec(
                                 ui,
                                 &paragraph_content_vec,
-                                &TextStyle::Name("ContentBody".into()),
+                                &TEXT_CONTENT_BODY.clone(),
                             );
                         }
                     }
@@ -943,8 +960,7 @@ fn render_markdown_with_cache_impl(
 
                         if !quote_text.is_empty() {
                             // Calculate dimensions for blockquote
-                            let row_height =
-                                ui.text_style_height(&TextStyle::Name("ContentBody".into()));
+                            let row_height = ui.text_style_height(&TEXT_CONTENT_BODY.clone());
                             let border_width = 4.0; // GitHub-style 4px solid border
                             let horizontal_padding = row_height; // One row height of padding
                             let vertical_padding = row_height * 0.5; // Half row height vertical padding
@@ -987,7 +1003,7 @@ fn render_markdown_with_cache_impl(
                                         render_paragraph_content_vec(
                                             ui,
                                             &paragraph_content,
-                                            &TextStyle::Name("ContentBody".into()),
+                                            &TEXT_CONTENT_BODY.clone(),
                                         );
                                     });
 
@@ -1359,7 +1375,6 @@ fn render_markdown_with_cache_impl(
                                         // Hash not found in manifest, render placeholder as text
                                         ui.label(placeholder);
                                     }
-
                                 } else {
                                     // Couldn't find opening '(' for math placeholder
                                     // Not a math placeholder, render as normal text
@@ -1855,16 +1870,14 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
                 let parts: Vec<&str> = text.split('\n').collect();
                 for (i, part) in parts.iter().enumerate() {
                     if !part.is_empty() {
-                        ui.label(
-                            RichText::new(*part).text_style(TextStyle::Name("ContentBody".into())),
-                        );
+                        ui.label(RichText::new(*part).text_style(TEXT_CONTENT_BODY.clone()));
                     }
                     if i < parts.len() - 1 {
                         ui.add_space(4.0); // Add vertical space for hard break
                     }
                 }
             } else {
-                ui.label(RichText::new(text).text_style(TextStyle::Name("ContentBody".into())));
+                ui.label(RichText::new(text).text_style(TEXT_CONTENT_BODY.clone()));
             }
         }
         ParagraphContent::MathImage {
@@ -1934,15 +1947,15 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
         }
         ParagraphContent::Strong(text) => {
             // Use ContentBodyBold for bold text
-            ui.label(RichText::new(text).text_style(TextStyle::Name("ContentBodyBold".into())));
+            ui.label(RichText::new(text).text_style(TEXT_CONTENT_BODY_BOLD.clone()));
         }
         ParagraphContent::Emphasis(text) => {
             // Use ContentBodyItalic for italic text
-            ui.label(RichText::new(text).text_style(TextStyle::Name("ContentBodyItalic".into())));
+            ui.label(RichText::new(text).text_style(TEXT_CONTENT_BODY_ITALIC.clone()));
         }
         ParagraphContent::Link { text, url } => {
             ui.add(Hyperlink::from_label_and_url(
-                RichText::new(text).text_style(TextStyle::Name("ContentBody".into())),
+                RichText::new(text).text_style(TEXT_CONTENT_BODY.clone()),
                 url,
             ));
         }
@@ -1950,7 +1963,7 @@ fn render_paragraph_content(ui: &mut Ui, content: &ParagraphContent) {
             ui.label(
                 RichText::new(text)
                     .strikethrough()
-                    .text_style(TextStyle::Name("ContentBody".into())),
+                    .text_style(TEXT_CONTENT_BODY.clone()),
             );
         }
         ParagraphContent::Widget {
@@ -2092,19 +2105,12 @@ mod tests {
         let mut options = pulldown_cmark::Options::empty();
         options.insert(pulldown_cmark::Options::ENABLE_TABLES);
         let parser = Parser::new_ext(unordered_markdown, options);
-        let mut events = parser.peekable();
 
         let mut found_list = false;
-        while let Some(event) = events.next() {
+        for event in parser {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_list = true;
                 assert_eq!(ordered, None); // Unordered list
-                // Skip through the list events
-                while let Some(event) = events.next() {
-                    if let Event::End(Tag::List(_)) = event {
-                        break;
-                    }
-                }
                 break;
             }
         }
@@ -2118,10 +2124,9 @@ mod tests {
 3. Dark/light theme toggle"#;
 
         let parser = Parser::new_ext(ordered_markdown, options);
-        let mut events = parser.peekable();
 
         let mut found_ordered_list = false;
-        while let Some(event) = events.next() {
+        for event in parser {
             if let Event::Start(Tag::List(ordered)) = event {
                 found_ordered_list = true;
                 assert!(ordered.is_some()); // Ordered list
