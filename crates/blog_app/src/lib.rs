@@ -73,6 +73,9 @@ pub struct BlogApp {
     post_manager_state: PostManagerState, // NEW
     /// Currently selected post index
     selected_post: usize,
+    /// Last post key — used to detect post switches for scroll restoration
+    #[cfg_attr(feature = "serde", serde(skip))]
+    last_post_key: Option<PostKey>,
     /// Are we editing a new post?
     editing_new_post: bool,
     /// Title for new post
@@ -135,8 +138,6 @@ pub struct BlogApp {
     focused_panel: crate::shortcuts::FocusedPanel,
     /// Previous focused panel (for detecting focus changes)
     previous_focused_panel: crate::shortcuts::FocusedPanel,
-    /// Animation state for panel focus visualization
-    focus_animation: crate::animation::FocusAnimationState,
     /// Scroll positions for each post (`content_type`, slug) -> `scroll_offset`
     post_scroll_positions: HashMap<PostKey, f32>,
     /// Scroll offset for side panel
@@ -147,6 +148,8 @@ pub struct BlogApp {
     request_side_panel_auto_scroll: bool,
     /// Requested scroll delta for main content panel (set by shortcuts, applied in UI)
     requested_scroll_delta: Option<f32>,
+    /// Scroll velocity (px/frame) — accumulates from keyboard, decays each frame
+    scroll_velocity: f32,
     /// Find mode state
     find_query: String,
     find_matches: Vec<TextMatch>,
@@ -183,6 +186,7 @@ impl Default for BlogApp {
             post_manager,
             post_manager_state,
             selected_post: 0,
+            last_post_key: None,
             editing_new_post: false,
             new_post_title: String::new(),
             new_post_content: String::new(),
@@ -206,12 +210,12 @@ impl Default for BlogApp {
             shortcut_integration: crate::shortcuts::ShortcutIntegration::new(),
             focused_panel: crate::shortcuts::FocusedPanel::RightPanel,
             previous_focused_panel: crate::shortcuts::FocusedPanel::RightPanel,
-            focus_animation: crate::animation::FocusAnimationState::new(),
             post_scroll_positions: HashMap::new(),
             side_panel_scroll_offset: 0.0,
             right_panel_scroll_offset: 0.0,
             request_side_panel_auto_scroll: false,
             requested_scroll_delta: None,
+            scroll_velocity: 0.0,
             find_query: String::new(),
             find_matches: Vec::new(),
             current_find_match: 0,
@@ -725,22 +729,6 @@ impl eframe::App for BlogApp {
         // Users can expand/collapse using hamburger buttons in top panel or side panel
         // Auto-collapse on mobile still works, but auto-expand on desktop is disabled
 
-        let current_time = ui.ctx().input(|i| i.time);
-
-        // Check if focus changed since last frame
-        if self.focused_panel != self.previous_focused_panel {
-            // Debug logging removed for performance
-            // log::info!(
-            //     "[FOCUS] Panel focus changed from {:?} to {:?}",
-            //     self.previous_focused_panel,
-            //     self.focused_panel
-            // );
-            self.focus_animation
-                .on_focus_change(self.focused_panel, current_time);
-            self.previous_focused_panel = self.focused_panel;
-        }
-
-        // Update animation state every frame
         let animation_config = {
             #[cfg(feature = "debug-windows")]
             {
@@ -751,7 +739,6 @@ impl eframe::App for BlogApp {
                 crate::animation::FocusAnimationConfig::default()
             }
         };
-        self.focus_animation.update(current_time, &animation_config);
 
         // Track if tag search state was modified
         let mut tag_search_was_modified = false;
@@ -941,8 +928,6 @@ impl eframe::App for BlogApp {
                     panel_rect,
                     &mut self.side_panel_scroll_offset,
                     &mut self.request_side_panel_auto_scroll,
-                    // Animation parameters
-                    &self.focus_animation,
                     &animation_config,
                     // Panel state
                     self.side_panel_collapsed,
@@ -1022,8 +1007,6 @@ impl eframe::App for BlogApp {
                     self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
                     panel_rect,
                     &mut self.right_panel_scroll_offset,
-                    // Animation parameters
-                    &self.focus_animation,
                     &animation_config,
                     // Panel state
                     self.right_panel_collapsed,
@@ -1092,21 +1075,33 @@ impl eframe::App for BlogApp {
                 "main_content_scroll".to_owned()
             };
 
-            // Get saved scroll position for current post (from last frame)
-            let saved_scroll_offset = self
-                .current_post_key()
-                .and_then(|key| self.post_scroll_positions.get(&key))
-                .copied()
-                .unwrap_or(0.0);
-
-            let scroll_response = ScrollArea::vertical()
-                .id_salt(scroll_id) // Still useful for widget focus tracking
-                .scroll_offset(egui::vec2(0.0, saved_scroll_offset))
-                .show(ui, |ui| {
-                    // Apply requested scroll delta if any (from shortcuts)
-                    if let Some(delta) = self.requested_scroll_delta.take() {
-                        ui.scroll_with_delta(egui::vec2(0.0, delta));
-                    }
+            // Only restore absolute scroll position on post switch, not every frame.
+            // Otherwise it fights with scroll_with_delta's native animation.
+            let mut scroll_area = ScrollArea::vertical().id_salt(scroll_id);
+            let current_key = self.current_post_key();
+            if self.last_post_key != current_key {
+                let saved = current_key
+                    .as_ref()
+                    .and_then(|key| self.post_scroll_positions.get(key.as_str()))
+                    .copied()
+                    .unwrap_or(0.0);
+                scroll_area = scroll_area.scroll_offset(egui::vec2(0.0, saved));
+                self.last_post_key = current_key;
+            }
+            let scroll_response = scroll_area.show(ui, |ui| {
+                // Combine discrete scroll delta + velocity-driven scroll
+                let mut total_delta = self.requested_scroll_delta.take().unwrap_or(0.0);
+                if self.scroll_velocity.abs() > 0.1 {
+                    total_delta += self.scroll_velocity;
+                    self.scroll_velocity *= 0.88; // friction
+                    ui.ctx().request_repaint();
+                }
+                if total_delta.abs() > 0.1 {
+                    ui.scroll_with_delta_animation(
+                        egui::vec2(0.0, total_delta),
+                        egui::style::ScrollAnimation::none(),
+                    );
+                }
                     // Use responsive container for optimal reading width
                     ui::responsive::responsive_container(ui, &self.responsive_config, |ui| {
                         // Create closure first to avoid borrow conflicts
@@ -1139,8 +1134,6 @@ impl eframe::App for BlogApp {
                             state,
                             self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
                             panel_rect,
-                            // Animation parameters
-                            &self.focus_animation,
                             &animation_config,
                         );
                         (
@@ -1484,21 +1477,20 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         direction: crate::shortcuts::ScrollDirection,
         amount: crate::shortcuts::ScrollAmount,
     ) -> bool {
-        // Calculate scroll amount based on direction and amount type
-        let scroll_step = match amount {
-            crate::shortcuts::ScrollAmount::Small => 50.0, // Small step
-            crate::shortcuts::ScrollAmount::HalfPage => 300.0, // Half page
-            crate::shortcuts::ScrollAmount::Page => 600.0, // Full page
+        // Velocity-driven scroll: each key event adds impulse to a decaying velocity.
+        // Per-frame: velocity * friction is applied as scroll delta, producing smooth
+        // continuous motion during key hold and natural deceleration on release.
+        let impulse = match amount {
+            crate::shortcuts::ScrollAmount::Small => 8.0,
+            crate::shortcuts::ScrollAmount::HalfPage => 20.0,
+            crate::shortcuts::ScrollAmount::Page => 40.0,
         };
 
-        let delta = match direction {
-            crate::shortcuts::ScrollDirection::Up => scroll_step, // Positive = scroll up (content moves down) - FIXED
-            crate::shortcuts::ScrollDirection::Down => -scroll_step, // Negative = scroll down (content moves up) - FIXED
+        let sign = match direction {
+            crate::shortcuts::ScrollDirection::Up => 1.0,
+            crate::shortcuts::ScrollDirection::Down => -1.0,
         };
-
-        // Store delta to be applied in UI
-        self.requested_scroll_delta = Some(delta);
-        log::debug!("Scroll requested: {direction:?} {amount:?} (delta: {delta})");
+        self.scroll_velocity += sign * impulse;
         true
     }
 
@@ -1950,8 +1942,6 @@ mod tests {
             crate::shortcuts::FocusedPanel::RightPanel
         );
 
-        // Test that focus_animation is accessible
-        let _ = &app.focus_animation;
     }
 
     #[test]

@@ -3,7 +3,6 @@
 use egui::Ui;
 
 use super::components::{self, Theme};
-use crate::animation::FocusRenderer;
 use crate::math::MathAssetManager;
 use crate::posts::{PostManager, PostManagerState};
 
@@ -227,8 +226,6 @@ pub fn side_panel(
     panel_rect: egui::Rect,
     scroll_offset: &mut f32,
     request_auto_scroll: &mut bool,
-    // Animation parameters
-    animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
     // Panel state
     side_panel_collapsed: bool,
@@ -243,19 +240,26 @@ pub fn side_panel(
     // Use the provided panel_rect for click detection (full panel area)
     let click_rect = panel_rect;
 
-    // Draw animated focus indicator if panel is focused
+    let t = ui.ctx().animate_bool_with_time(
+        egui::Id::new("left_panel_focus"),
+        is_focused,
+        animation_config.flash_duration() as f32,
+    );
     if is_focused {
-        let current_time = ui.ctx().input(|i| i.time);
-
-        FocusRenderer::draw_focus_indicator(
-            ui.painter(),
-            panel_rect,
-            is_focused,
-            animation_state,
-            animation_config,
-            current_time,
-            ui,
-        );
+        let flash = (t * std::f32::consts::PI).sin() * animation_config.flash_max_opacity;
+        if flash > 0.001 {
+            let flash_color = ui.visuals().widgets.active.bg_fill;
+            let alpha = (flash_color.a() as f32 * flash).round() as u8;
+            let border_color = egui::Color32::from_rgba_premultiplied(
+                flash_color.r(), flash_color.g(), flash_color.b(), alpha,
+            );
+            ui.painter().rect_stroke(
+                panel_rect,
+                0.0,
+                egui::Stroke::new(animation_config.border_thickness, border_color),
+                egui::StrokeKind::Outside,
+            );
+        }
     }
 
     // Handle collapsed state - show only hamburger button
@@ -558,8 +562,6 @@ pub fn right_panel(
     is_focused: bool,
     panel_rect: egui::Rect,
     scroll_offset: &mut f32,
-    // Animation parameters
-    animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
     // Panel state
     panel_collapsed: bool,
@@ -575,19 +577,26 @@ pub fn right_panel(
     // Use the provided panel_rect for click detection (full panel area)
     let click_rect = panel_rect;
 
-    // Draw animated focus indicator if panel is focused
+    let t = ui.ctx().animate_bool_with_time(
+        egui::Id::new("right_panel_focus"),
+        is_focused,
+        animation_config.flash_duration() as f32,
+    );
     if is_focused {
-        let current_time = ui.ctx().input(|i| i.time);
-
-        FocusRenderer::draw_focus_indicator(
-            ui.painter(),
-            panel_rect,
-            is_focused,
-            animation_state,
-            animation_config,
-            current_time,
-            ui,
-        );
+        let flash = (t * std::f32::consts::PI).sin() * animation_config.flash_max_opacity;
+        if flash > 0.001 {
+            let flash_color = ui.visuals().widgets.active.bg_fill;
+            let alpha = (flash_color.a() as f32 * flash).round() as u8;
+            let border_color = egui::Color32::from_rgba_premultiplied(
+                flash_color.r(), flash_color.g(), flash_color.b(), alpha,
+            );
+            ui.painter().rect_stroke(
+                panel_rect,
+                0.0,
+                egui::Stroke::new(animation_config.border_thickness, border_color),
+                egui::StrokeKind::Outside,
+            );
+        }
     }
 
     // Handle collapsed state - show only hamburger button
@@ -731,18 +740,9 @@ pub fn main_content(
     state: MainContentState<'_>,
     is_focused: bool,
     panel_rect: egui::Rect,
-    // Animation parameters
-    animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
-    main_content_internal(
-        ui,
-        state,
-        is_focused,
-        panel_rect,
-        animation_state,
-        animation_config,
-    )
+    main_content_internal(ui, state, is_focused, panel_rect, animation_config)
 }
 
 fn main_content_internal(
@@ -750,17 +750,9 @@ fn main_content_internal(
     state: MainContentState<'_>,
     is_focused: bool,
     panel_rect: egui::Rect,
-    animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
-    main_content_internal_impl(
-        ui,
-        state,
-        is_focused,
-        panel_rect,
-        animation_state,
-        animation_config,
-    )
+    main_content_internal_impl(ui, state, is_focused, panel_rect, animation_config)
 }
 
 fn main_content_internal_impl(
@@ -768,7 +760,6 @@ fn main_content_internal_impl(
     state: MainContentState<'_>,
     is_focused: bool,
     panel_rect: egui::Rect,
-    animation_state: &crate::animation::FocusAnimationState,
     animation_config: &crate::animation::FocusAnimationConfig,
 ) -> (bool, bool, Option<usize>, bool, bool) {
     let mut post_saved = false;
@@ -792,19 +783,26 @@ fn main_content_internal_impl(
     //     panel_rect.size()
     // );
 
-    // Draw animated focus indicator if panel is focused
+    let t = ui.ctx().animate_bool_with_time(
+        egui::Id::new("main_content_focus"),
+        is_focused,
+        animation_config.flash_duration() as f32,
+    );
     if is_focused {
-        let current_time = ui.ctx().input(|i| i.time);
-
-        crate::animation::FocusRenderer::draw_focus_indicator(
-            ui.painter(),
-            panel_rect,
-            is_focused,
-            animation_state,
-            animation_config,
-            current_time,
-            ui,
-        );
+        let flash = (t * std::f32::consts::PI).sin() * animation_config.flash_max_opacity;
+        if flash > 0.001 {
+            let flash_color = ui.visuals().widgets.active.bg_fill;
+            let alpha = (flash_color.a() as f32 * flash).round() as u8;
+            let border_color = egui::Color32::from_rgba_premultiplied(
+                flash_color.r(), flash_color.g(), flash_color.b(), alpha,
+            );
+            ui.painter().rect_stroke(
+                panel_rect,
+                0.0,
+                egui::Stroke::new(animation_config.border_thickness, border_color),
+                egui::StrokeKind::Outside,
+            );
+        }
     }
 
     // Handle 404 route
