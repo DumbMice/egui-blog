@@ -1093,7 +1093,7 @@ impl eframe::App for BlogApp {
                 let mut total_delta = self.requested_scroll_delta.take().unwrap_or(0.0);
                 if self.scroll_velocity.abs() > 0.1 {
                     total_delta += self.scroll_velocity;
-                    self.scroll_velocity *= 0.88; // friction
+                    self.scroll_velocity *= 0.92;
                     ui.ctx().request_repaint();
                 }
                 if total_delta.abs() > 0.1 {
@@ -1481,9 +1481,9 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         // Per-frame: velocity * friction is applied as scroll delta, producing smooth
         // continuous motion during key hold and natural deceleration on release.
         let impulse = match amount {
-            crate::shortcuts::ScrollAmount::Small => 8.0,
-            crate::shortcuts::ScrollAmount::HalfPage => 20.0,
-            crate::shortcuts::ScrollAmount::Page => 40.0,
+            crate::shortcuts::ScrollAmount::Small => 20.0,
+            crate::shortcuts::ScrollAmount::HalfPage => 40.0,
+            crate::shortcuts::ScrollAmount::Page => 80.0,
         };
 
         let sign = match direction {
