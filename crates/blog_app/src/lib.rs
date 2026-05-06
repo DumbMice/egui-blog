@@ -150,6 +150,8 @@ pub struct BlogApp {
     requested_scroll_delta: Option<f32>,
     /// Scroll velocity (px/frame) — accumulates from keyboard, decays each frame
     scroll_velocity: f32,
+    /// Estimated actual scroll velocity from last frame's position delta
+    estimated_velocity: f32,
     /// Find mode state
     find_query: String,
     find_matches: Vec<TextMatch>,
@@ -216,6 +218,7 @@ impl Default for BlogApp {
             request_side_panel_auto_scroll: false,
             requested_scroll_delta: None,
             scroll_velocity: 0.0,
+            estimated_velocity: 0.0,
             find_query: String::new(),
             find_matches: Vec::new(),
             current_find_match: 0,
@@ -1092,6 +1095,14 @@ impl eframe::App for BlogApp {
                 // Combine discrete scroll delta + velocity-driven scroll
                 let mut total_delta = self.requested_scroll_delta.take().unwrap_or(0.0);
                 if self.scroll_velocity.abs() > 0.1 {
+                    // Edge detection: if estimated (position-based) velocity is zero
+                    // but internal velocity is significant, we're pushing against an edge.
+                    // Zero internal velocity to allow instant direction reversal.
+                    if self.estimated_velocity.abs() < f32::EPSILON
+                        && self.scroll_velocity.abs() > 10.0
+                    {
+                        self.scroll_velocity = 0.0;
+                    }
                     total_delta += self.scroll_velocity;
                     self.scroll_velocity *= 0.92;
                     ui.ctx().request_repaint();
@@ -1155,10 +1166,13 @@ impl eframe::App for BlogApp {
                     });
                 });
 
-            // Save current scroll position for the current post
+            // Save current scroll position and estimate actual velocity
+            let frame_offset = scroll_response.state.offset.y;
             if let Some(post_key) = self.current_post_key() {
-                self.post_scroll_positions
-                    .insert(post_key, scroll_response.state.offset.y);
+                if let Some(prev) = self.post_scroll_positions.get(&post_key) {
+                    self.estimated_velocity = frame_offset - prev;
+                }
+                self.post_scroll_positions.insert(post_key, frame_offset);
             }
 
             // Focused panel is managed by app state, not egui data
@@ -1481,9 +1495,9 @@ impl crate::shortcuts::ActionExecutor for BlogApp {
         // Per-frame: velocity * friction is applied as scroll delta, producing smooth
         // continuous motion during key hold and natural deceleration on release.
         let impulse = match amount {
-            crate::shortcuts::ScrollAmount::Small => 20.0,
-            crate::shortcuts::ScrollAmount::HalfPage => 40.0,
-            crate::shortcuts::ScrollAmount::Page => 80.0,
+            crate::shortcuts::ScrollAmount::Small => 8.0,
+            crate::shortcuts::ScrollAmount::HalfPage => 20.0,
+            crate::shortcuts::ScrollAmount::Page => 40.0,
         };
 
         let sign = match direction {
