@@ -450,8 +450,8 @@ pub fn render_table(
             // Vertical column separators
             if col_count > 1 {
                 let mut sep_x = start_x;
-                for i in 0..col_count - 1 {
-                    sep_x += col_widths[i] + cell_padding / 2.0;
+                for cw in col_widths.iter().take(col_count - 1) {
+                    sep_x += cw + cell_padding / 2.0;
                     let top = Pos2::new(sep_x, table_rect.min.y);
                     let bottom = Pos2::new(sep_x, table_rect.max.y);
                     painter.line_segment([top, bottom], stroke);
