@@ -1,7 +1,13 @@
 //! Custom table rendering for markdown tables with enhanced styling.
 
-use egui::{Align, Layout, Pos2, Stroke, StrokeKind, TextStyle, Ui};
+use egui::{Align, Layout, Pos2, Rect, Stroke, StrokeKind, TextStyle, Ui, UiBuilder, Vec2};
 use pulldown_cmark::Alignment;
+
+#[derive(Clone)]
+struct TableMeasurements {
+    col_widths: Vec<f32>,
+    row_height: f32,
+}
 
 /// Render table cell content without wrapping (for proper column width calculation)
 fn render_table_cell_content(
@@ -21,10 +27,9 @@ fn render_table_cell_content(
             // Apply padding based on alignment
             match alignment {
                 Alignment::Left | Alignment::None => {
-                    // Left alignment: add left padding, content starts at left
                     ui.add_space(8.0); // Left padding
                     render_cell_content_items(ui, content, text_style);
-                    // Right padding is handled by grid spacing
+                    ui.add_space(8.0); // Right padding
                 }
                 Alignment::Center => {
                     // Center alignment: let layout center the content
@@ -226,7 +231,6 @@ impl Default for TableConfig {
     }
 }
 
-/// Renders a markdown table with enhanced styling.
 pub fn render_table(
     ui: &mut Ui,
     alignments: &[Alignment],
@@ -241,7 +245,6 @@ pub fn render_table(
         return;
     }
 
-    // Determine number of columns from first row
     let col_count = headers
         .first()
         .map(Vec::len)
@@ -254,110 +257,225 @@ pub fn render_table(
 
     ui.add_space(config.outer_margin);
 
-    // Check if all header cells are empty
     let all_headers_empty = headers
         .iter()
         .all(|row| row.iter().all(|cell| cell.trim().is_empty()));
 
-    // Simple ID for the table
-    let table_id_source = "markdown_table";
+    ui.push_id("markdown_table", |ui| {
+        let measurement_id = ui.auto_id_with("table_measurements");
 
-    // Use push_id to create a unique ID scope for the entire table
-    ui.push_id(table_id_source, |ui| {
-        // Store the initial cursor position
-        let _initial_cursor = ui.cursor();
+        let has_measurements: bool = ui
+            .ctx()
+            .data(|data| data.get_temp::<TableMeasurements>(measurement_id).is_some());
 
-        // Create a grid with the appropriate number of columns
-        // Use a unique ID for each grid
-        let grid_id = ui.auto_id_with("table_grid");
-        let grid_response = egui::Grid::new(grid_id)
-            .striped(config.striped_rows)
-            .min_col_width(40.0)
-            .spacing([config.cell_padding, config.cell_padding])
-            .show(ui, |ui| {
-                // Render header rows (skip if all empty)
-                if !all_headers_empty {
-                    for header_row in headers {
-                        for (col_idx, cell) in header_row.iter().enumerate() {
-                            let alignment =
-                                alignments.get(col_idx).copied().unwrap_or(Alignment::None);
+        let (col_widths, row_height) = if has_measurements {
+            let m = ui
+                .ctx()
+                .data(|data| data.get_temp::<TableMeasurements>(measurement_id))
+                .expect("has_measurements was true");
+            (m.col_widths, m.row_height)
+        } else {
+            let mut col_widths = vec![0.0f32; col_count];
+            let mut row_height = 0.0f32;
 
+            if !all_headers_empty {
+                for header_row in headers {
+                    for (col, cell) in header_row.iter().enumerate() {
+                        let alignment = alignments.get(col).copied().unwrap_or(Alignment::None);
+                        let mut cell_size = Vec2::ZERO;
+                        ui.scope_builder(UiBuilder::new().sizing_pass().invisible(), |ui| {
                             render_table_cell(
                                 ui,
                                 cell,
                                 alignment,
-                                true, // is_header = true
+                                true,
                                 math_asset_manager,
                                 math_resolution_scale,
                                 text_segment_cache,
                             );
-                        }
-                        ui.end_row();
+                            cell_size = ui.min_rect().size();
+                        });
+                        col_widths[col] = col_widths[col].max(cell_size.x);
+                        row_height = row_height.max(cell_size.y);
                     }
                 }
+            }
 
-                // Render data rows
-                for row in rows {
-                    for (col_idx, cell) in row.iter().enumerate() {
-                        let alignment = alignments.get(col_idx).copied().unwrap_or(Alignment::None);
-
+            for row in rows {
+                for (col, cell) in row.iter().enumerate() {
+                    let alignment = alignments.get(col).copied().unwrap_or(Alignment::None);
+                    let mut cell_size = Vec2::ZERO;
+                    ui.scope_builder(UiBuilder::new().sizing_pass().invisible(), |ui| {
                         render_table_cell(
                             ui,
                             cell,
                             alignment,
-                            false, // is_header = false
+                            false,
                             math_asset_manager,
                             math_resolution_scale,
                             text_segment_cache,
                         );
-                    }
-                    ui.end_row();
+                        cell_size = ui.min_rect().size();
+                    });
+                    col_widths[col] = col_widths[col].max(cell_size.x);
+                    row_height = row_height.max(cell_size.y);
                 }
+            }
+
+            ui.ctx().data_mut(|data| {
+                data.insert_temp(
+                    measurement_id,
+                    TableMeasurements {
+                        col_widths: col_widths.clone(),
+                        row_height,
+                    },
+                );
             });
+            ui.ctx().request_discard("Table measurement pass");
 
-        // Get the actual bounds of the rendered grid from the response
-        let grid_bounds = grid_response.response.rect;
+            (col_widths, row_height)
+        };
 
-        // Draw borders and separators
-        let painter = ui.painter();
-        let stroke_color = ui.visuals().widgets.noninteractive.bg_stroke.color;
-        let stroke = Stroke::new(config.border_width, stroke_color);
-        let header_stroke_color = ui.visuals().widgets.active.bg_stroke.color;
-        let header_stroke = Stroke::new(config.border_width, header_stroke_color);
-
-        // Draw outer border
-        if config.show_border {
-            let border_rect = grid_bounds.expand(config.cell_padding);
-            painter.rect_stroke(border_rect, 0.0, stroke, StrokeKind::Inside);
+        if !has_measurements {
+            return;
         }
 
-        // Note: Column separators are disabled by default because we can't easily
-        // track column positions with egui::Grid. If needed, we could implement
-        // a custom table renderer that tracks column boundaries.
+        let total_rows = {
+            let h = if all_headers_empty { 0 } else { headers.len() };
+            h + rows.len()
+        };
+        let cell_padding = config.cell_padding;
 
-        // Draw row separators (if enabled and not using striped rows)
-        if config.show_row_separators && !config.striped_rows {
-            let total_rows = headers.len() + rows.len();
-            if total_rows > 1 {
-                let row_height = grid_bounds.height() / total_rows as f32;
+        let available = ui.available_width();
+        let table_width: f32 =
+            col_widths.iter().sum::<f32>() + cell_padding * (col_count.saturating_sub(1)) as f32;
+        let table_height =
+            total_rows as f32 * row_height + (total_rows.saturating_sub(1)) as f32 * cell_padding;
+        let left_pad = ((available - table_width) / 2.0).max(0.0);
+
+        // Render the table in a horizontal layout. add_space moves the cursor
+        // horizontally here, centering the table within the available width.
+        ui.horizontal(|ui| {
+            ui.add_space(left_pad);
+
+            let start_x = ui.cursor().left();
+            let start_y = ui.cursor().top();
+
+            let mut row_idx = 0usize;
+            let cell_padding = config.cell_padding;
+
+            if !all_headers_empty {
+                for header_row in headers {
+                    let y = start_y + row_idx as f32 * (row_height + cell_padding);
+
+                    if config.header_background {
+                        let header_bg_rect = Rect::from_min_size(
+                            Pos2::new(start_x, y),
+                            Vec2::new(table_width, row_height),
+                        );
+                        ui.painter().rect_filled(
+                            header_bg_rect,
+                            0.0,
+                            ui.visuals().widgets.noninteractive.bg_fill,
+                        );
+                    }
+
+                    let mut x = start_x;
+                    for (col, cell) in header_row.iter().enumerate() {
+                        let alignment = alignments.get(col).copied().unwrap_or(Alignment::None);
+                        let cell_rect = Rect::from_min_size(
+                            Pos2::new(x, y),
+                            Vec2::new(col_widths[col], row_height),
+                        );
+                        ui.scope_builder(UiBuilder::new().max_rect(cell_rect), |ui| {
+                            render_table_cell(
+                                ui, cell, alignment, true,
+                                math_asset_manager, math_resolution_scale,
+                                text_segment_cache,
+                            );
+                        });
+                        x += col_widths[col] + cell_padding;
+                    }
+                    row_idx += 1;
+                }
+            }
+
+            for row in rows {
+                let y = start_y + row_idx as f32 * (row_height + cell_padding);
+
+                if config.striped_rows && row_idx % 2 == 1 {
+                    let row_rect = Rect::from_min_size(
+                        Pos2::new(start_x, y),
+                        Vec2::new(table_width, row_height),
+                    );
+                    ui.painter()
+                        .rect_filled(row_rect, 0.0, ui.visuals().weak_text_color().gamma_multiply(0.08));
+                }
+
+                let mut x = start_x;
+                for (col, cell) in row.iter().enumerate() {
+                    let alignment = alignments.get(col).copied().unwrap_or(Alignment::None);
+                    let cell_rect = Rect::from_min_size(
+                        Pos2::new(x, y),
+                        Vec2::new(col_widths[col], row_height),
+                    );
+                    ui.scope_builder(UiBuilder::new().max_rect(cell_rect), |ui| {
+                        render_table_cell(
+                            ui, cell, alignment, false,
+                            math_asset_manager, math_resolution_scale,
+                            text_segment_cache,
+                        );
+                    });
+                    x += col_widths[col] + cell_padding;
+                }
+                row_idx += 1;
+            }
+
+            let painter = ui.painter();
+            let separator_color = ui.visuals().weak_text_color();
+            let stroke = Stroke::new(config.border_width, separator_color);
+            let header_stroke_color = ui.visuals().widgets.active.bg_stroke.color;
+            let header_stroke = Stroke::new(config.border_width, header_stroke_color);
+
+            let table_rect = Rect::from_min_size(
+                Pos2::new(start_x, start_y),
+                Vec2::new(table_width, table_height),
+            );
+
+            if config.show_border {
+                let border_rect = table_rect.expand(config.cell_padding);
+                painter.rect_stroke(border_rect, 0.0, stroke, StrokeKind::Inside);
+            }
+
+            // Vertical column separators
+            if col_count > 1 {
+                let mut sep_x = start_x;
+                for i in 0..col_count - 1 {
+                    sep_x += col_widths[i] + cell_padding / 2.0;
+                    let top = Pos2::new(sep_x, table_rect.min.y);
+                    let bottom = Pos2::new(sep_x, table_rect.max.y);
+                    painter.line_segment([top, bottom], stroke);
+                    sep_x += cell_padding / 2.0;
+                }
+            }
+
+            if config.show_row_separators && !config.striped_rows && total_rows > 1 {
                 for row in 1..total_rows {
-                    let y = grid_bounds.min.y + row_height * row as f32;
-                    let line_start = Pos2::new(grid_bounds.min.x, y);
-                    let line_end = Pos2::new(grid_bounds.max.x, y);
+                    let y = start_y + row as f32 * (row_height + cell_padding) - cell_padding / 2.0;
+                    let line_start = Pos2::new(table_rect.min.x, y);
+                    let line_end = Pos2::new(table_rect.max.x, y);
                     painter.line_segment([line_start, line_end], stroke);
                 }
             }
-        }
 
-        // Draw header bottom border (if header background is enabled and there are non-empty headers)
-        if config.header_background && !headers.is_empty() && !all_headers_empty {
-            let header_height =
-                grid_bounds.height() * (headers.len() as f32 / (headers.len() + rows.len()) as f32);
-            let header_bottom_y = grid_bounds.min.y + header_height;
-            let line_start = Pos2::new(grid_bounds.min.x, header_bottom_y);
-            let line_end = Pos2::new(grid_bounds.max.x, header_bottom_y);
-            painter.line_segment([line_start, line_end], header_stroke);
-        }
+            if config.header_background && !headers.is_empty() && !all_headers_empty {
+                let header_count = headers.len();
+                let header_bottom_y = start_y + header_count as f32 * (row_height + cell_padding);
+                let line_start = Pos2::new(table_rect.min.x, header_bottom_y);
+                let line_end = Pos2::new(table_rect.max.x, header_bottom_y);
+                painter.line_segment([line_start, line_end], header_stroke);
+            }
+        });
 
         ui.add_space(config.outer_margin);
     });

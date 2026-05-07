@@ -156,4 +156,3 @@ pub struct SpannedEvent {
     pub span: Range<usize>,
     pub event: OwnedEvent,
 }
-

@@ -287,7 +287,7 @@ Consider a transformer with:
 The memory consumption breaks down as:
 
 | Component        | Memory                     | Scaling  |
-| ---------------- | -------------------------- | -------- |
+| :--------------: | :------------------------: | :------: |
 | Attention scores | $B N_"head" T^2$ (float32) | $O(T^2)$ |
 | Key-Value cache  | $B T d_"tok"$ (per layer)  | $O(T)$   |
 | Gradient storage | $2 times$ forward pass     | $O(T^2)$ |

@@ -12,9 +12,9 @@ mod registry;
 #[cfg(test)]
 mod test_integration;
 
-pub use embedded::{load_manifest, WidgetManifest};
+pub use embedded::{WidgetManifest, load_manifest};
 pub use examples::{ChartWidget, CounterWidget, EguiPlotWidgetSimple};
-pub use registry::{global_registry, WidgetInstance, WidgetRegistry};
+pub use registry::{WidgetInstance, WidgetRegistry, global_registry};
 
 /// Trait for embeddable UI widgets
 pub trait Widget: Send + Sync {

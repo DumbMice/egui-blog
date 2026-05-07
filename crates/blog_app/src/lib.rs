@@ -1113,58 +1113,58 @@ impl eframe::App for BlogApp {
                         egui::style::ScrollAnimation::none(),
                     );
                 }
-                    // Use responsive container for optimal reading width
-                    ui::responsive::responsive_container(ui, &self.responsive_config, |ui| {
-                        // Create closure first to avoid borrow conflicts
-                        let mut navigate_callback = |route: crate::routing::Route| {
-                            route_to_navigate = Some(route);
-                        };
+                // Use responsive container for optimal reading width
+                ui::responsive::responsive_container(ui, &self.responsive_config, |ui| {
+                    // Create closure first to avoid borrow conflicts
+                    let mut navigate_callback = |route: crate::routing::Route| {
+                        route_to_navigate = Some(route);
+                    };
 
-                        let navigation = ui::layout::NavigationContext {
-                            current_route: self.router.current_route(),
-                            on_navigate: &mut navigate_callback,
-                        };
+                    let navigation = ui::layout::NavigationContext {
+                        current_route: self.router.current_route(),
+                        on_navigate: &mut navigate_callback,
+                    };
 
-                        let state = ui::layout::MainContentState::new(
-                            &self.post_manager,
-                            self.selected_post,
-                            self.editing_new_post,
-                            &mut self.new_post_title,
-                            &mut self.new_post_content,
-                            &self.post_manager_state,
-                            Some(&mut self.math_asset_manager),
-                            navigation,
-                            &mut self.tag_search_state,
-                            &all_tags_vec,
-                            self.math_resolution_scale,
-                            self.fragment_to_scroll_to.as_deref(),
-                            &mut self.text_segment_cache,
-                        );
-                        let result = ui::layout::main_content(
-                            ui,
-                            state,
-                            self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
-                            panel_rect,
-                            &animation_config,
-                        );
-                        (
-                            post_saved,
-                            editing_cancelled,
-                            navigation_index,
-                            retry_requested,
-                            panel_clicked,
-                        ) = result;
+                    let state = ui::layout::MainContentState::new(
+                        &self.post_manager,
+                        self.selected_post,
+                        self.editing_new_post,
+                        &mut self.new_post_title,
+                        &mut self.new_post_content,
+                        &self.post_manager_state,
+                        Some(&mut self.math_asset_manager),
+                        navigation,
+                        &mut self.tag_search_state,
+                        &all_tags_vec,
+                        self.math_resolution_scale,
+                        self.fragment_to_scroll_to.as_deref(),
+                        &mut self.text_segment_cache,
+                    );
+                    let result = ui::layout::main_content(
+                        ui,
+                        state,
+                        self.focused_panel == crate::shortcuts::FocusedPanel::RightPanel,
+                        panel_rect,
+                        &animation_config,
+                    );
+                    (
+                        post_saved,
+                        editing_cancelled,
+                        navigation_index,
+                        retry_requested,
+                        panel_clicked,
+                    ) = result;
 
-                        if panel_clicked {
-                            // Debug logging removed for performance
-                            // log::debug!(
-                            //     "Main content clicked from layout.rs, focusing right panel"
-                            // );
-                            // log::debug!("[FOCUS] Main content clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
-                            self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
-                        }
-                    });
+                    if panel_clicked {
+                        // Debug logging removed for performance
+                        // log::debug!(
+                        //     "Main content clicked from layout.rs, focusing right panel"
+                        // );
+                        // log::debug!("[FOCUS] Main content clicked, setting focused_panel = RightPanel (was {:?})", self.focused_panel);
+                        self.focused_panel = crate::shortcuts::FocusedPanel::RightPanel;
+                    }
                 });
+            });
 
             // Save current scroll position and estimate actual velocity
             let frame_offset = scroll_response.state.offset.y;
@@ -1955,7 +1955,6 @@ mod tests {
             app.previous_focused_panel,
             crate::shortcuts::FocusedPanel::RightPanel
         );
-
     }
 
     #[test]

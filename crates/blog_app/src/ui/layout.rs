@@ -251,7 +251,10 @@ pub fn side_panel(
             let flash_color = ui.visuals().widgets.active.bg_fill;
             let alpha = (flash_color.a() as f32 * flash).round() as u8;
             let border_color = egui::Color32::from_rgba_premultiplied(
-                flash_color.r(), flash_color.g(), flash_color.b(), alpha,
+                flash_color.r(),
+                flash_color.g(),
+                flash_color.b(),
+                alpha,
             );
             ui.painter().rect_stroke(
                 panel_rect,
@@ -588,7 +591,10 @@ pub fn right_panel(
             let flash_color = ui.visuals().widgets.active.bg_fill;
             let alpha = (flash_color.a() as f32 * flash).round() as u8;
             let border_color = egui::Color32::from_rgba_premultiplied(
-                flash_color.r(), flash_color.g(), flash_color.b(), alpha,
+                flash_color.r(),
+                flash_color.g(),
+                flash_color.b(),
+                alpha,
             );
             ui.painter().rect_stroke(
                 panel_rect,
@@ -794,7 +800,10 @@ fn main_content_internal_impl(
             let flash_color = ui.visuals().widgets.active.bg_fill;
             let alpha = (flash_color.a() as f32 * flash).round() as u8;
             let border_color = egui::Color32::from_rgba_premultiplied(
-                flash_color.r(), flash_color.g(), flash_color.b(), alpha,
+                flash_color.r(),
+                flash_color.g(),
+                flash_color.b(),
+                alpha,
             );
             ui.painter().rect_stroke(
                 panel_rect,
