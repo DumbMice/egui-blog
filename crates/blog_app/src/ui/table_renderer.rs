@@ -1,7 +1,14 @@
 //! Custom table rendering for markdown tables with enhanced styling.
 
+use std::sync::{Arc, LazyLock};
+
 use egui::{Align, Layout, Pos2, Rect, Stroke, StrokeKind, TextStyle, Ui, UiBuilder, Vec2};
 use pulldown_cmark::Alignment;
+
+static TEXT_CONTENT_BODY: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentBody")));
+static TEXT_CONTENT_BODY_MEDIUM: LazyLock<TextStyle> =
+    LazyLock::new(|| TextStyle::Name(Arc::from("ContentBodyMedium")));
 
 #[derive(Clone)]
 struct TableMeasurements {
@@ -155,12 +162,10 @@ fn render_table_cell(
     );
 
     // Determine text style based on whether it's a header or data cell
-    let text_style = if is_header {
-        // Headers use medium weight for emphasis
-        TextStyle::Name("ContentBodyMedium".into())
+    let text_style: &TextStyle = if is_header {
+        &TEXT_CONTENT_BODY_MEDIUM
     } else {
-        // Data cells use regular body text
-        TextStyle::Name("ContentBody".into())
+        &TEXT_CONTENT_BODY
     };
 
     // Apply alignment - GitHub tables default to left-aligned for Alignment::None
