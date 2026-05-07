@@ -7,6 +7,7 @@ use pulldown_cmark::Alignment;
 struct TableMeasurements {
     col_widths: Vec<f32>,
     row_height: f32,
+    cell_widths: Vec<Vec<f32>>,
 }
 
 /// Render table cell content without wrapping (for proper column width calculation)
@@ -168,29 +169,12 @@ fn render_table_cell(
         _ => alignment,
     };
 
-    // Apply alignment
-    match actual_alignment {
-        Alignment::Left => {
-            ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
-            });
-        }
-        Alignment::Center => {
-            ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
-            });
-        }
-        Alignment::Right => {
-            ui.with_layout(Layout::left_to_right(Align::Max), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
-            });
-        }
-        Alignment::None => {
-            // Should never happen - we convert None to Left above
-            ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                render_table_cell_content(ui, &paragraph_content, &text_style, Alignment::Left);
-            });
-        }
+    if matches!(actual_alignment, Alignment::Right) {
+        ui.with_layout(Layout::right_to_left(Align::Max), |ui| {
+            render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
+        });
+    } else {
+        render_table_cell_content(ui, &paragraph_content, &text_style, actual_alignment);
     }
 }
 
@@ -268,18 +252,20 @@ pub fn render_table(
             .ctx()
             .data(|data| data.get_temp::<TableMeasurements>(measurement_id).is_some());
 
-        let (col_widths, row_height) = if has_measurements {
+        let (col_widths, row_height, cell_widths) = if has_measurements {
             let m = ui
                 .ctx()
                 .data(|data| data.get_temp::<TableMeasurements>(measurement_id))
                 .expect("has_measurements was true");
-            (m.col_widths, m.row_height)
+            (m.col_widths, m.row_height, m.cell_widths)
         } else {
             let mut col_widths = vec![0.0f32; col_count];
             let mut row_height = 0.0f32;
+            let mut cell_widths: Vec<Vec<f32>> = Vec::new();
 
             if !all_headers_empty {
                 for header_row in headers {
+                    let mut row_widths = Vec::with_capacity(col_count);
                     for (col, cell) in header_row.iter().enumerate() {
                         let alignment = alignments.get(col).copied().unwrap_or(Alignment::None);
                         let mut cell_size = Vec2::ZERO;
@@ -297,11 +283,14 @@ pub fn render_table(
                         });
                         col_widths[col] = col_widths[col].max(cell_size.x);
                         row_height = row_height.max(cell_size.y);
+                        row_widths.push(cell_size.x);
                     }
+                    cell_widths.push(row_widths);
                 }
             }
 
             for row in rows {
+                let mut row_widths = Vec::with_capacity(col_count);
                 for (col, cell) in row.iter().enumerate() {
                     let alignment = alignments.get(col).copied().unwrap_or(Alignment::None);
                     let mut cell_size = Vec2::ZERO;
@@ -319,7 +308,9 @@ pub fn render_table(
                     });
                     col_widths[col] = col_widths[col].max(cell_size.x);
                     row_height = row_height.max(cell_size.y);
+                    row_widths.push(cell_size.x);
                 }
+                cell_widths.push(row_widths);
             }
 
             ui.ctx().data_mut(|data| {
@@ -328,12 +319,13 @@ pub fn render_table(
                     TableMeasurements {
                         col_widths: col_widths.clone(),
                         row_height,
+                        cell_widths: cell_widths.clone(),
                     },
                 );
             });
             ui.ctx().request_discard("Table measurement pass");
 
-            (col_widths, row_height)
+            (col_widths, row_height, cell_widths)
         };
 
         if !has_measurements {
@@ -388,6 +380,10 @@ pub fn render_table(
                             Vec2::new(col_widths[col], row_height),
                         );
                         ui.scope_builder(UiBuilder::new().max_rect(cell_rect), |ui| {
+                            if alignment == Alignment::Center {
+                                let pw = cell_widths[row_idx][col];
+                                ui.add_space((col_widths[col] - pw) / 2.0);
+                            }
                             render_table_cell(
                                 ui, cell, alignment, true,
                                 math_asset_manager, math_resolution_scale,
@@ -420,6 +416,10 @@ pub fn render_table(
                         Vec2::new(col_widths[col], row_height),
                     );
                     ui.scope_builder(UiBuilder::new().max_rect(cell_rect), |ui| {
+                        if alignment == Alignment::Center {
+                            let pw = cell_widths[row_idx][col];
+                            ui.add_space((col_widths[col] - pw) / 2.0);
+                        }
                         render_table_cell(
                             ui, cell, alignment, false,
                             math_asset_manager, math_resolution_scale,
